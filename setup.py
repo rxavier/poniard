@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 from distutils.util import convert_path
 
 main_ns = {}
-ver_path = convert_path("first_stab/__init__.py")
+ver_path = convert_path("first_stab/_version.py")
 with open(ver_path) as ver_file:
     exec(ver_file.read(), main_ns)
 
@@ -22,7 +22,7 @@ setup(
     long_description_content_type="text/markdown",
     author="Rafael Xavier",
     license="MIT",
-    url="https://github.com/cpa-ferrere/EmbeddingEncoder",
+    url="https://github.com/rxavier/first-stab",
     classifiers=[
         "Development Status :: 3 - Alpha",
         "Intended Audience :: Science/Research",
@@ -42,7 +42,9 @@ setup(
     ],
     install_requires=[
         "scikit-learn",
+        "xgboost",
         "pandas",
+        "tqdm",
     ],
     include_package_data=True,
     packages=packages,

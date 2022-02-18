@@ -14,6 +14,7 @@ from sklearn.ensemble import (
     AdaBoostRegressor,
     HistGradientBoostingRegressor,
 )
+from xgboost import XGBRegressor
 from sklearn.dummy import DummyRegressor
 from sklearn.metrics import (
     make_scorer,
@@ -58,6 +59,7 @@ class MultiRegressor(MultiEstimatorBase):
             HistGradientBoostingRegressor(
                 random_state=self.random_state, verbose=self.verbose
             ),
+            XGBRegressor(random_state=self.random_state),
             DummyRegressor(),
         ]
 

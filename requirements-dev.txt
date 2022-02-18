@@ -22,6 +22,7 @@ click==8.0.3
     # via black
 colorama==0.4.4
     # via
+    #   -c requirements.txt
     #   click
     #   ipython
 debugpy==1.5.1

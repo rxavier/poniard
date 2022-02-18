@@ -14,6 +14,7 @@ from sklearn.ensemble import (
     AdaBoostClassifier,
     HistGradientBoostingClassifier,
 )
+from xgboost import XGBClassifier
 from sklearn.dummy import DummyClassifier
 from sklearn.metrics import (
     make_scorer,
@@ -59,6 +60,11 @@ class MultiClassifier(MultiEstimatorBase):
             AdaBoostClassifier(random_state=self.random_state),
             HistGradientBoostingClassifier(
                 random_state=self.random_state, verbose=self.verbose
+            ),
+            XGBClassifier(
+                random_state=self.random_state,
+                use_label_encoder=False,
+                eval_metric="mlogloss",
             ),
             DummyClassifier(),
         ]
