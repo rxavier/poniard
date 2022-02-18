@@ -2,7 +2,7 @@ from typing import List, Optional, Union, Iterable, Callable, Dict
 
 import pandas as pd
 import numpy as np
-from sklearn.base import ClassifierMixin
+from sklearn.base import RegressorMixin
 from sklearn.model_selection._split import BaseCrossValidator, BaseShuffleSplit
 
 from sklearn.linear_model import LinearRegression, ElasticNet
@@ -30,7 +30,9 @@ from first_stab.core import MultiEstimatorBase
 class MultiRegressor(MultiEstimatorBase):
     def __init__(
         self,
-        estimators: Optional[List[ClassifierMixin]] = None,
+        estimators: Optional[
+            Union[Dict[str, RegressorMixin], List[RegressorMixin]]
+        ] = None,
         metrics: Optional[Union[Dict[str, Callable], List[str], Callable]] = None,
         preprocess: bool = True,
         cv: Union[int, BaseCrossValidator, BaseShuffleSplit, Iterable] = 5,
@@ -47,7 +49,7 @@ class MultiRegressor(MultiEstimatorBase):
         )
 
     @property
-    def _base_estimators(self) -> List[ClassifierMixin]:
+    def _base_estimators(self) -> List[RegressorMixin]:
         return [
             LinearRegression(),
             ElasticNet(random_state=self.random_state),

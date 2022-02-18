@@ -30,7 +30,9 @@ from first_stab.core import MultiEstimatorBase
 class MultiClassifier(MultiEstimatorBase):
     def __init__(
         self,
-        estimators: Optional[List[ClassifierMixin]] = None,
+        estimators: Optional[
+            Union[Dict[str, ClassifierMixin], List[ClassifierMixin]]
+        ] = None,
         metrics: Optional[Union[Dict[str, Callable], List[str], Callable]] = None,
         preprocess: bool = True,
         cv: Union[int, BaseCrossValidator, BaseShuffleSplit, Iterable] = 5,
