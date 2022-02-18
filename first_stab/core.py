@@ -5,9 +5,15 @@ from typing import List, Optional, Union, Iterable, Callable, Dict, Tuple
 import pandas as pd
 import numpy as np
 from tqdm import tqdm
-from sklearn.base import ClassifierMixin, RegressorMixin, BaseEstimator, clone
+from sklearn.base import ClassifierMixin, RegressorMixin, clone
 from sklearn.model_selection._split import BaseCrossValidator, BaseShuffleSplit
 from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.ensemble import (
+    VotingClassifier,
+    VotingRegressor,
+    StackingClassifier,
+    StackingRegressor,
+)
 from sklearn.pipeline import make_pipeline
 from sklearn.compose import make_column_transformer, make_column_selector
 from sklearn.dummy import DummyClassifier, DummyRegressor
@@ -121,7 +127,7 @@ class MultiEstimatorBase(object):
                 final_estimator = estimator
             if name == "DummyClassifier":
                 with warnings.catch_warnings():
-                    warnings.simplefilter("ignore", category=UndefinedMetricWarning)
+                    warnings.filterwarnings("ignore", category=UndefinedMetricWarning)
                     result = cross_validate(
                         final_estimator,
                         X,
@@ -212,7 +218,7 @@ class MultiEstimatorBase(object):
             return means
 
     def get_estimator(
-        self, name: str, with_pipeline: bool = True, fitted: bool = True
+        self, name: str, with_pipeline: bool = True, fitted: bool = False
     ) -> ClassifierMixin:
         model = self._experiment_results[name]["estimator"][0]
         if not with_pipeline:
@@ -221,3 +227,45 @@ class MultiEstimatorBase(object):
             return model
         else:
             return clone(model)
+
+    def get_preprocessor(self):
+        return self.preprocessor_
+
+    def build_ensemble(
+        self,
+        method: str = "stacking",
+        estimators: Optional[List[str]] = None,
+        top_n: int = 3,
+        **kwargs,
+    ) -> Union[ClassifierMixin, RegressorMixin]:
+        if method not in ["voting", "stacking"]:
+            raise ValueError("Method must be either voting or stacking.")
+        if estimators:
+            models = [
+                (name, self._experiment_results[name]["estimator"][0]._final_estimator)
+                for name in estimators
+            ]
+        else:
+            models = [
+                (name, self._experiment_results[name]["estimator"][0]._final_estimator)
+                for name in self._means.index[:top_n]
+            ]
+        if method == "voting":
+            if self.__class__.__name__ == "MultiClassifier":
+                ensemble = VotingClassifier(
+                    estimators=models, verbose=self.verbose, **kwargs
+                )
+            else:
+                ensemble = VotingRegressor(
+                    estimators=models, verbose=self.verbose, **kwargs
+                )
+        else:
+            if self.__class__.__name__ == "MultiClassifier":
+                ensemble = StackingClassifier(
+                    estimators=models, verbose=self.verbose, cv=self.cv, **kwargs
+                )
+            else:
+                ensemble = StackingRegressor(
+                    estimators=models, verbose=self.verbose, cv=self.cv, **kwargs
+                )
+        return ensemble
