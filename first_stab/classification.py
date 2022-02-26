@@ -54,7 +54,9 @@ class MultiClassifier(MultiEstimatorBase):
     @property
     def _base_estimators(self) -> List[ClassifierMixin]:
         return [
-            LogisticRegression(random_state=self.random_state, verbose=self.verbose),
+            LogisticRegression(
+                random_state=self.random_state, verbose=self.verbose, max_iter=5000
+            ),
             GaussianNB(),
             LinearSVC(random_state=self.random_state, verbose=self.verbose),
             KNeighborsClassifier(),

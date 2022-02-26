@@ -94,9 +94,7 @@ class MultiEstimatorBase(object):
                 num_imputer = SimpleImputer(strategy="mean")
             else:
                 num_imputer = IterativeImputer(random_state=self.random_state)
-            numeric_preprocessor = make_pipeline(
-                num_imputer, StandardScaler()
-            )
+            numeric_preprocessor = make_pipeline(num_imputer, StandardScaler())
             categorical_preprocessor = make_pipeline(
                 cat_imputer, OneHotEncoder(drop="first", handle_unknown="ignore")
             )
@@ -111,10 +109,14 @@ class MultiEstimatorBase(object):
                         SimpleImputer(strategy="mean"), StandardScaler()
                     )
                 else:
-                    preprocessor = make_pipeline(IterativeImputer(random_state=self.random_state), StandardScaler())
+                    preprocessor = make_pipeline(
+                        IterativeImputer(random_state=self.random_state),
+                        StandardScaler(),
+                    )
             else:
                 preprocessor = make_pipeline(
-                    SimpleImputer(strategy="most_frequent"), OneHotEncoder(drop="first", handle_unknown="ignore")
+                    SimpleImputer(strategy="most_frequent"),
+                    OneHotEncoder(drop="first", handle_unknown="ignore"),
                 )
 
         self.preprocessor_ = preprocessor
@@ -136,8 +138,11 @@ class MultiEstimatorBase(object):
         self._stds = stds.reindex(self._means.index)
         return
 
-    def _setup_experiments(self, X: Union[pd.DataFrame, np.ndarray, List],
-        y: Union[pd.DataFrame, np.ndarray, List]) -> None:
+    def _setup_experiments(
+        self,
+        X: Union[pd.DataFrame, np.ndarray, List],
+        y: Union[pd.DataFrame, np.ndarray, List],
+    ) -> None:
         if not isinstance(X, (pd.DataFrame, np.ndarray)):
             X = np.array(X)
         if not isinstance(y, (pd.DataFrame, np.ndarray)):
@@ -171,17 +176,19 @@ class MultiEstimatorBase(object):
                 final_estimator = estimator
             with warnings.catch_warnings():
                 warnings.filterwarnings("ignore", category=UndefinedMetricWarning)
-                warnings.filterwarnings("ignore", message=".*will be encoded as all zeros")
+                warnings.filterwarnings(
+                    "ignore", message=".*will be encoded as all zeros"
+                )
                 result = cross_validate(
-                        final_estimator,
-                        X,
-                        y,
-                        scoring=self.metrics_,
-                        cv=self.cv,
-                        return_train_score=True,
-                        return_estimator=True,
-                        verbose=self.verbose,
-                    )
+                    final_estimator,
+                    X,
+                    y,
+                    scoring=self.metrics_,
+                    cv=self.cv,
+                    return_train_score=True,
+                    return_estimator=True,
+                    verbose=self.verbose,
+                )
             results.update({name: result})
             if i == len(pbar) - 1:
                 pbar.set_description("Completed")
@@ -232,7 +239,7 @@ class MultiEstimatorBase(object):
             return clone(model)
 
     def get_preprocessor(self):
-        #TODO: Is this necessary? Should it be obtained from results?
+        # TODO: Is this necessary? Should it be obtained from results?
         return self.preprocessor_
 
     def ensemble(
@@ -301,9 +308,17 @@ class MultiEstimatorBase(object):
                 pbar.set_description("Completed")
         results = pd.DataFrame(results)
         if self.__class__.__name__ == "MultiClassifier":
-            estimator_names = [x for x in self.estimators_ if x not in ["DummyClassifier", "DummyRegressor"]]
-            table = pd.DataFrame(data=np.nan, index=estimator_names, columns=estimator_names)
-            for row, col in itertools.combinations_with_replacement(table.index[::-1], 2):
+            estimator_names = [
+                x
+                for x in self.estimators_
+                if x not in ["DummyClassifier", "DummyRegressor"]
+            ]
+            table = pd.DataFrame(
+                data=np.nan, index=estimator_names, columns=estimator_names
+            )
+            for row, col in itertools.combinations_with_replacement(
+                table.index[::-1], 2
+            ):
                 cramer = cramers_v(results[row], results[col])
                 if row == col:
                     table.loc[row, col] = 1

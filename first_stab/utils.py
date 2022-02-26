@@ -9,16 +9,18 @@ import pandas as pd
 import scipy.stats as ss
 
 
-_REPLACE = 'replace'
-_DROP = 'drop'
+_REPLACE = "replace"
+_DROP = "drop"
 _DEFAULT_REPLACE_VALUE = 0.0
 
 
-def cramers_v(x,
-              y,
-              bias_correction=True,
-              nan_strategy=_REPLACE,
-              nan_replace_value=_DEFAULT_REPLACE_VALUE):
+def cramers_v(
+    x,
+    y,
+    bias_correction=True,
+    nan_strategy=_REPLACE,
+    nan_replace_value=_DEFAULT_REPLACE_VALUE,
+):
     """
     Calculates Cramer's V statistic for categorical-categorical association.
     This is a symmetric coefficient: V(x,y) = V(y,x)
@@ -60,7 +62,8 @@ def cramers_v(x,
         if min((kcorr - 1), (rcorr - 1)) == 0:
             warnings.warn(
                 "Unable to calculate Cramer's V using bias correction. Consider using bias_correction=False",
-                RuntimeWarning)
+                RuntimeWarning,
+            )
             return np.nan
         else:
             return np.sqrt(phi2corr / min((kcorr - 1), (rcorr - 1)))

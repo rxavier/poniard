@@ -55,7 +55,9 @@ class MultiRegressor(MultiEstimatorBase):
         return [
             LinearRegression(),
             ElasticNet(random_state=self.random_state),
-            LinearSVR(verbose=self.verbose, random_state=self.random_state),
+            LinearSVR(
+                verbose=self.verbose, random_state=self.random_state, max_iter=5000
+            ),
             KNeighborsRegressor(),
             DecisionTreeRegressor(random_state=self.random_state),
             RandomForestRegressor(random_state=self.random_state, verbose=self.verbose),
