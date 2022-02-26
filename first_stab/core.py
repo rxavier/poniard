@@ -1,5 +1,6 @@
 import warnings
 import inspect
+import itertools
 from typing import List, Optional, Union, Iterable, Callable, Dict, Tuple
 
 import pandas as pd
@@ -21,9 +22,11 @@ from sklearn.metrics import (
     make_scorer,
     accuracy_score,
 )
-from sklearn.model_selection import cross_validate
+from sklearn.model_selection import cross_validate, cross_val_predict
 from sklearn.impute import SimpleImputer
 from sklearn.exceptions import UndefinedMetricWarning
+
+from first_stab.utils import cramers_v
 
 
 class MultiEstimatorBase(object):
@@ -107,16 +110,45 @@ class MultiEstimatorBase(object):
 
     def _build_metrics(self, y: Union[pd.DataFrame, np.ndarray]) -> None:
         self.metrics_ = {
-            "accuracy": make_scorer(accuracy_score, greater_is_better=True),
+            "accuracy": make_scorer(accuracy_score),
         }
         return
 
-    def _run_experiments(
-        self,
-        X: Union[pd.DataFrame, np.ndarray],
-        y: Union[pd.DataFrame, np.ndarray],
-    ) -> None:
+    def _process_experiment_results(self) -> None:
+        results = pd.DataFrame(self._experiment_results).T.drop(["estimator"], axis=1)
+        means = results.apply(lambda x: np.mean(x.values.tolist(), axis=1))
+        stds = results.apply(lambda x: np.std(x.values.tolist(), axis=1))
+        means = means[list(means.columns[2:]) + ["fit_time", "score_time"]]
+        stds = stds[list(stds.columns[2:]) + ["fit_time", "score_time"]]
+        self._means = means.sort_values(means.columns[0], ascending=False)
+        self._stds = stds.reindex(self._means.index)
+        return
+
+    def _setup_experiments(self, X: Union[pd.DataFrame, np.ndarray, List],
+        y: Union[pd.DataFrame, np.ndarray, List]) -> None:
+        if not isinstance(X, (pd.DataFrame, np.ndarray)):
+            X = np.array(X)
+        if not isinstance(y, (pd.DataFrame, np.ndarray)):
+            y = np.array(y)
+
+        if not self.metrics:
+            self._build_metrics(y)
+        else:
+            self.metrics_ = self.metrics
+
+        if self.preprocess:
+            self._build_preprocessor(X)
+
         self._build_initial_estimators()
+        return X, y
+
+    def cross_validate_estimators(
+        self,
+        X: Union[pd.DataFrame, np.ndarray, List],
+        y: Union[pd.DataFrame, np.ndarray, List],
+    ) -> None:
+        X, y = self._setup_experiments(X, y)
+
         results = {}
         pbar = tqdm(self.estimators_.items())
         for i, (name, estimator) in enumerate(pbar):
@@ -153,37 +185,7 @@ class MultiEstimatorBase(object):
             if i == len(pbar) - 1:
                 pbar.set_description("Completed")
         self._experiment_results = results
-        return
 
-    def _process_experiment_results(self) -> None:
-        results = pd.DataFrame(self._experiment_results).T.drop(["estimator"], axis=1)
-        means = results.apply(lambda x: np.mean(x.values.tolist(), axis=1))
-        stds = results.apply(lambda x: np.std(x.values.tolist(), axis=1))
-        means = means[list(means.columns[2:]) + ["fit_time", "score_time"]]
-        stds = stds[list(stds.columns[2:]) + ["fit_time", "score_time"]]
-        self._means = means.sort_values(means.columns[0], ascending=False)
-        self._stds = stds.reindex(self._means.index)
-        return
-
-    def run_experiments(
-        self,
-        X: Union[pd.DataFrame, np.ndarray, List],
-        y: Union[pd.DataFrame, np.ndarray, List],
-    ) -> None:
-        if not isinstance(X, (pd.DataFrame, np.ndarray)):
-            X = np.array(X)
-        if not isinstance(y, (pd.DataFrame, np.ndarray)):
-            y = np.array(y)
-
-        if not self.metrics:
-            self._build_metrics(y)
-        else:
-            self.metrics_ = self.metrics
-
-        if self.preprocess:
-            self._build_preprocessor(X)
-
-        self._run_experiments(X, y)
         self._process_experiment_results()
         return
 
@@ -200,7 +202,7 @@ class MultiEstimatorBase(object):
         self.estimators_.update(new_estimators)
         return
 
-    def show_results(
+    def results(
         self,
         std: bool = False,
         wrt_dummy: bool = False,
@@ -229,9 +231,10 @@ class MultiEstimatorBase(object):
             return clone(model)
 
     def get_preprocessor(self):
+        #TODO: Is this necessary? Should it be obtained from results?
         return self.preprocessor_
 
-    def build_ensemble(
+    def ensemble(
         self,
         method: str = "stacking",
         estimators: Optional[List[str]] = None,
@@ -269,3 +272,43 @@ class MultiEstimatorBase(object):
                     estimators=models, verbose=self.verbose, cv=self.cv, **kwargs
                 )
         return ensemble
+
+    def predictions_similarity(
+        self,
+        X: Union[pd.DataFrame, np.ndarray, List],
+        y: Union[pd.DataFrame, np.ndarray, List],
+    ) -> pd.DataFrame:
+        X, y = self._setup_experiments(X, y)
+
+        results = {}
+        pbar = tqdm(self.estimators_.items())
+        for i, (name, estimator) in enumerate(pbar):
+            pbar.set_description(f"{name}")
+            if self.preprocess:
+                final_estimator = make_pipeline(self.preprocessor_, estimator)
+            else:
+                final_estimator = estimator
+            result = cross_val_predict(
+                final_estimator,
+                X,
+                y,
+                cv=self.cv,
+                verbose=self.verbose,
+            )
+            results.update({name: result})
+            if i == len(pbar) - 1:
+                pbar.set_description("Completed")
+        results = pd.DataFrame(results)
+        if self.__class__.__name__ == "MultiClassifier":
+            estimator_names = [x for x in self.estimators_ if x not in ["DummyClassifier", "DummyRegressor"]]
+            table = pd.DataFrame(data=np.nan, index=estimator_names, columns=estimator_names)
+            for row, col in itertools.combinations_with_replacement(table.index[::-1], 2):
+                cramer = cramers_v(results[row], results[col])
+                if row == col:
+                    table.loc[row, col] = 1
+                else:
+                    table.loc[row, col] = cramer
+                    table.loc[col, row] = cramer
+        else:
+            table = results.corr()
+        return table
