@@ -23,7 +23,8 @@ from sklearn.metrics import (
     accuracy_score,
 )
 from sklearn.model_selection import cross_validate, cross_val_predict
-from sklearn.impute import SimpleImputer
+from sklearn.experimental import enable_iterative_imputer
+from sklearn.impute import SimpleImputer, IterativeImputer
 from sklearn.exceptions import UndefinedMetricWarning
 
 from first_stab.utils import cramers_v
@@ -42,12 +43,14 @@ class MultiEstimatorBase(object):
         ] = None,
         metrics: Optional[Union[Dict[str, Callable], List[str], Callable]] = None,
         preprocess: bool = True,
+        imputer: Optional[str] = None,
         cv: Union[int, BaseCrossValidator, BaseShuffleSplit, Iterable] = 5,
         verbose: int = 0,
         random_state: Optional[int] = None,
     ):
         self.metrics = metrics
         self.preprocess = preprocess
+        self.imputer = imputer or "simple"
         self.cv = cv
         self.verbose = verbose
         self.random_state = random_state
@@ -86,11 +89,16 @@ class MultiEstimatorBase(object):
         if isinstance(X, pd.DataFrame):
             categorical_columns = make_column_selector(dtype_exclude=np.number)
             numeric_columns = make_column_selector(dtype_include=np.number)
+            cat_imputer = SimpleImputer(strategy="most_frequent")
+            if self.imputer == "simple":
+                num_imputer = SimpleImputer(strategy="mean")
+            else:
+                num_imputer = IterativeImputer(random_state=self.random_state)
             numeric_preprocessor = make_pipeline(
-                SimpleImputer(strategy="mean"), StandardScaler()
+                num_imputer, StandardScaler()
             )
             categorical_preprocessor = make_pipeline(
-                SimpleImputer(strategy="most_frequent"), OneHotEncoder()
+                cat_imputer, OneHotEncoder(drop="first", handle_unknown="ignore")
             )
             preprocessor = make_column_transformer(
                 (numeric_preprocessor, numeric_columns),
@@ -98,13 +106,17 @@ class MultiEstimatorBase(object):
             )
         else:
             if X.dtype.kind in "biufc":
-                preprocessor = make_pipeline(
-                    SimpleImputer(strategy="mean"), StandardScaler()
-                )
+                if self.imputer == "simple":
+                    preprocessor = make_pipeline(
+                        SimpleImputer(strategy="mean"), StandardScaler()
+                    )
+                else:
+                    preprocessor = make_pipeline(IterativeImputer(random_state=self.random_state), StandardScaler())
             else:
                 preprocessor = make_pipeline(
-                    SimpleImputer(strategy="most_frequent"), OneHotEncoder()
+                    SimpleImputer(strategy="most_frequent"), OneHotEncoder(drop="first", handle_unknown="ignore")
                 )
+
         self.preprocessor_ = preprocessor
         return
 
@@ -157,10 +169,10 @@ class MultiEstimatorBase(object):
                 final_estimator = make_pipeline(self.preprocessor_, estimator)
             else:
                 final_estimator = estimator
-            if name == "DummyClassifier":
-                with warnings.catch_warnings():
-                    warnings.filterwarnings("ignore", category=UndefinedMetricWarning)
-                    result = cross_validate(
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", category=UndefinedMetricWarning)
+                warnings.filterwarnings("ignore", message=".*will be encoded as all zeros")
+                result = cross_validate(
                         final_estimator,
                         X,
                         y,
@@ -170,17 +182,6 @@ class MultiEstimatorBase(object):
                         return_estimator=True,
                         verbose=self.verbose,
                     )
-            else:
-                result = cross_validate(
-                    final_estimator,
-                    X,
-                    y,
-                    scoring=self.metrics_,
-                    cv=self.cv,
-                    return_train_score=True,
-                    return_estimator=True,
-                    verbose=self.verbose,
-                )
             results.update({name: result})
             if i == len(pbar) - 1:
                 pbar.set_description("Completed")
