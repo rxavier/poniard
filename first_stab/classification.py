@@ -6,7 +6,7 @@ from sklearn.base import ClassifierMixin
 from sklearn.model_selection._split import BaseCrossValidator, BaseShuffleSplit
 from sklearn.linear_model import LogisticRegression
 from sklearn.naive_bayes import GaussianNB
-from sklearn.svm import SVC
+from sklearn.svm import LinearSVC
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import (
@@ -53,7 +53,7 @@ class MultiClassifier(MultiEstimatorBase):
         return [
             LogisticRegression(random_state=self.random_state, verbose=self.verbose),
             GaussianNB(),
-            SVC(random_state=self.random_state, verbose=self.verbose),
+            LinearSVC(random_state=self.random_state, verbose=self.verbose),
             KNeighborsClassifier(),
             DecisionTreeClassifier(random_state=self.random_state),
             RandomForestClassifier(

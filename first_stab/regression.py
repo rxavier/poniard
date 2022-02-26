@@ -6,7 +6,7 @@ from sklearn.base import RegressorMixin
 from sklearn.model_selection._split import BaseCrossValidator, BaseShuffleSplit
 
 from sklearn.linear_model import LinearRegression, ElasticNet
-from sklearn.svm import SVR
+from sklearn.svm import LinearSVR
 from sklearn.neighbors import KNeighborsRegressor
 from sklearn.tree import DecisionTreeRegressor
 from sklearn.ensemble import (
@@ -53,7 +53,7 @@ class MultiRegressor(MultiEstimatorBase):
         return [
             LinearRegression(),
             ElasticNet(random_state=self.random_state),
-            SVR(verbose=self.verbose),
+            LinearSVR(verbose=self.verbose, random_state=self.random_state),
             KNeighborsRegressor(),
             DecisionTreeRegressor(random_state=self.random_state),
             RandomForestRegressor(random_state=self.random_state, verbose=self.verbose),
