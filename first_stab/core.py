@@ -8,7 +8,7 @@ import numpy as np
 from tqdm import tqdm
 from sklearn.base import ClassifierMixin, RegressorMixin, clone
 from sklearn.model_selection._split import BaseCrossValidator, BaseShuffleSplit
-from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.preprocessing import StandardScaler, RobustScaler, OneHotEncoder, LabelEncoder
 from sklearn.ensemble import (
     VotingClassifier,
     VotingRegressor,
@@ -43,6 +43,7 @@ class MultiEstimatorBase(object):
         ] = None,
         metrics: Optional[Union[Dict[str, Callable], List[str], Callable]] = None,
         preprocess: bool = True,
+        scaler: Optional[str] = None,
         imputer: Optional[str] = None,
         cv: Union[int, BaseCrossValidator, BaseShuffleSplit, Iterable] = 5,
         verbose: int = 0,
@@ -50,6 +51,7 @@ class MultiEstimatorBase(object):
     ):
         self.metrics = metrics
         self.preprocess = preprocess
+        self.scaler = scaler or "standard"
         self.imputer = imputer or "simple"
         self.cv = cv
         self.verbose = verbose
@@ -86,15 +88,19 @@ class MultiEstimatorBase(object):
         ]
 
     def _build_preprocessor(self, X: Union[pd.DataFrame, np.ndarray, List]) -> None:
+        if self.scaler == "standard":
+            scaler = StandardScaler()
+        else:
+            scaler = RobustScaler()
+        cat_imputer = SimpleImputer(strategy="most_frequent")
+        if self.imputer == "simple":
+            num_imputer = SimpleImputer(strategy="mean")
+        else:
+            num_imputer = IterativeImputer(random_state=self.random_state)
         if isinstance(X, pd.DataFrame):
             categorical_columns = make_column_selector(dtype_exclude=np.number)
             numeric_columns = make_column_selector(dtype_include=np.number)
-            cat_imputer = SimpleImputer(strategy="most_frequent")
-            if self.imputer == "simple":
-                num_imputer = SimpleImputer(strategy="mean")
-            else:
-                num_imputer = IterativeImputer(random_state=self.random_state)
-            numeric_preprocessor = make_pipeline(num_imputer, StandardScaler())
+            numeric_preprocessor = make_pipeline(num_imputer, scaler)
             categorical_preprocessor = make_pipeline(
                 cat_imputer, OneHotEncoder(drop="first", handle_unknown="ignore")
             )
@@ -104,18 +110,11 @@ class MultiEstimatorBase(object):
             )
         else:
             if X.dtype.kind in "biufc":
-                if self.imputer == "simple":
-                    preprocessor = make_pipeline(
-                        SimpleImputer(strategy="mean"), StandardScaler()
-                    )
-                else:
-                    preprocessor = make_pipeline(
-                        IterativeImputer(random_state=self.random_state),
-                        StandardScaler(),
+                preprocessor = make_pipeline(num_imputer, scaler
                     )
             else:
                 preprocessor = make_pipeline(
-                    SimpleImputer(strategy="most_frequent"),
+                    cat_imputer,
                     OneHotEncoder(drop="first", handle_unknown="ignore"),
                 )
 
