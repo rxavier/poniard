@@ -8,7 +8,7 @@ import numpy as np
 from tqdm import tqdm
 from sklearn.base import ClassifierMixin, RegressorMixin, clone
 from sklearn.model_selection._split import BaseCrossValidator, BaseShuffleSplit
-from sklearn.preprocessing import StandardScaler, RobustScaler, OneHotEncoder, LabelEncoder
+from sklearn.preprocessing import StandardScaler, RobustScaler, OneHotEncoder, OrdinalEncoder
 from sklearn.ensemble import (
     VotingClassifier,
     VotingRegressor,
@@ -45,6 +45,8 @@ class MultiEstimatorBase(object):
         preprocess: bool = True,
         scaler: Optional[str] = None,
         imputer: Optional[str] = None,
+        numeric_threshold: Union[int, float] = 0.2,
+        cardinality_threshold: Union[int, float] = 50,
         cv: Union[int, BaseCrossValidator, BaseShuffleSplit, Iterable] = 5,
         verbose: int = 0,
         random_state: Optional[int] = None,
@@ -53,6 +55,8 @@ class MultiEstimatorBase(object):
         self.preprocess = preprocess
         self.scaler = scaler or "standard"
         self.imputer = imputer or "simple"
+        self.numeric_threshold = numeric_threshold
+        self.cardinality_threshold = cardinality_threshold
         self.cv = cv
         self.verbose = verbose
         self.random_state = random_state
@@ -87,7 +91,61 @@ class MultiEstimatorBase(object):
             DummyClassifier(),
         ]
 
-    def _build_preprocessor(self, X: Union[pd.DataFrame, np.ndarray, List]) -> None:
+    def _classify_features(self, X: Union[pd.DataFrame, np.ndarray]):
+        numeric = []
+        categorical_high = []
+        categorical_low = []
+        if isinstance(self.cardinality_threshold, int):
+            card_threshold = self.cardinality_threshold
+        else:
+            card_threshold = int(self.cardinality_threshold * X.shape[0])
+        if isinstance(self.numeric_threshold, int):
+            num_threshold = self.numeric_threshold
+        else:
+            num_threshold = int(self.numeric_threshold * X.shape[0])
+        if isinstance(X, pd.DataFrame):
+            numeric.extend(X.select_dtypes(include="float").columns)
+            ints = X.select_dtypes(include="int").columns
+            if len(ints) > 0:
+                warnings.warn("Integer columns found. If they are not categorical, consider casting to float so no assumptions have to be made about their cardinality.", UserWarning, stacklevel=2)
+            for column in ints:
+                if X[column].nunique() > num_threshold:
+                    numeric.append(column)
+                elif X[column].nunique() > card_threshold:
+                    categorical_high.append(column)
+                else:
+                    categorical_low.append(column)
+            strings = X.select_dtypes(exclude="number").columns
+            for column in strings:
+                if X[column].nunique() > card_threshold:
+                    categorical_high.append(column)
+                else:
+                    categorical_low.append(column)
+        else:
+            if np.issubdtype(X.dtype, float):
+                numeric.extend(range(X.shape[1]))
+            elif np.issubdtype(X.dtype, int):
+                warnings.warn("Integer columns found. If they are not categorical, consider casting to float so no assumptions have to be made about their cardinality.", UserWarning, stacklevel=2)
+                for i in range(X.shape[1]):
+                    if np.unique(X[:, i]).shape[0] > num_threshold:
+                        numeric.append(i)
+                    elif np.unique(X[:, i]).shape[0] > card_threshold:
+                        categorical_high.append(i)
+                    else:
+                        categorical_low.append(i)
+            else:
+                for i in range(X.shape[1]):
+                    if np.unique(X[:, i]).shape[0] > card_threshold:
+                        categorical_high.append(i)
+                    else:
+                        categorical_low.append(i)
+        self._assumed_types = {"numeric": numeric,
+                               "categorical_high": categorical_high,
+                               "categorical_low": categorical_low}
+        return numeric, categorical_high, categorical_low
+
+    def _build_preprocessor(self, X: Union[pd.DataFrame, np.ndarray]) -> None:
+        numeric, categorical_high, categorical_low = self._classify_features(X=X)
         if self.scaler == "standard":
             scaler = StandardScaler()
         else:
@@ -97,27 +155,33 @@ class MultiEstimatorBase(object):
             num_imputer = SimpleImputer(strategy="mean")
         else:
             num_imputer = IterativeImputer(random_state=self.random_state)
+        numeric_preprocessor = make_pipeline(num_imputer, scaler)
+        cat_low_preprocessor = make_pipeline(
+            cat_imputer, OneHotEncoder(drop="first", handle_unknown="ignore")
+        )
+        cat_high_preprocessor = make_pipeline(
+            cat_imputer, OrdinalEncoder(handle_unknown="use_encoded_value", unknown_value=99999)
+        )
         if isinstance(X, pd.DataFrame):
-            categorical_columns = make_column_selector(dtype_exclude=np.number)
-            numeric_columns = make_column_selector(dtype_include=np.number)
-            numeric_preprocessor = make_pipeline(num_imputer, scaler)
-            categorical_preprocessor = make_pipeline(
-                cat_imputer, OneHotEncoder(drop="first", handle_unknown="ignore")
-            )
             preprocessor = make_column_transformer(
-                (numeric_preprocessor, numeric_columns),
-                (categorical_preprocessor, categorical_columns),
+                (numeric_preprocessor, numeric),
+                (cat_low_preprocessor, categorical_low),
+                (cat_high_preprocessor, categorical_high),
             )
         else:
-            if X.dtype.kind in "biufc":
-                preprocessor = make_pipeline(num_imputer, scaler
-                    )
-            else:
-                preprocessor = make_pipeline(
-                    cat_imputer,
-                    OneHotEncoder(drop="first", handle_unknown="ignore"),
+            if np.issubdtype(X.dtype, float):
+                preprocessor = numeric_preprocessor
+            elif np.issubdtype(X.dtype, int):
+                preprocessor = make_column_transformer(
+                    (numeric_preprocessor, numeric),
+                    (cat_low_preprocessor, categorical_low),
+                    (cat_high_preprocessor, categorical_high),
                 )
-
+            else:
+                preprocessor = make_column_transformer(
+                    (cat_low_preprocessor, categorical_low),
+                    (cat_high_preprocessor, categorical_high),
+                )
         self.preprocessor_ = preprocessor
         return
 
