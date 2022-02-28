@@ -8,7 +8,12 @@ import numpy as np
 from tqdm import tqdm
 from sklearn.base import ClassifierMixin, RegressorMixin, clone
 from sklearn.model_selection._split import BaseCrossValidator, BaseShuffleSplit
-from sklearn.preprocessing import StandardScaler, RobustScaler, OneHotEncoder, OrdinalEncoder
+from sklearn.preprocessing import (
+    StandardScaler,
+    RobustScaler,
+    OneHotEncoder,
+    OrdinalEncoder,
+)
 from sklearn.ensemble import (
     VotingClassifier,
     VotingRegressor,
@@ -107,7 +112,11 @@ class MultiEstimatorBase(object):
             numeric.extend(X.select_dtypes(include="float").columns)
             ints = X.select_dtypes(include="int").columns
             if len(ints) > 0:
-                warnings.warn("Integer columns found. If they are not categorical, consider casting to float so no assumptions have to be made about their cardinality.", UserWarning, stacklevel=2)
+                warnings.warn(
+                    "Integer columns found. If they are not categorical, consider casting to float so no assumptions have to be made about their cardinality.",
+                    UserWarning,
+                    stacklevel=2,
+                )
             for column in ints:
                 if X[column].nunique() > num_threshold:
                     numeric.append(column)
@@ -125,7 +134,11 @@ class MultiEstimatorBase(object):
             if np.issubdtype(X.dtype, float):
                 numeric.extend(range(X.shape[1]))
             elif np.issubdtype(X.dtype, int):
-                warnings.warn("Integer columns found. If they are not categorical, consider casting to float so no assumptions have to be made about their cardinality.", UserWarning, stacklevel=2)
+                warnings.warn(
+                    "Integer columns found. If they are not categorical, consider casting to float so no assumptions have to be made about their cardinality.",
+                    UserWarning,
+                    stacklevel=2,
+                )
                 for i in range(X.shape[1]):
                     if np.unique(X[:, i]).shape[0] > num_threshold:
                         numeric.append(i)
@@ -139,9 +152,11 @@ class MultiEstimatorBase(object):
                         categorical_high.append(i)
                     else:
                         categorical_low.append(i)
-        self._assumed_types = {"numeric": numeric,
-                               "categorical_high": categorical_high,
-                               "categorical_low": categorical_low}
+        self._assumed_types = {
+            "numeric": numeric,
+            "categorical_high": categorical_high,
+            "categorical_low": categorical_low,
+        }
         return numeric, categorical_high, categorical_low
 
     def _build_preprocessor(self, X: Union[pd.DataFrame, np.ndarray]) -> None:
@@ -160,7 +175,8 @@ class MultiEstimatorBase(object):
             cat_imputer, OneHotEncoder(drop="first", handle_unknown="ignore")
         )
         cat_high_preprocessor = make_pipeline(
-            cat_imputer, OrdinalEncoder(handle_unknown="use_encoded_value", unknown_value=99999)
+            cat_imputer,
+            OrdinalEncoder(handle_unknown="use_encoded_value", unknown_value=99999),
         )
         if isinstance(X, pd.DataFrame):
             preprocessor = make_column_transformer(
@@ -301,9 +317,9 @@ class MultiEstimatorBase(object):
         else:
             return clone(model)
 
-    #TODO: Add a method to get the best estimator and its report
+    # TODO: Add a method to get the best estimator and its report
 
-    #TODO: Add a method to pop an estimator or several
+    # TODO: Add a method to pop an estimator or several
 
     def ensemble(
         self,
@@ -343,7 +359,7 @@ class MultiEstimatorBase(object):
                 ensemble = StackingRegressor(
                     estimators=models, verbose=self.verbose, cv=self.cv, **kwargs
                 )
-        #TODO: Allow adding to estimator dict and cross validating
+        # TODO: Allow adding to estimator dict and cross validating
         if include_preprocessor:
             return make_pipeline(self.preprocessor_, ensemble)
         else:
