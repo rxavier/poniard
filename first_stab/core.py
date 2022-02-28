@@ -301,9 +301,9 @@ class MultiEstimatorBase(object):
         else:
             return clone(model)
 
-    def get_preprocessor(self):
-        # TODO: Is this necessary? Should it be obtained from results?
-        return self.preprocessor_
+    #TODO: Add a method to get the best estimator and its report
+
+    #TODO: Add a method to pop an estimator or several
 
     def ensemble(
         self,
