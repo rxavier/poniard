@@ -291,10 +291,10 @@ class MultiEstimatorBase(object):
             return means
 
     def get_estimator(
-        self, name: str, with_pipeline: bool = True, fitted: bool = False
+        self, name: str, include_preprocessor: bool = True, fitted: bool = False
     ) -> ClassifierMixin:
         model = self._experiment_results[name]["estimator"][0]
-        if not with_pipeline:
+        if not include_preprocessor:
             model = model._final_estimator
         if fitted:
             return model
@@ -310,6 +310,7 @@ class MultiEstimatorBase(object):
         method: str = "stacking",
         estimators: Optional[List[str]] = None,
         top_n: int = 3,
+        include_preprocessor: bool = True,
         **kwargs,
     ) -> Union[ClassifierMixin, RegressorMixin]:
         if method not in ["voting", "stacking"]:
@@ -342,7 +343,11 @@ class MultiEstimatorBase(object):
                 ensemble = StackingRegressor(
                     estimators=models, verbose=self.verbose, cv=self.cv, **kwargs
                 )
-        return ensemble
+        #TODO: Allow adding to estimator dict and cross validating
+        if include_preprocessor:
+            return make_pipeline(self.preprocessor_, ensemble)
+        else:
+            return ensemble
 
     def predictions_similarity(
         self,
