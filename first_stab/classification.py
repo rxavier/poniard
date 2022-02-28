@@ -64,7 +64,7 @@ class MultiClassifier(MultiEstimatorBase):
                 random_state=self.random_state, verbose=self.verbose, max_iter=5000
             ),
             GaussianNB(),
-            LinearSVC(random_state=self.random_state, verbose=self.verbose),
+            LinearSVC(random_state=self.random_state, verbose=self.verbose, max_iter=5000),
             KNeighborsClassifier(),
             DecisionTreeClassifier(random_state=self.random_state),
             RandomForestClassifier(
