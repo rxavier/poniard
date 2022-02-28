@@ -85,7 +85,7 @@ class MultiClassifier(MultiEstimatorBase):
     def _build_metrics(self, y: Union[pd.DataFrame, np.ndarray]) -> None:
         if y.ndim > 1 or len(np.unique(y)) > 2:
             self.metrics_ = {
-                "roc_auc": make_scorer(roc_auc_score),
+                #"roc_auc": make_scorer(roc_auc_score, average="macro"),
                 "accuracy": make_scorer(accuracy_score),
                 "precision": make_scorer(precision_score, average="macro"),
                 "recall": make_scorer(recall_score, average="macro"),
