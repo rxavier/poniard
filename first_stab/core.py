@@ -21,7 +21,7 @@ from sklearn.ensemble import (
     StackingRegressor,
 )
 from sklearn.pipeline import make_pipeline
-from sklearn.compose import make_column_transformer, make_column_selector
+from sklearn.compose import make_column_transformer
 from sklearn.dummy import DummyClassifier, DummyRegressor
 from sklearn.metrics import (
     make_scorer,
