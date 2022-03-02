@@ -345,6 +345,8 @@ class MultiEstimatorBase(object):
         estimators: Optional[List[str]] = None,
         top_n: int = 3,
         include_preprocessor: bool = True,
+        add_to_estimators: bool = False,
+        name: Optional[str] = None,
         **kwargs,
     ) -> Union[ClassifierMixin, RegressorMixin]:
         if method not in ["voting", "stacking"]:
@@ -377,7 +379,9 @@ class MultiEstimatorBase(object):
                 ensemble = StackingRegressor(
                     estimators=models, verbose=self.verbose, cv=self.cv, **kwargs
                 )
-        # TODO: Allow adding to estimator dict and cross validating
+        if add_to_estimators:
+            name = name or ensemble.__class__.__name__
+            self.estimators_.update({name: ensemble})
         if include_preprocessor:
             return make_pipeline(self.preprocessor_, ensemble)
         else:
