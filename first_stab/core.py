@@ -215,19 +215,15 @@ class MultiEstimatorBase(object):
         return
 
     def _process_experiment_results(self) -> None:
+        # TODO: This processes every result, even those that were processed
+        # in previous runs (before add_estimators). Should be made more efficient
         results = pd.DataFrame(self._experiment_results).T.drop(["estimator"], axis=1)
         means = results.apply(lambda x: np.mean(x.values.tolist(), axis=1))
         stds = results.apply(lambda x: np.std(x.values.tolist(), axis=1))
         means = means[list(means.columns[2:]) + ["fit_time", "score_time"]]
         stds = stds[list(stds.columns[2:]) + ["fit_time", "score_time"]]
-        try:
-            # If previous estimators have been scored, add new means and std.
-            self._means = pd.concat([self._means, means], axis=0)
-            self._means = self._means.sort_values(self._means.columns[0], ascending=False)
-            self._stds = pd.concat([self._stds, stds], axis=0).reindex(self._means.index)
-        except AttributeError:
-            self._means = means.sort_values(means.columns[0], ascending=False)
-            self._stds = stds.reindex(self._means.index)
+        self._means = means.sort_values(means.columns[0], ascending=False)
+        self._stds = stds.reindex(self._means.index)
         return
 
     def _setup_experiments(
@@ -259,13 +255,11 @@ class MultiEstimatorBase(object):
         X, y = self._setup_experiments(X, y)
 
         results = {}
-        pbar = tqdm(self.estimators_.items())
+        filtered_estimators = {name: estimator for name, estimator in self.estimators_.items()
+                               if id(estimator) not in self.processed_estimator_ids}
+        pbar = tqdm(filtered_estimators.items())
         for i, (name, estimator) in enumerate(pbar):
             pbar.set_description(f"{name}")
-            if id(estimator) in self.processed_estimator_ids:
-                continue
-            else:
-                self.processed_estimator_ids.append(id(estimator))
             if self.preprocess:
                 final_estimator = make_pipeline(self.preprocessor_, estimator)
             else:
@@ -287,9 +281,13 @@ class MultiEstimatorBase(object):
                     n_jobs=self.n_jobs,
                 )
             results.update({name: result})
+            self.processed_estimator_ids.append(id(estimator))
             if i == len(pbar) - 1:
                 pbar.set_description("Completed")
-        self._experiment_results = results
+        try:
+            self._experiment_results.update(results)
+        except AttributeError:
+            self._experiment_results = results
 
         self._process_experiment_results()
         return
