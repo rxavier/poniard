@@ -238,7 +238,7 @@ class MultiEstimatorBase(object):
         self._build_initial_estimators()
         return X, y
 
-    def cross_validate_estimators(
+    def score_estimators(
         self,
         X: Union[pd.DataFrame, np.ndarray, List],
         y: Union[pd.DataFrame, np.ndarray, List],
@@ -289,7 +289,7 @@ class MultiEstimatorBase(object):
         self.estimators_.update(new_estimators)
         return
 
-    def results(
+    def show_results(
         self,
         std: bool = False,
         wrt_dummy: bool = False,
@@ -321,7 +321,7 @@ class MultiEstimatorBase(object):
 
     # TODO: Add a method to pop an estimator or several
 
-    def ensemble(
+    def build_ensemble(
         self,
         method: str = "stacking",
         estimators: Optional[List[str]] = None,
@@ -365,7 +365,7 @@ class MultiEstimatorBase(object):
         else:
             return ensemble
 
-    def predictions_similarity(
+    def get_predictions_similarity(
         self,
         X: Union[pd.DataFrame, np.ndarray, List],
         y: Union[pd.DataFrame, np.ndarray, List],
