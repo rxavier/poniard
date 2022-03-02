@@ -69,6 +69,8 @@ class MultiEstimatorBase(object):
         self.estimators = estimators
         self.n_jobs = n_jobs
 
+        self.processed_estimator_ids = []
+
     def _build_initial_estimators(self) -> None:
         try:
             # If the estimators_ dict exists, don't build it again
@@ -218,8 +220,14 @@ class MultiEstimatorBase(object):
         stds = results.apply(lambda x: np.std(x.values.tolist(), axis=1))
         means = means[list(means.columns[2:]) + ["fit_time", "score_time"]]
         stds = stds[list(stds.columns[2:]) + ["fit_time", "score_time"]]
-        self._means = means.sort_values(means.columns[0], ascending=False)
-        self._stds = stds.reindex(self._means.index)
+        try:
+            # If previous estimators have been scored, add new means and std.
+            self._means = pd.concat([self._means, means], axis=0)
+            self._means = self._means.sort_values(self._means.columns[0], ascending=False)
+            self._stds = pd.concat([self._stds, stds], axis=0).reindex(self._means.index)
+        except AttributeError:
+            self._means = means.sort_values(means.columns[0], ascending=False)
+            self._stds = stds.reindex(self._means.index)
         return
 
     def _setup_experiments(
@@ -254,6 +262,10 @@ class MultiEstimatorBase(object):
         pbar = tqdm(self.estimators_.items())
         for i, (name, estimator) in enumerate(pbar):
             pbar.set_description(f"{name}")
+            if id(estimator) in self.processed_estimator_ids:
+                continue
+            else:
+                self.processed_estimator_ids.append(id(estimator))
             if self.preprocess:
                 final_estimator = make_pipeline(self.preprocessor_, estimator)
             else:
