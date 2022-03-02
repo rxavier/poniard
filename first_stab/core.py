@@ -55,6 +55,7 @@ class MultiEstimatorBase(object):
         cv: Union[int, BaseCrossValidator, BaseShuffleSplit, Iterable] = None,
         verbose: int = 0,
         random_state: Optional[int] = None,
+        n_jobs: Optional[int] = -1,
     ):
         self.metrics = metrics
         self.preprocess = preprocess
@@ -66,6 +67,7 @@ class MultiEstimatorBase(object):
         self.verbose = verbose
         self.random_state = random_state
         self.estimators = estimators
+        self.n_jobs = n_jobs
 
     def _build_initial_estimators(self) -> None:
         try:
@@ -183,6 +185,7 @@ class MultiEstimatorBase(object):
                 (numeric_preprocessor, numeric),
                 (cat_low_preprocessor, categorical_low),
                 (cat_high_preprocessor, categorical_high),
+                n_jobs=self.n_jobs,
             )
         else:
             if np.issubdtype(X.dtype, float):
@@ -192,11 +195,13 @@ class MultiEstimatorBase(object):
                     (numeric_preprocessor, numeric),
                     (cat_low_preprocessor, categorical_low),
                     (cat_high_preprocessor, categorical_high),
+                    n_jobs=self.n_jobs,
                 )
             else:
                 preprocessor = make_column_transformer(
                     (cat_low_preprocessor, categorical_low),
                     (cat_high_preprocessor, categorical_high),
+                    n_jobs=self.n_jobs,
                 )
         self.preprocessor_ = preprocessor
         return
@@ -267,6 +272,7 @@ class MultiEstimatorBase(object):
                     return_train_score=True,
                     return_estimator=True,
                     verbose=self.verbose,
+                    n_jobs=self.n_jobs,
                 )
             results.update({name: result})
             if i == len(pbar) - 1:
@@ -386,6 +392,7 @@ class MultiEstimatorBase(object):
                 y,
                 cv=self.cv,
                 verbose=self.verbose,
+                n_jobs=self.n_jobs,
             )
             results.update({name: result})
             if i == len(pbar) - 1:

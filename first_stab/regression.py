@@ -42,6 +42,7 @@ class MultiRegressor(MultiEstimatorBase):
         cv: Union[int, BaseCrossValidator, BaseShuffleSplit, Iterable] = 5,
         verbose: int = 0,
         random_state: Optional[int] = None,
+        n_jobs: Optional[int] = -1,
     ):
         super().__init__(
             estimators=estimators,
@@ -54,6 +55,7 @@ class MultiRegressor(MultiEstimatorBase):
             cv=cv,
             verbose=verbose,
             random_state=random_state,
+            n_jobs=n_jobs,
         )
 
     @property
