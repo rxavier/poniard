@@ -305,6 +305,17 @@ class MultiEstimatorBase(object):
         self.estimators_.update(new_estimators)
         return
 
+    def remove_estimators(
+        self, names: List[str], drop_results: bool = True
+    ) -> None:
+        self.estimators_ = {k: v for k, v in self.estimators_.items() if k not in names}
+        if drop_results:
+            self._means = self._means.loc[~self._means.index.isin(names)]
+            self._stds = self._stds.loc[~self._stds.index.isin(names)]
+            self._experiment_results = {k: v for k, v in self._experiment_results.items()
+                                        if k not in names}
+        return
+
     def show_results(
         self,
         std: bool = False,
@@ -332,10 +343,6 @@ class MultiEstimatorBase(object):
             return model
         else:
             return clone(model)
-
-    # TODO: Add a method to get the best estimator and its report
-
-    # TODO: Add a method to pop an estimator or several
 
     def build_ensemble(
         self,
