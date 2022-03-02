@@ -27,7 +27,7 @@ from sklearn.metrics import (
     make_scorer,
     accuracy_score,
 )
-from sklearn.model_selection import cross_validate, cross_val_predict
+from sklearn.model_selection import StratifiedKFold, cross_validate, cross_val_predict
 from sklearn.experimental import enable_iterative_imputer
 from sklearn.impute import SimpleImputer, IterativeImputer
 from sklearn.exceptions import UndefinedMetricWarning
@@ -52,7 +52,7 @@ class MultiEstimatorBase(object):
         imputer: Optional[str] = None,
         numeric_threshold: Union[int, float] = 0.2,
         cardinality_threshold: Union[int, float] = 50,
-        cv: Union[int, BaseCrossValidator, BaseShuffleSplit, Iterable] = 5,
+        cv: Union[int, BaseCrossValidator, BaseShuffleSplit, Iterable] = None,
         verbose: int = 0,
         random_state: Optional[int] = None,
     ):
@@ -62,7 +62,7 @@ class MultiEstimatorBase(object):
         self.imputer = imputer or "simple"
         self.numeric_threshold = numeric_threshold
         self.cardinality_threshold = cardinality_threshold
-        self.cv = cv
+        self.cv = cv or StratifiedKFold(n_splits=5, shuffle=True, random_state=random_state)
         self.verbose = verbose
         self.random_state = random_state
         self.estimators = estimators
