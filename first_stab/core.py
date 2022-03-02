@@ -344,6 +344,7 @@ class MultiEstimatorBase(object):
         method: str = "stacking",
         estimators: Optional[List[str]] = None,
         top_n: int = 3,
+        sort_by: Optional[str] = None,
         include_preprocessor: bool = True,
         add_to_estimators: bool = False,
         name: Optional[str] = None,
@@ -357,9 +358,13 @@ class MultiEstimatorBase(object):
                 for name in estimators
             ]
         else:
+            if sort_by:
+                sorter = sort_by
+            else:
+                sorter = self._means.columns[0]
             models = [
                 (name, self._experiment_results[name]["estimator"][0]._final_estimator)
-                for name in self._means.index[:top_n]
+                for name in self._means.sort_values(sorter, ascending=False).index[:top_n]
             ]
         if method == "voting":
             if self.__class__.__name__ == "MultiClassifier":
