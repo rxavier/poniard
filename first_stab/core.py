@@ -167,9 +167,9 @@ class MultiEstimatorBase(object):
             scaler = StandardScaler()
         else:
             scaler = RobustScaler()
-        cat_imputer = SimpleImputer(strategy="most_frequent")
+        cat_imputer = SimpleImputer(strategy="most_frequent", verbose=self.verbose)
         if self.imputer == "simple":
-            num_imputer = SimpleImputer(strategy="mean")
+            num_imputer = SimpleImputer(strategy="mean", verbose=self.verbose)
         else:
             num_imputer = IterativeImputer(random_state=self.random_state)
         numeric_preprocessor = make_pipeline(num_imputer, scaler)
