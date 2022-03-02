@@ -1,25 +1,21 @@
-# This file is part of the Dython package (https://github.com/shakedzy/dython)
-# Because I only needed Theil's U, adding a whole dependency
+# This file is based on part of the Dython package (https://github.com/shakedzy/dython)
+# Because I only needed Cramér's V, adding a whole dependency
 # did not make sense.
 
 import warnings
+from typing import Union, List
 
 import numpy as np
 import pandas as pd
 import scipy.stats as ss
 
 
-_REPLACE = "replace"
-_DROP = "drop"
-_DEFAULT_REPLACE_VALUE = 0.0
-
-
 def cramers_v(
-    x,
-    y,
-    bias_correction=True,
-    nan_strategy=_REPLACE,
-    nan_replace_value=_DEFAULT_REPLACE_VALUE,
+    x: Union[pd.Series, np.ndarray, List],
+    y: Union[pd.Series, np.ndarray, List],
+    bias_correction: bool = True,
+    nan_strategy: str = "replace",
+    nan_replace_value: Union[int, float] = 0,
 ):
     """
     Calculates Cramer's V statistic for categorical-categorical association.
@@ -46,9 +42,9 @@ def cramers_v(
     --------
     float in the range of [0,1]
     """
-    if nan_strategy == _REPLACE:
+    if nan_strategy == "replace":
         x, y = replace_nan_with_value(x, y, nan_replace_value)
-    elif nan_strategy == _DROP:
+    elif nan_strategy == "drop":
         x, y = remove_incomplete_samples(x, y)
     confusion_matrix = pd.crosstab(x, y)
     chi2 = ss.chi2_contingency(confusion_matrix)[0]
