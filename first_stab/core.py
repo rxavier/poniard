@@ -70,7 +70,9 @@ class MultiEstimatorBase(object):
         self.imputer = imputer or "simple"
         self.numeric_threshold = numeric_threshold
         self.cardinality_threshold = cardinality_threshold
-        self.cv = cv or StratifiedKFold(n_splits=5, shuffle=True, random_state=random_state)
+        self.cv = cv or StratifiedKFold(
+            n_splits=5, shuffle=True, random_state=random_state
+        )
         self.verbose = verbose
         self.random_state = random_state
         self.estimators = estimators
@@ -171,6 +173,11 @@ class MultiEstimatorBase(object):
         return numeric, categorical_high, categorical_low
 
     def _build_preprocessor(self, X: Union[pd.DataFrame, np.ndarray]) -> None:
+        try:
+            self.preprocessor_
+            return
+        except AttributeError:
+            pass
         numeric, categorical_high, categorical_low = self._classify_features(X=X)
         if self.scaler == "standard":
             scaler = StandardScaler()
@@ -262,8 +269,11 @@ class MultiEstimatorBase(object):
         X, y = self._setup_experiments(X, y)
 
         results = {}
-        filtered_estimators = {name: estimator for name, estimator in self.estimators_.items()
-                               if id(estimator) not in self.processed_estimator_ids}
+        filtered_estimators = {
+            name: estimator
+            for name, estimator in self.estimators_.items()
+            if id(estimator) not in self.processed_estimator_ids
+        }
         pbar = tqdm(filtered_estimators.items())
         for i, (name, estimator) in enumerate(pbar):
             pbar.set_description(f"{name}")
@@ -314,15 +324,14 @@ class MultiEstimatorBase(object):
         self.estimators_.update(new_estimators)
         return
 
-    def remove_estimators(
-        self, names: List[str], drop_results: bool = True
-    ) -> None:
+    def remove_estimators(self, names: List[str], drop_results: bool = True) -> None:
         self.estimators_ = {k: v for k, v in self.estimators_.items() if k not in names}
         if drop_results:
             self._means = self._means.loc[~self._means.index.isin(names)]
             self._stds = self._stds.loc[~self._stds.index.isin(names)]
-            self._experiment_results = {k: v for k, v in self._experiment_results.items()
-                                        if k not in names}
+            self._experiment_results = {
+                k: v for k, v in self._experiment_results.items() if k not in names
+            }
         return
 
     def show_results(
@@ -356,7 +365,7 @@ class MultiEstimatorBase(object):
     def build_ensemble(
         self,
         method: str = "stacking",
-        estimators: Optional[List[str]] = None,
+        estimator_names: Optional[List[str]] = None,
         top_n: int = 3,
         sort_by: Optional[str] = None,
         include_preprocessor: bool = True,
@@ -366,10 +375,10 @@ class MultiEstimatorBase(object):
     ) -> Union[ClassifierMixin, RegressorMixin]:
         if method not in ["voting", "stacking"]:
             raise ValueError("Method must be either voting or stacking.")
-        if estimators:
+        if estimator_names:
             models = [
                 (name, self._experiment_results[name]["estimator"][0]._final_estimator)
-                for name in estimators
+                for name in estimator_names
             ]
         else:
             if sort_by:
@@ -378,7 +387,9 @@ class MultiEstimatorBase(object):
                 sorter = self._means.columns[0]
             models = [
                 (name, self._experiment_results[name]["estimator"][0]._final_estimator)
-                for name in self._means.sort_values(sorter, ascending=False).index[:top_n]
+                for name in self._means.sort_values(sorter, ascending=False).index[
+                    :top_n
+                ]
             ]
         if method == "voting":
             if self.__class__.__name__ == "MultiClassifier":
@@ -454,3 +465,54 @@ class MultiEstimatorBase(object):
         else:
             table = results.corr()
         return table
+
+    def tune_estimator(
+        self,
+        estimator_name: str,
+        X: Union[pd.DataFrame, np.ndarray, List],
+        y: Union[pd.DataFrame, np.ndarray, List],
+        include_preprocessor: bool = True,
+        grid: Optional[Dict] = None,
+        mode: str = "random",
+        add_to_estimators: bool = False,
+        name: Optional[str] = None,
+    ) -> Union[GridSearchCV, RandomizedSearchCV]:
+        X, y = self._setup_experiments(X, y)
+        if not grid:
+            try:
+                grid = GRID[estimator_name]
+                grid = {f"{estimator_name}__{k}": v for k, v in grid.items()}
+            except KeyError:
+                raise KeyError(
+                    f"Estimator {estimator_name} has no predefined hyperparameter grid, so it has to be supplied."
+                )
+        estimator = self.get_estimator(
+            estimator_name, include_preprocessor=include_preprocessor
+        )
+        scoring = list(self.metrics_.values())[0]
+        if mode == "random":
+            search = RandomizedSearchCV(
+                estimator,
+                grid,
+                scoring=scoring,
+                cv=self.cv,
+                verbose=self.verbose,
+                n_jobs=self.n_jobs,
+                random_state=self.random_state,
+            )
+        else:
+            search = GridSearchCV(
+                estimator,
+                grid,
+                scoring=scoring,
+                cv=self.cv,
+                verbose=self.verbose,
+                n_jobs=self.n_jobs,
+            )
+        search.fit(X, y)
+        if add_to_estimators:
+            name = name or f"{estimator_name}_tuned"
+            self.estimators_.update(
+                {name: clone(search.best_estimator_._final_estimator)}
+            )
+        return search
