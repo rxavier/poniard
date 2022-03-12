@@ -20,19 +20,26 @@ from sklearn.ensemble import (
     StackingClassifier,
     StackingRegressor,
 )
-from sklearn.pipeline import make_pipeline
+from sklearn.pipeline import make_pipeline, Pipeline
 from sklearn.compose import make_column_transformer
 from sklearn.dummy import DummyClassifier, DummyRegressor
 from sklearn.metrics import (
     make_scorer,
     accuracy_score,
 )
-from sklearn.model_selection import StratifiedKFold, cross_validate, cross_val_predict
+from sklearn.model_selection import (
+    StratifiedKFold,
+    cross_validate,
+    cross_val_predict,
+    GridSearchCV,
+    RandomizedSearchCV,
+)
 from sklearn.experimental import enable_iterative_imputer
 from sklearn.impute import SimpleImputer, IterativeImputer
 from sklearn.exceptions import UndefinedMetricWarning
 
 from first_stab.utils import cramers_v
+from first_stab.hyperparameters import GRID
 
 
 class MultiEstimatorBase(object):
@@ -261,9 +268,11 @@ class MultiEstimatorBase(object):
         for i, (name, estimator) in enumerate(pbar):
             pbar.set_description(f"{name}")
             if self.preprocess:
-                final_estimator = make_pipeline(self.preprocessor_, estimator)
+                final_estimator = Pipeline(
+                    [("preprocessor", self.preprocessor_), (name, estimator)]
+                )
             else:
-                final_estimator = estimator
+                final_estimator = Pipeline([(name, estimator)])
             with warnings.catch_warnings():
                 warnings.filterwarnings("ignore", category=UndefinedMetricWarning)
                 warnings.filterwarnings(
