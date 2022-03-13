@@ -487,12 +487,17 @@ class MultiEstimatorBase(object):
                 raise KeyError(
                     f"Estimator {estimator_name} has no predefined hyperparameter grid, so it has to be supplied."
                 )
+        for attr, value in zip(["random_state", "verbose", "n_jobs"],
+                               [self.random_state, self.verbose, self.n_jobs]):
+            if attr in estimator.__dict__:
+                setattr(estimator, attr, value)
         if include_preprocessor:
             estimator = Pipeline(
                 [("preprocessor", self.preprocessor_), (estimator_name, estimator)]
             )
         else:
             estimator = Pipeline([(estimator_name, estimator)])
+
         scoring = list(self.metrics_.values())[0]
         if mode == "random":
             search = RandomizedSearchCV(
