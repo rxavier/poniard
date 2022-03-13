@@ -478,6 +478,7 @@ class MultiEstimatorBase(object):
         name: Optional[str] = None,
     ) -> Union[GridSearchCV, RandomizedSearchCV]:
         X, y = self._setup_experiments(X, y)
+        estimator = self.estimators_[estimator_name]
         if not grid:
             try:
                 grid = GRID[estimator_name]
@@ -486,9 +487,12 @@ class MultiEstimatorBase(object):
                 raise KeyError(
                     f"Estimator {estimator_name} has no predefined hyperparameter grid, so it has to be supplied."
                 )
-        estimator = self.get_estimator(
-            estimator_name, include_preprocessor=include_preprocessor
-        )
+        if include_preprocessor:
+            estimator = Pipeline(
+                [("preprocessor", self.preprocessor_), (estimator_name, estimator)]
+            )
+        else:
+            estimator = Pipeline([(estimator_name, estimator)])
         scoring = list(self.metrics_.values())[0]
         if mode == "random":
             search = RandomizedSearchCV(
