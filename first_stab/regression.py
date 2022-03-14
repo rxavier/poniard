@@ -11,7 +11,6 @@ from sklearn.neighbors import KNeighborsRegressor
 from sklearn.tree import DecisionTreeRegressor
 from sklearn.ensemble import (
     RandomForestRegressor,
-    AdaBoostRegressor,
     HistGradientBoostingRegressor,
 )
 from xgboost import XGBRegressor
@@ -68,9 +67,9 @@ class MultiRegressor(MultiEstimatorBase):
             ),
             KNeighborsRegressor(),
             DecisionTreeRegressor(random_state=self.random_state),
-            RandomForestRegressor(random_state=self.random_state, verbose=self.verbose,
-                                  n_jobs=self.n_jobs),
-            AdaBoostRegressor(random_state=self.random_state),
+            RandomForestRegressor(
+                random_state=self.random_state, verbose=self.verbose, n_jobs=self.n_jobs
+            ),
             HistGradientBoostingRegressor(
                 random_state=self.random_state, verbose=self.verbose
             ),

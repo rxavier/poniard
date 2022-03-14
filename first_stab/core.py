@@ -62,7 +62,7 @@ class MultiEstimatorBase(object):
         cv: Union[int, BaseCrossValidator, BaseShuffleSplit, Iterable] = None,
         verbose: int = 0,
         random_state: Optional[int] = None,
-        n_jobs: Optional[int] = -1,
+        n_jobs: Optional[int] = None,
     ):
         self.metrics = metrics
         self.preprocess = preprocess
@@ -485,8 +485,10 @@ class MultiEstimatorBase(object):
                 raise KeyError(
                     f"Estimator {estimator_name} has no predefined hyperparameter grid, so it has to be supplied."
                 )
-        for attr, value in zip(["random_state", "verbose", "n_jobs"],
-                               [self.random_state, self.verbose, self.n_jobs]):
+        for attr, value in zip(
+            ["random_state", "verbose", "n_jobs"],
+            [self.random_state, self.verbose, self.n_jobs],
+        ):
             if attr in estimator.__dict__:
                 setattr(estimator, attr, value)
         if include_preprocessor:
