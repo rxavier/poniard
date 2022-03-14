@@ -3,7 +3,7 @@ from typing import List, Optional, Union, Iterable, Callable, Dict
 import pandas as pd
 import numpy as np
 from sklearn.base import ClassifierMixin
-from sklearn.model_selection._split import BaseCrossValidator, BaseShuffleSplit
+from sklearn.model_selection._split import BaseCrossValidator, BaseShuffleSplit, StratifiedKFold
 from sklearn.linear_model import LogisticRegression
 from sklearn.naive_bayes import GaussianNB
 from sklearn.svm import LinearSVC
@@ -40,7 +40,7 @@ class MultiClassifier(MultiEstimatorBase):
         imputer: Optional[str] = None,
         numeric_threshold: Union[int, float] = 0.2,
         cardinality_threshold: Union[int, float] = 50,
-        cv: Union[int, BaseCrossValidator, BaseShuffleSplit, Iterable] = 5,
+        cv: Union[int, BaseCrossValidator, BaseShuffleSplit, Iterable] = None,
         verbose: int = 0,
         random_state: Optional[int] = None,
         n_jobs: Optional[int] = -1,
@@ -53,7 +53,9 @@ class MultiClassifier(MultiEstimatorBase):
             imputer=imputer,
             numeric_threshold=numeric_threshold,
             cardinality_threshold=cardinality_threshold,
-            cv=cv,
+            cv=cv or StratifiedKFold(
+            n_splits=5, shuffle=True, random_state=random_state
+        ),
             verbose=verbose,
             random_state=random_state,
             n_jobs=n_jobs,
@@ -72,7 +74,8 @@ class MultiClassifier(MultiEstimatorBase):
             KNeighborsClassifier(),
             DecisionTreeClassifier(random_state=self.random_state),
             RandomForestClassifier(
-                random_state=self.random_state, verbose=self.verbose
+                random_state=self.random_state, verbose=self.verbose,
+                n_jobs=self.n_jobs
             ),
             AdaBoostClassifier(random_state=self.random_state),
             HistGradientBoostingClassifier(

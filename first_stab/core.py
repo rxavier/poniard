@@ -70,9 +70,7 @@ class MultiEstimatorBase(object):
         self.imputer = imputer or "simple"
         self.numeric_threshold = numeric_threshold
         self.cardinality_threshold = cardinality_threshold
-        self.cv = cv or StratifiedKFold(
-            n_splits=5, shuffle=True, random_state=random_state
-        )
+        self.cv = cv
         self.verbose = verbose
         self.random_state = random_state
         self.estimators = estimators
