@@ -492,7 +492,12 @@ class MultiEstimatorBase(object):
         else:
             estimator = Pipeline([(estimator_name, estimator)])
 
-        scoring = list(self.metrics_.values())[0]
+        if isinstance(self.metrics_, dict):
+            scoring = list(self.metrics_.values())[0]
+        elif isinstance(self.metrics_, (list, tuple, set)):
+            scoring = self.metrics_[0]
+        else:
+            scoring = self.metrics_
         if mode == "random":
             search = RandomizedSearchCV(
                 estimator,
