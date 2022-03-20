@@ -67,7 +67,7 @@ class MultiRegressor(MultiEstimatorBase):
                 random_state=self.random_state, verbose=self.verbose
             ),
             XGBRegressor(random_state=self.random_state),
-            DummyRegressor(),
+            DummyRegressor(strategy="mean"),
         ]
 
     def _build_metrics(self, y: Union[pd.DataFrame, np.ndarray]) -> None:

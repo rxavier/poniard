@@ -78,7 +78,7 @@ class MultiClassifier(MultiEstimatorBase):
                 use_label_encoder=False,
                 eval_metric="mlogloss",
             ),
-            DummyClassifier(),
+            DummyClassifier(strategy="prior"),
         ]
 
     def _build_metrics(self, y: Union[pd.DataFrame, np.ndarray]) -> None:
