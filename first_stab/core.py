@@ -408,7 +408,7 @@ class MultiEstimatorBase(object):
                 )
         if add_to_estimators:
             name = name or ensemble.__class__.__name__
-            self.estimators_.update({name: ensemble})
+            self.add_estimators(new_estimators={name: ensemble})
         if include_preprocessor:
             return make_pipeline(self.preprocessor_, ensemble)
         else:
@@ -516,9 +516,7 @@ class MultiEstimatorBase(object):
         search.fit(X, y)
         if add_to_estimators:
             name = name or f"{estimator_name}_tuned"
-            self.estimators_.update(
-                {name: clone(search.best_estimator_._final_estimator)}
-            )
+            self.add_estimators(new_estimators={name: clone(search.best_estimator_._final_estimator)})
         return search
 
     def pass_instance_attrs(self, estimator: Union[ClassifierMixin, RegressorMixin]):
