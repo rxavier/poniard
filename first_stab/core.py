@@ -92,6 +92,11 @@ class MultiEstimatorBase(object):
                 estimator.__class__.__name__: estimator
                 for estimator in self._base_estimators
             }
+        if self.__class__.__name__ == "MultiClassifier" and "DummyClassifier" not in self.estimators_.keys():
+            self.estimators_.update({"DummyClassifier": DummyClassifier(strategy="priour")})
+        elif self.__class__.__name__ == "MultiRegressor" and "DummyRegressor" not in self.estimators_.keys():
+            self.estimators_.update({"DummyRegressor": DummyRegressor(strategy="mean")})
+
         for estimator in self.estimators_.values():
             self._pass_instance_attrs(estimator)
         return
