@@ -24,7 +24,6 @@ from sklearn.pipeline import make_pipeline, Pipeline
 from sklearn.compose import make_column_transformer
 from sklearn.dummy import DummyClassifier, DummyRegressor
 from sklearn.model_selection import (
-    StratifiedKFold,
     cross_validate,
     cross_val_predict,
     GridSearchCV,
