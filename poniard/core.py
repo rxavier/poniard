@@ -36,7 +36,7 @@ from poniard.utils import cramers_v
 from poniard.hyperparameters import GRID
 
 
-class MultiEstimatorBase(object):
+class PoniardBaseEstimator(object):
     def __init__(
         self,
         estimators: Optional[
@@ -92,9 +92,9 @@ class MultiEstimatorBase(object):
                 estimator.__class__.__name__: estimator
                 for estimator in self._base_estimators
             }
-        if self.__class__.__name__ == "MultiClassifier" and "DummyClassifier" not in self.estimators_.keys():
+        if self.__class__.__name__ == "PoniardClassifier" and "DummyClassifier" not in self.estimators_.keys():
             self.estimators_.update({"DummyClassifier": DummyClassifier(strategy="priour")})
-        elif self.__class__.__name__ == "MultiRegressor" and "DummyRegressor" not in self.estimators_.keys():
+        elif self.__class__.__name__ == "PoniardRegressor" and "DummyRegressor" not in self.estimators_.keys():
             self.estimators_.update({"DummyRegressor": DummyRegressor(strategy="mean")})
 
         for estimator in self.estimators_.values():
@@ -393,7 +393,7 @@ class MultiEstimatorBase(object):
                 ]
             ]
         if method == "voting":
-            if self.__class__.__name__ == "MultiClassifier":
+            if self.__class__.__name__ == "PoniardClassifier":
                 ensemble = VotingClassifier(
                     estimators=models, verbose=self.verbose, **kwargs
                 )
@@ -402,7 +402,7 @@ class MultiEstimatorBase(object):
                     estimators=models, verbose=self.verbose, **kwargs
                 )
         else:
-            if self.__class__.__name__ == "MultiClassifier":
+            if self.__class__.__name__ == "PoniardClassifier":
                 ensemble = StackingClassifier(
                     estimators=models, verbose=self.verbose, cv=self.cv, **kwargs
                 )
@@ -445,7 +445,7 @@ class MultiEstimatorBase(object):
             if i == len(pbar) - 1:
                 pbar.set_description("Completed")
         results = pd.DataFrame(results)
-        if self.__class__.__name__ == "MultiClassifier":
+        if self.__class__.__name__ == "PoniardClassifier":
             estimator_names = [
                 x
                 for x in self.estimators_

@@ -16,10 +16,10 @@ from sklearn.ensemble import (
 from xgboost import XGBRegressor
 from sklearn.dummy import DummyRegressor
 
-from poniard.core import MultiEstimatorBase
+from poniard.core import PoniardBaseEstimator
 
 
-class MultiRegressor(MultiEstimatorBase):
+class PoniardRegressor(PoniardBaseEstimator):
     def __init__(
         self,
         estimators: Optional[

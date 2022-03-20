@@ -20,10 +20,10 @@ from sklearn.ensemble import (
 from xgboost import XGBClassifier
 from sklearn.dummy import DummyClassifier
 
-from poniard.core import MultiEstimatorBase
+from poniard.core import PoniardBaseEstimator
 
 
-class MultiClassifier(MultiEstimatorBase):
+class PoniardClassifier(PoniardBaseEstimator):
     def __init__(
         self,
         estimators: Optional[
