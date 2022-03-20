@@ -15,13 +15,13 @@ numpy==1.21.5
     #   scipy
     #   xgboost
 pandas==1.3.5
-    # via first-stab (setup.py)
+    # via poniard (setup.py)
 python-dateutil==2.8.2
     # via pandas
 pytz==2021.3
     # via pandas
 scikit-learn==1.0.2
-    # via first-stab (setup.py)
+    # via poniard (setup.py)
 scipy==1.7.3
     # via
     #   scikit-learn
@@ -31,6 +31,6 @@ six==1.16.0
 threadpoolctl==3.1.0
     # via scikit-learn
 tqdm==4.63.0
-    # via first-stab (setup.py)
+    # via poniard (setup.py)
 xgboost==1.5.2
-    # via first-stab (setup.py)
+    # via poniard (setup.py)

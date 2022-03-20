@@ -32,8 +32,8 @@ from sklearn.model_selection import (
 from sklearn.impute import SimpleImputer
 from sklearn.exceptions import UndefinedMetricWarning
 
-from first_stab.utils import cramers_v
-from first_stab.hyperparameters import GRID
+from poniard.utils import cramers_v
+from poniard.hyperparameters import GRID
 
 
 class MultiEstimatorBase(object):

@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 from distutils.util import convert_path
 
 main_ns = {}
-ver_path = convert_path("first_stab/_version.py")
+ver_path = convert_path("poniard/_version.py")
 with open(ver_path) as ver_file:
     exec(ver_file.read(), main_ns)
 
@@ -15,14 +15,14 @@ with open(os.path.join(here, "README.md"), encoding="utf-8") as f:
     long_description = f.read()
 
 setup(
-    name="first-stab",
+    name="poniard",
     version=main_ns["__version__"],
     description="Cross-validate multiple scikit-learn estimators in one line.",
     long_description=long_description,
     long_description_content_type="text/markdown",
     author="Rafael Xavier",
     license="MIT",
-    url="https://github.com/rxavier/first-stab",
+    url="https://github.com/rxavier/poniard",
     classifiers=[
         "Development Status :: 3 - Alpha",
         "Intended Audience :: Science/Research",

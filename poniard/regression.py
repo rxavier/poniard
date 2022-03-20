@@ -16,7 +16,7 @@ from sklearn.ensemble import (
 from xgboost import XGBRegressor
 from sklearn.dummy import DummyRegressor
 
-from first_stab.core import MultiEstimatorBase
+from poniard.core import MultiEstimatorBase
 
 
 class MultiRegressor(MultiEstimatorBase):

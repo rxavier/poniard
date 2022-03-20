@@ -20,7 +20,7 @@ from sklearn.ensemble import (
 from xgboost import XGBClassifier
 from sklearn.dummy import DummyClassifier
 
-from first_stab.core import MultiEstimatorBase
+from poniard.core import MultiEstimatorBase
 
 
 class MultiClassifier(MultiEstimatorBase):
