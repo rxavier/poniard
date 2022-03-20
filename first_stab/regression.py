@@ -15,13 +15,6 @@ from sklearn.ensemble import (
 )
 from xgboost import XGBRegressor
 from sklearn.dummy import DummyRegressor
-from sklearn.metrics import (
-    make_scorer,
-    mean_absolute_percentage_error,
-    mean_squared_error,
-    median_absolute_error,
-    r2_score,
-)
 
 from first_stab.core import MultiEstimatorBase
 
@@ -78,16 +71,10 @@ class MultiRegressor(MultiEstimatorBase):
         ]
 
     def _build_metrics(self, y: Union[pd.DataFrame, np.ndarray]) -> None:
-        self.metrics_ = {
-            "rmse": make_scorer(
-                mean_squared_error, squared=False, greater_is_better=False
-            ),
-            "mape": make_scorer(
-                mean_absolute_percentage_error, greater_is_better=False
-            ),
-            "median_absolute_error": make_scorer(
-                median_absolute_error, greater_is_better=False
-            ),
-            "r2": make_scorer(r2_score, greater_is_better=True),
-        }
+        self.metrics_ = [
+            "neg_root_mean_error",
+            "neg_mean_absolute_percentage_error",
+            "neg_median_absolute_error",
+            "r2"
+        ]
         return

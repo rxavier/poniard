@@ -19,14 +19,6 @@ from sklearn.ensemble import (
 )
 from xgboost import XGBClassifier
 from sklearn.dummy import DummyClassifier
-from sklearn.metrics import (
-    make_scorer,
-    accuracy_score,
-    precision_score,
-    recall_score,
-    f1_score,
-    roc_auc_score,
-)
 
 from first_stab.core import MultiEstimatorBase
 
@@ -91,19 +83,19 @@ class MultiClassifier(MultiEstimatorBase):
 
     def _build_metrics(self, y: Union[pd.DataFrame, np.ndarray]) -> None:
         if y.ndim > 1 or len(np.unique(y)) > 2:
-            self.metrics_ = {
-                # "roc_auc": make_scorer(roc_auc_score, average="macro"),
-                "accuracy": make_scorer(accuracy_score),
-                "precision": make_scorer(precision_score, average="macro"),
-                "recall": make_scorer(recall_score, average="macro"),
-                "f1": make_scorer(f1_score, average="macro"),
-            }
+            self.metrics_ = [
+                #"roc_auc_score",
+                "accuracy",
+                "precision_macro",
+                "recall_macro",
+                "f1_macro",
+            ]
         else:
-            self.metrics_ = {
-                "roc_auc": make_scorer(roc_auc_score),
-                "accuracy": make_scorer(accuracy_score),
-                "precision": make_scorer(precision_score),
-                "recall": make_scorer(recall_score),
-                "f1": make_scorer(f1_score),
-            }
+            self.metrics_ = [
+                "roc_auc",
+                "accuracy",
+                "precision",
+                "recall",
+                "f1",
+            ]
         return

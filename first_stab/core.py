@@ -23,10 +23,6 @@ from sklearn.ensemble import (
 from sklearn.pipeline import make_pipeline, Pipeline
 from sklearn.compose import make_column_transformer
 from sklearn.dummy import DummyClassifier, DummyRegressor
-from sklearn.metrics import (
-    make_scorer,
-    accuracy_score,
-)
 from sklearn.model_selection import (
     StratifiedKFold,
     cross_validate,
@@ -221,9 +217,7 @@ class MultiEstimatorBase(object):
         return
 
     def _build_metrics(self, y: Union[pd.DataFrame, np.ndarray]) -> None:
-        self.metrics_ = {
-            "accuracy": make_scorer(accuracy_score),
-        }
+        self.metrics_ = ["accuracy"]
         return
 
     def _process_experiment_results(self) -> None:
