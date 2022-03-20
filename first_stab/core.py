@@ -469,7 +469,7 @@ class MultiEstimatorBase(object):
         y: Union[pd.DataFrame, np.ndarray, List],
         include_preprocessor: bool = True,
         grid: Optional[Dict] = None,
-        mode: str = "random",
+        mode: str = "grid",
         add_to_estimators: bool = False,
         name: Optional[str] = None,
     ) -> Union[GridSearchCV, RandomizedSearchCV]:
@@ -500,6 +500,18 @@ class MultiEstimatorBase(object):
             scoring = self.metrics_
         if mode == "random":
             search = RandomizedSearchCV(
+                estimator,
+                grid,
+                scoring=scoring,
+                cv=self.cv,
+                verbose=self.verbose,
+                n_jobs=self.n_jobs,
+                random_state=self.random_state,
+            )
+        elif mode == "halving":
+            from sklearn.experimental import enable_halving_search_cv
+            from sklearn.model_selection import HalvingGridSearchCV
+            search = HalvingGridSearchCV(
                 estimator,
                 grid,
                 scoring=scoring,
