@@ -30,8 +30,7 @@ from sklearn.model_selection import (
     GridSearchCV,
     RandomizedSearchCV,
 )
-from sklearn.experimental import enable_iterative_imputer
-from sklearn.impute import SimpleImputer, IterativeImputer
+from sklearn.impute import SimpleImputer
 from sklearn.exceptions import UndefinedMetricWarning
 
 from first_stab.utils import cramers_v
@@ -181,6 +180,8 @@ class MultiEstimatorBase(object):
         if self.imputer == "simple":
             num_imputer = SimpleImputer(strategy="mean", verbose=self.verbose)
         else:
+            from sklearn.experimental import enable_iterative_imputer
+            from sklearn.impute import IterativeImputer
             num_imputer = IterativeImputer(random_state=self.random_state)
         numeric_preprocessor = make_pipeline(num_imputer, scaler)
         cat_low_preprocessor = make_pipeline(
