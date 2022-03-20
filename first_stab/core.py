@@ -93,7 +93,7 @@ class MultiEstimatorBase(object):
                 for estimator in self._base_estimators
             }
         for estimator in self.estimators_.values():
-            self.pass_instance_attrs(estimator)
+            self._pass_instance_attrs(estimator)
         return
 
     @property
@@ -313,7 +313,7 @@ class MultiEstimatorBase(object):
                 estimator.__class__.__name__: estimator for estimator in new_estimators
             }
         for estimator in new_estimators.values():
-            self.pass_instance_attrs(estimator)
+            self._pass_instance_attrs(estimator)
         if any([inspect.isclass(v) for v in new_estimators.values()]):
             raise ValueError("Pass an instance of an estimator, not the class.")
         self._build_initial_estimators()
@@ -483,7 +483,7 @@ class MultiEstimatorBase(object):
                 raise KeyError(
                     f"Estimator {estimator_name} has no predefined hyperparameter grid, so it has to be supplied."
                 )
-        self.pass_instance_attrs(estimator)
+        self._pass_instance_attrs(estimator)
 
         if include_preprocessor:
             estimator = Pipeline(
@@ -535,7 +535,7 @@ class MultiEstimatorBase(object):
             self.add_estimators(new_estimators={name: clone(search.best_estimator_._final_estimator)})
         return search
 
-    def pass_instance_attrs(self, estimator: Union[ClassifierMixin, RegressorMixin]):
+    def _pass_instance_attrs(self, estimator: Union[ClassifierMixin, RegressorMixin]):
         for attr, value in zip(
             ["random_state", "verbose", "verbosity", "n_jobs"],
             [self.random_state, self.verbose, self.verbose, self.n_jobs],
