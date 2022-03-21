@@ -6,7 +6,7 @@ from typing import List, Optional, Union, Iterable, Callable, Dict, Tuple
 import pandas as pd
 import numpy as np
 from tqdm import tqdm
-from sklearn.base import ClassifierMixin, RegressorMixin, clone
+from sklearn.base import ClassifierMixin, RegressorMixin, TransformerMixin, clone
 from sklearn.model_selection._split import BaseCrossValidator, BaseShuffleSplit
 from sklearn.preprocessing import (
     StandardScaler,
@@ -51,6 +51,7 @@ class PoniardBaseEstimator(object):
         preprocess: bool = True,
         scaler: Optional[str] = None,
         imputer: Optional[str] = None,
+        custom_preprocessor: Union[None, Pipeline, TransformerMixin] = None,
         numeric_threshold: Union[int, float] = 0.2,
         cardinality_threshold: Union[int, float] = 50,
         cv: Union[int, BaseCrossValidator, BaseShuffleSplit, Iterable] = None,
@@ -63,6 +64,7 @@ class PoniardBaseEstimator(object):
         self.scaler = scaler or "standard"
         self.imputer = imputer or "simple"
         self.numeric_threshold = numeric_threshold
+        self.custom_preprocessor = custom_preprocessor
         self.cardinality_threshold = cardinality_threshold
         self.cv = cv
         self.verbose = verbose
@@ -255,7 +257,10 @@ class PoniardBaseEstimator(object):
             self.metrics_ = self.metrics
 
         if self.preprocess:
-            self._build_preprocessor(X)
+            if self.custom_preprocessor:
+                self.preprocessor_ = self.custom_preprocessor
+            else:
+                self._build_preprocessor(X)
 
         self._build_initial_estimators()
         return X, y

@@ -2,7 +2,8 @@ from typing import List, Optional, Union, Iterable, Callable, Dict
 
 import pandas as pd
 import numpy as np
-from sklearn.base import ClassifierMixin
+from sklearn.base import ClassifierMixin, TransformerMixin
+from sklearn.pipeline import Pipeline
 from sklearn.model_selection._split import (
     BaseCrossValidator,
     BaseShuffleSplit,
@@ -33,6 +34,7 @@ class PoniardClassifier(PoniardBaseEstimator):
         preprocess: bool = True,
         scaler: Optional[str] = None,
         imputer: Optional[str] = None,
+        custom_preprocessor: Union[None, Pipeline, TransformerMixin] = None,
         numeric_threshold: Union[int, float] = 0.2,
         cardinality_threshold: Union[int, float] = 50,
         cv: Union[int, BaseCrossValidator, BaseShuffleSplit, Iterable] = None,
@@ -47,6 +49,7 @@ class PoniardClassifier(PoniardBaseEstimator):
             scaler=scaler,
             imputer=imputer,
             numeric_threshold=numeric_threshold,
+            custom_preprocessor=custom_preprocessor,
             cardinality_threshold=cardinality_threshold,
             cv=cv
             or StratifiedKFold(n_splits=5, shuffle=True, random_state=random_state),

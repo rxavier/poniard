@@ -2,7 +2,8 @@ from typing import List, Optional, Union, Iterable, Callable, Dict
 
 import pandas as pd
 import numpy as np
-from sklearn.base import RegressorMixin
+from sklearn.base import RegressorMixin, TransformerMixin
+from sklearn.pipeline import Pipeline
 from sklearn.model_selection._split import BaseCrossValidator, BaseShuffleSplit, KFold
 
 from sklearn.linear_model import LinearRegression, ElasticNet
@@ -29,6 +30,7 @@ class PoniardRegressor(PoniardBaseEstimator):
         preprocess: bool = True,
         scaler: Optional[str] = None,
         imputer: Optional[str] = None,
+        custom_preprocessor: Union[None, Pipeline, TransformerMixin] = None,
         numeric_threshold: Union[int, float] = 0.2,
         cardinality_threshold: Union[int, float] = 50,
         cv: Union[int, BaseCrossValidator, BaseShuffleSplit, Iterable] = None,
@@ -42,6 +44,7 @@ class PoniardRegressor(PoniardBaseEstimator):
             preprocess=preprocess,
             scaler=scaler,
             imputer=imputer,
+            custom_preprocessor=custom_preprocessor,
             numeric_threshold=numeric_threshold,
             cardinality_threshold=cardinality_threshold,
             cv=cv or KFold(n_splits=5, shuffle=True, random_state=random_state),
@@ -72,7 +75,7 @@ class PoniardRegressor(PoniardBaseEstimator):
 
     def _build_metrics(self, y: Union[pd.DataFrame, np.ndarray]) -> None:
         self.metrics_ = [
-            "neg_root_mean_error",
+            "neg_mean_squared_error",
             "neg_mean_absolute_percentage_error",
             "neg_median_absolute_error",
             "r2"
