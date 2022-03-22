@@ -3,7 +3,7 @@
 # Introduction
 > A poniard /ˈpɒnjərd/ or poignard (Fr.) is a long, lightweight thrusting knife ([Wikipedia](https://en.wikipedia.org/wiki/Poignard))
 
-Poniard is a scikit-learn companion library that tries to streamline the process of trying out different machine learning models and comparing them. It is meant to measure how "challenging" a problem/dataset is, which types of models work well for the task, and help decide which algorithm to choose.
+Poniard is a scikit-learn companion library that streamlines the process of fitting different machine learning models and comparing them. It is meant to measure how "challenging" a problem/dataset is, which types of models work well for the task, and help decide which algorithm to choose.
 
 This is not meant to be end to end solution, and you definitely should keep on working on your models after you are done with Poniard.
 
@@ -91,7 +91,7 @@ Integer columns are defined as numeric if the number of unique values is greater
 For categorical features, high and low cardinality is defined by the `cardinality_threshold` parameter. Only low cardinality categorical features are one-hot encoded.
 
 ## Ensembles
-Poniard makes it easy to combine various estimators in stacking or voting estimators. The base esimators can be selected according to their performance or chosen by their names.
+Poniard makes it easy to combine various estimators in stacking or voting ensembles. The base esimators can be selected according to their performance (top-n) or chosen by their names.
 
 Poniard also reports how similar the predictions of the base estimators are, so ensembles with different base esimators can be built. A basic correlation table of the cross-validated predictions is built for regression tasks, while [Cramer's V](https://en.wikipedia.org/wiki/Cram%C3%A9r%27s_V) is used for classification.
 
@@ -120,3 +120,10 @@ pnd.show_results()
 | KNeighborsRegressor           |                     -22388.9  |               -16538.6         |                                  -5.35881 |                               -5.40109     |                        -109.728  |                     -86.218       |  0.105827  |   0.374221 | 0.0043016  |   0.127281   |
 | DummyRegressor                |                     -27480.4  |               -26460           |                                  -1.57572 |                               -1.89635     |                        -119.372  |                    -110.842       | -0.0950711 |   0        | 0.00351734 |   0          |
 | DecisionTreeRegressor         |                     -40700.6  |                    0           |                                 -24.6131  |                                0           |                        -151.028  |                       0           | -0.562759  |   1        | 0.0193477  |   0.00560312 |
+
+# Similar projects
+Poniard is not a groundbreaking idea, and a number of libraries follow a similar approach.
+
+**[LazyPredict](https://github.com/shankarpandala/lazypredict)** is similar in that it runs multiple estimators and provides results for various metrics. Unlike Poniard, by default it tries most scikit-learn estimators, and is not based on cross validation.
+
+**[PyCaret](https://github.com/pycaret/pycaret)** is a whole other beast that includes model explainability, deployment, plotting, NLP, anomaly detection, etc., which leads to a list of dependencies several times larger than Poniard's.
