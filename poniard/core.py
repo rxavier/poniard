@@ -94,9 +94,17 @@ class PoniardBaseEstimator(object):
                 estimator.__class__.__name__: estimator
                 for estimator in self._base_estimators
             }
-        if self.__class__.__name__ == "PoniardClassifier" and "DummyClassifier" not in self.estimators_.keys():
-            self.estimators_.update({"DummyClassifier": DummyClassifier(strategy="priour")})
-        elif self.__class__.__name__ == "PoniardRegressor" and "DummyRegressor" not in self.estimators_.keys():
+        if (
+            self.__class__.__name__ == "PoniardClassifier"
+            and "DummyClassifier" not in self.estimators_.keys()
+        ):
+            self.estimators_.update(
+                {"DummyClassifier": DummyClassifier(strategy="priour")}
+            )
+        elif (
+            self.__class__.__name__ == "PoniardRegressor"
+            and "DummyRegressor" not in self.estimators_.keys()
+        ):
             self.estimators_.update({"DummyRegressor": DummyRegressor(strategy="mean")})
 
         for estimator in self.estimators_.values():
@@ -190,6 +198,7 @@ class PoniardBaseEstimator(object):
         else:
             from sklearn.experimental import enable_iterative_imputer
             from sklearn.impute import IterativeImputer
+
             num_imputer = IterativeImputer(random_state=self.random_state)
         numeric_preprocessor = make_pipeline(num_imputer, scaler)
         cat_low_preprocessor = make_pipeline(
@@ -521,6 +530,7 @@ class PoniardBaseEstimator(object):
         elif mode == "halving":
             from sklearn.experimental import enable_halving_search_cv
             from sklearn.model_selection import HalvingGridSearchCV
+
             search = HalvingGridSearchCV(
                 estimator,
                 grid,
@@ -542,7 +552,9 @@ class PoniardBaseEstimator(object):
         search.fit(X, y)
         if add_to_estimators:
             name = name or f"{estimator_name}_tuned"
-            self.add_estimators(new_estimators={name: clone(search.best_estimator_._final_estimator)})
+            self.add_estimators(
+                new_estimators={name: clone(search.best_estimator_._final_estimator)}
+            )
         return search
 
     def _pass_instance_attrs(self, estimator: Union[ClassifierMixin, RegressorMixin]):

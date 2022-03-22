@@ -87,7 +87,7 @@ class PoniardClassifier(PoniardBaseEstimator):
     def _build_metrics(self, y: Union[pd.DataFrame, np.ndarray]) -> None:
         if y.ndim > 1 or len(np.unique(y)) > 2:
             self.metrics_ = [
-                #"roc_auc_score",
+                # "roc_auc_score",
                 "accuracy",
                 "precision_macro",
                 "recall_macro",

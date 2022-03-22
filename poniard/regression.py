@@ -78,6 +78,6 @@ class PoniardRegressor(PoniardBaseEstimator):
             "neg_mean_squared_error",
             "neg_mean_absolute_percentage_error",
             "neg_median_absolute_error",
-            "r2"
+            "r2",
         ]
         return
