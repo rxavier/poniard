@@ -40,7 +40,7 @@ class PoniardClassifier(PoniardBaseEstimator):
         cv: Union[int, BaseCrossValidator, BaseShuffleSplit, Iterable] = None,
         verbose: int = 0,
         random_state: Optional[int] = None,
-        n_jobs: Optional[int] = -1,
+        n_jobs: Optional[int] = None,
     ):
         super().__init__(
             estimators=estimators,
