@@ -99,7 +99,7 @@ class PoniardBaseEstimator(object):
             and "DummyClassifier" not in self.estimators_.keys()
         ):
             self.estimators_.update(
-                {"DummyClassifier": DummyClassifier(strategy="priour")}
+                {"DummyClassifier": DummyClassifier(strategy="prior")}
             )
         elif (
             self.__class__.__name__ == "PoniardRegressor"
