@@ -37,6 +37,17 @@ from poniard.hyperparameters import GRID
 
 
 class PoniardBaseEstimator(object):
+    """Base estimator that sets up all the functionality for the classifier and regressor.
+
+    Attributes
+    ----------
+    estimators_ :
+        Estimators used for scoring.
+    preprocessor_ :
+        Pipeline that preprocesses the data.
+    metrics_ :
+        Metrics used for scoring estimators during fit and hyperparameter optimization.
+    """
     def __init__(
         self,
         estimators: Optional[
@@ -59,6 +70,39 @@ class PoniardBaseEstimator(object):
         random_state: Optional[int] = None,
         n_jobs: Optional[int] = None,
     ):
+        """
+        Parameters
+        ----------
+        estimators :
+            Estimators to evaluate.
+        metrics :
+            Metrics to compute for each estimator.
+        preprocess : bool, optional
+            If True, impute missing values, standard scale numeric data and one-hot or ordinal encode categorical data.
+        scaler :
+            Numeric scaler method. Either "standard" or "robust", aligned with scikit-learn scalers.
+        imputer :
+            Imputation method. Either "simple" or "iterative", aligned with scikit-learn imputers.
+        custom_preprocessor :
+            Preprocessor used instead of the default preprocessing pipeline.
+        numeric_threshold : Union[int, float], optional
+            Features with unique values above a certain threshold will be treated as numeric. If
+            float, the threshold is `numeric_threshold * samples`.
+        cardinality_threshold : Union[int, float], optional
+            Non-numeric features with cardinality above a certain threshold will be treated as
+            ordinal encoded instead of one-hot encoded. If float, the threshold is
+            `cardinality_threshold * samples`.
+        cv :
+            Cross validation strategy. Either an integer, a scikit-learn cross validation object,
+            or an iterable.
+        verbose :
+            Verbosity level. Propagated to every scikit-learn function and estiamtor.
+        random_state :
+            RNG. Propagated to every scikit-learn function and estiamtor.
+        n_jobs :
+            Controls parallel processing. -1 uses all cores. Propagated to every scikit-learn
+            function and estiamtor.
+        """
         self.metrics = metrics
         self.preprocess = preprocess
         self.scaler = scaler or "standard"
@@ -75,6 +119,16 @@ class PoniardBaseEstimator(object):
         self.processed_estimator_ids = []
 
     def _build_initial_estimators(self) -> None:
+        """Build :attr:`estimators_` dict where keys are the estimator class names.
+
+        Adds dummy estimators if not included during construction. Does nothing if
+        :attr:`estimators_` exists.
+
+        Raises
+        ------
+        ValueError
+            If a class instead of a class instance is passed.
+        """
         try:
             # If the estimators_ dict exists, don't build it again
             self.estimators_
@@ -119,6 +173,19 @@ class PoniardBaseEstimator(object):
         ]
 
     def _classify_features(self, X: Union[pd.DataFrame, np.ndarray]) -> Tuple(List[str], List[str], List[str]):
+        """Infer feature types (numeric, low-cardinality categorical or high-cardinality
+        categorical).
+
+        Parameters
+        ----------
+        X :
+            Input features.
+
+        Returns
+        -------
+        List[str], List[str], List[str]
+            Three lists with column names or indices.
+        """
         numeric = []
         categorical_high = []
         categorical_low = []
@@ -182,6 +249,16 @@ class PoniardBaseEstimator(object):
         return numeric, categorical_high, categorical_low
 
     def _build_preprocessor(self, X: Union[pd.DataFrame, np.ndarray]) -> None:
+        """Build default preprocessor and assign to :attr:`preprocessor_`.
+
+        The preprocessor imputes missing values, scales numeric features and encodes categorical
+        features according to inferred types.
+
+        Parameters
+        ----------
+        X :
+            Input features.
+        """
         try:
             self.preprocessor_
             return
@@ -235,10 +312,19 @@ class PoniardBaseEstimator(object):
         return
 
     def _build_metrics(self, y: Union[pd.DataFrame, np.ndarray]) -> None:
+        """Build metrics and assign to :attr:`metrics_`.
+
+        Parameters
+        ----------
+        y :
+            Target. Used to determine the task (regression, binary classification or multiclass
+            classification).
+        """
         self.metrics_ = ["accuracy"]
         return
 
     def _process_results(self) -> None:
+        """Compute mean and standard deviations of  experiment results."""
         # TODO: This processes every result, even those that were processed
         # in previous runs (before add_estimators). Should be made more efficient
         results = pd.DataFrame(self._experiment_results).T.drop(["estimator"], axis=1)
@@ -254,7 +340,24 @@ class PoniardBaseEstimator(object):
         self,
         X: Union[pd.DataFrame, np.ndarray, List],
         y: Union[pd.DataFrame, np.ndarray, List],
-    ) -> None:
+    ) -> Tuple[Union[pd.DataFrame, np.ndarray], Union[pd.DataFrame, np.ndarray]]:
+        """Orhcestrator.
+
+        Converts inputs to arrays if necessary, sets :attr:`metrics_`,
+        :attr:`preprocessor_` and :attr:`estimators_`.
+
+        Parameters
+        ----------
+        X :
+            Features.
+        y :
+            Target
+
+        Returns
+        -------
+        Tuple[Union[pd.DataFrame, np.ndarray], Union[pd.DataFrame, np.ndarray]]
+            X, y as numpy arrays or pandas dataframes.
+        """
         if not isinstance(X, (pd.DataFrame, np.ndarray)):
             X = np.array(X)
         if not isinstance(y, (pd.DataFrame, np.ndarray)):
@@ -279,6 +382,18 @@ class PoniardBaseEstimator(object):
         X: Union[pd.DataFrame, np.ndarray, List],
         y: Union[pd.DataFrame, np.ndarray, List],
     ) -> None:
+        """This is the main Poniard method. It uses scikit-learn's `cross_validate` function to
+        score all :attr:`metrics_` for every :attr:`preprocessor_` | :attr:`estimators_`, using
+        :attr:`cv` for cross validation.
+
+
+        Parameters
+        ----------
+        X :
+            Features.
+        y :
+            Target.
+        """
         X, y = self._setup_experiments(X, y)
 
         results = {}
@@ -327,6 +442,20 @@ class PoniardBaseEstimator(object):
     def add_estimators(
         self, new_estimators: Union[Dict[str, ClassifierMixin], List[ClassifierMixin]]
     ) -> None:
+        """Include new estimator. This is the recommended way of adding an estimator (as opposed
+        to modifying :attr:`estimators_` directly), since it also injects ranodm state, njobs
+        and verbosity.
+
+        Parameters
+        ----------
+        new_estimators :
+            Estimators to add.
+
+        Raises
+        ------
+        ValueError
+            If a class and not an instance class is passed.
+        """
         if not isinstance(new_estimators, dict):
             new_estimators = {
                 estimator.__class__.__name__: estimator for estimator in new_estimators
@@ -340,6 +469,17 @@ class PoniardBaseEstimator(object):
         return
 
     def remove_estimators(self, names: List[str], drop_results: bool = True) -> None:
+        """Remove estimators. This is the recommended way of removing an estimator (as opposed
+        to modifying :attr:`estimators_` directly), since it also removes the associated rows from
+        the results tables.
+
+        Parameters
+        ----------
+        names :
+            Estimators to remove.
+        drop_results :
+            Whether to remove the results associated with the estimators. Default True.
+        """
         self.estimators_ = {k: v for k, v in self.estimators_.items() if k not in names}
         if drop_results:
             self._means = self._means.loc[~self._means.index.isin(names)]
@@ -354,6 +494,22 @@ class PoniardBaseEstimator(object):
         std: bool = False,
         wrt_dummy: bool = False,
     ) -> Union[Tuple[pd.DataFrame, pd.DataFrame], pd.DataFrame]:
+        """Return dataframe containing scoring results. By default returns the mean score and fit
+        and score times. Optionally returns standard deviations as well.
+
+        Parameters
+        ----------
+        std :
+            Whether to return standard deviation of the scores. Default False.
+        wrt_dummy :
+            Whether to compute each score/time with respect to the dummy estimator results. Default
+            False.
+
+        Returns
+        -------
+        Union[Tuple[pd.DataFrame, pd.DataFrame], pd.DataFrame]
+            Results
+        """
         means = self._means
         stds = self._stds
         if wrt_dummy:
@@ -369,6 +525,23 @@ class PoniardBaseEstimator(object):
     def get_estimator(
         self, name: str, include_preprocessor: bool = True, fitted: bool = False
     ) -> ClassifierMixin:
+        """Obtain an estimator in :attr:`estimators_` by name. This is useful for extracting default
+        estimators or hyperparmeter-optimized estimators (after using :meth:`tune_estimator`).
+
+        Parameters
+        ----------
+        name :
+            Estimator name.
+        include_preprocessor :
+            Whether to return a pipeline with a preprocessor or just the estimator. Default True.
+        fitted :
+            Whether to return a fitted estimator/pipeline or a clone. Default False.
+
+        Returns
+        -------
+        ClassifierMixin
+            Estimator.
+        """
         model = self._experiment_results[name]["estimator"][0]
         if not include_preprocessor:
             model = model._final_estimator
@@ -388,6 +561,37 @@ class PoniardBaseEstimator(object):
         name: Optional[str] = None,
         **kwargs,
     ) -> Union[ClassifierMixin, RegressorMixin]:
+        """Combine estimators into an ensemble.
+
+        By default, orders estimators according to the first metric.
+
+        Parameters
+        ----------
+        method :
+            Ensemble method. Either "stacking" or "voring". Default "stacking".
+        estimator_names :
+            Names of estimators to include. Default None, which uses `top_n`
+        top_n :
+            How many of the best estimators to include.
+        sort_by :
+            Which metric to consider for ordering results. Default None, which uses the first metric.
+        include_preprocessor :
+            Whether to include preprocessing. Default True.
+        add_to_estimators :
+            Whether to include in :attr:`estimators_`. Default False.
+        name :
+            Ensemble name when adding to :attr:`estimators_`. Default None.
+
+        Returns
+        -------
+        Union[ClassifierMixin, RegressorMixin]
+           scikit-learn ensemble
+
+        Raises
+        ------
+        ValueError
+            If `method` is not "stacking" or "voting".
+        """
         if method not in ["voting", "stacking"]:
             raise ValueError("Method must be either voting or stacking.")
         if estimator_names:
@@ -437,6 +641,22 @@ class PoniardBaseEstimator(object):
         X: Union[pd.DataFrame, np.ndarray, List],
         y: Union[pd.DataFrame, np.ndarray, List],
     ) -> pd.DataFrame:
+        """Compute correlation/association between cross validated predictions for each estimator.
+
+        This can be useful for ensembling.
+
+        Parameters
+        ----------
+        X :
+            Features.
+        y :
+            Target.
+
+        Returns
+        -------
+        pd.DataFrame
+            Similarity.
+        """
         X, y = self._setup_experiments(X, y)
 
         results = {}
@@ -492,6 +712,38 @@ class PoniardBaseEstimator(object):
         add_to_estimators: bool = False,
         name: Optional[str] = None,
     ) -> Union[GridSearchCV, RandomizedSearchCV]:
+        """Hyperparameter tuning for a single estimator.
+
+        Parameters
+        ----------
+        estimator_name :
+            Estimator to tune.
+        X :
+            Features.
+        y :
+            Target.
+        include_preprocessor :
+            Whether to include :attr:`preprocessor_`. Default True.
+        grid :
+            Hyperparameter grid. Default None, which uses the grids available for default
+            estimators.
+        mode :
+            Type of search. Eithe "grid", "halving" or "random". Default "grid".
+        add_to_estimators :
+            Whether to include in :attr:`estimators_`. Default False.
+        name :
+            Estimator name when adding to :attr:`estimators_`. Default None.
+
+        Returns
+        -------
+        Union[GridSearchCV, RandomizedSearchCV]
+            scikit-learn search object.
+
+        Raises
+        ------
+        KeyError
+            If no grid is defined and the estimator is not a default one.
+        """
         X, y = self._setup_experiments(X, y)
         estimator = self.estimators_[estimator_name]
         if not grid:
