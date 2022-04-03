@@ -52,7 +52,7 @@ class PoniardBaseEstimator(object):
         scaler: Optional[str] = None,
         imputer: Optional[str] = None,
         custom_preprocessor: Union[None, Pipeline, TransformerMixin] = None,
-        numeric_threshold: Union[int, float] = 0.2,
+        numeric_threshold: Union[int, float] = 0.1,
         cardinality_threshold: Union[int, float] = 50,
         cv: Union[int, BaseCrossValidator, BaseShuffleSplit, Iterable] = None,
         verbose: int = 0,
