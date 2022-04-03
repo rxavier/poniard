@@ -238,7 +238,7 @@ class PoniardBaseEstimator(object):
         self.metrics_ = ["accuracy"]
         return
 
-    def _process_experiment_results(self) -> None:
+    def _process_results(self) -> None:
         # TODO: This processes every result, even those that were processed
         # in previous runs (before add_estimators). Should be made more efficient
         results = pd.DataFrame(self._experiment_results).T.drop(["estimator"], axis=1)
@@ -321,7 +321,7 @@ class PoniardBaseEstimator(object):
         except AttributeError:
             self._experiment_results = results
 
-        self._process_experiment_results()
+        self._process_results()
         return
 
     def add_estimators(
