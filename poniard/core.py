@@ -118,7 +118,7 @@ class PoniardBaseEstimator(object):
             DummyClassifier(),
         ]
 
-    def _classify_features(self, X: Union[pd.DataFrame, np.ndarray]):
+    def _classify_features(self, X: Union[pd.DataFrame, np.ndarray]) -> Tuple(List[str], List[str], List[str]):
         numeric = []
         categorical_high = []
         categorical_low = []
