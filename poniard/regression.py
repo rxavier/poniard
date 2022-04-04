@@ -69,6 +69,7 @@ class PoniardRegressor(PoniardBaseEstimator):
     metrics_ :
         Metrics used for scoring estimators during fit and hyperparameter optimization.
     """
+
     def __init__(
         self,
         estimators: Optional[

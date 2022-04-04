@@ -40,7 +40,7 @@ def cramers_v(
     nan_replace_value :
         The value used to replace missing values with. Only applicable when
         nan_strategy is set to 'replace'.
-        
+
     Returns
     -------
     float in the range of [0,1]

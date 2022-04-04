@@ -80,6 +80,7 @@ class PoniardBaseEstimator(object):
     metrics_ :
         Metrics used for scoring estimators during fit and hyperparameter optimization.
     """
+
     def __init__(
         self,
         estimators: Optional[
@@ -171,7 +172,9 @@ class PoniardBaseEstimator(object):
             DummyClassifier(),
         ]
 
-    def _classify_features(self, X: Union[pd.DataFrame, np.ndarray]) -> Tuple[List[str], List[str], List[str]]:
+    def _classify_features(
+        self, X: Union[pd.DataFrame, np.ndarray]
+    ) -> Tuple[List[str], List[str], List[str]]:
         """Infer feature types (numeric, low-cardinality categorical or high-cardinality
         categorical).
 
