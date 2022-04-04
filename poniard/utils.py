@@ -19,27 +19,30 @@ def cramers_v(
 ):
     """
     Calculates Cramer's V statistic for categorical-categorical association.
+
     This is a symmetric coefficient: V(x,y) = V(y,x)
     Original function taken from: https://stackoverflow.com/a/46498792/5863503
     Wikipedia: https://en.wikipedia.org/wiki/Cram%C3%A9r%27s_V
-    Parameters:
-    -----------
-    x : list / NumPy ndarray / Pandas Series
+
+    Parameters
+    ----------
+    x :
         A sequence of categorical measurements
-    y : list / NumPy ndarray / Pandas Series
+    y :
         A sequence of categorical measurements
-    bias_correction : Boolean, default = True
+    bias_correction :
         Use bias correction from Bergsma and Wicher,
         Journal of the Korean Statistical Society 42 (2013): 323-328.
-    nan_strategy : string, default = 'replace'
+    nan_strategy :
         How to handle missing values: can be either 'drop' to remove samples
         with missing values, or 'replace' to replace all missing values with
         the nan_replace_value. Missing values are None and np.nan.
-    nan_replace_value : any, default = 0.0
+    nan_replace_value :
         The value used to replace missing values with. Only applicable when
         nan_strategy is set to 'replace'.
-    Returns:
-    --------
+        
+    Returns
+    -------
     float in the range of [0,1]
     """
     if nan_strategy == "replace":
