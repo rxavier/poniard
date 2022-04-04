@@ -1,5 +1,4 @@
 -c requirements.txt
-jupyter
 black
 pytest
 sphinx
