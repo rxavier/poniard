@@ -1,3 +1,10 @@
 -c requirements.txt
 jupyter
 black
+pytest
+sphinx
+sphinx-autobuild
+sphinx-autodoc-typehints
+recommonmark
+sphinx-bootstrap-theme
+sphinx-toolbox
