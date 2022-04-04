@@ -25,6 +25,21 @@ from poniard.core import PoniardBaseEstimator
 
 
 class PoniardClassifier(PoniardBaseEstimator):
+    """Cross validate multiple regressors, rank them, fine tune them and ensemble them.
+
+    PoniardRegressor takes a list/dict of scikit-learn estimators and compares their performance
+    on a list/dict of scikit-learn metrics using a predefined scikit-learn cross-validation
+    strategy.
+
+    Attributes
+    ----------
+    estimators_ :
+        Estimators used for scoring.
+    preprocessor_ :
+        Pipeline that preprocesses the data.
+    metrics_ :
+        Metrics used for scoring estimators during fit and hyperparameter optimization.
+    """
     def __init__(
         self,
         estimators: Optional[
@@ -42,6 +57,40 @@ class PoniardClassifier(PoniardBaseEstimator):
         random_state: Optional[int] = None,
         n_jobs: Optional[int] = None,
     ):
+        """
+        Parameters
+        ----------
+        estimators :
+            Estimators to evaluate.
+        metrics :
+            Metrics to compute for each estimator.
+        preprocess : bool, optional
+            If True, impute missing values, standard scale numeric data and one-hot or ordinal
+            encode categorical data.
+        scaler :
+            Numeric scaler method. Either "standard" or "robust", aligned with scikit-learn scalers.
+        imputer :
+            Imputation method. Either "simple" or "iterative", aligned with scikit-learn imputers.
+        custom_preprocessor :
+            Preprocessor used instead of the default preprocessing pipeline.
+        numeric_threshold :
+            Features with unique values above a certain threshold will be treated as numeric. If
+            float, the threshold is `numeric_threshold * samples`.
+        cardinality_threshold :
+            Non-numeric features with cardinality above a certain threshold will be treated as
+            ordinal encoded instead of one-hot encoded. If float, the threshold is
+            `cardinality_threshold * samples`.
+        cv :
+            Cross validation strategy. Either an integer, a scikit-learn cross validation object,
+            or an iterable.
+        verbose :
+            Verbosity level. Propagated to every scikit-learn function and estiamtor.
+        random_state :
+            RNG. Propagated to every scikit-learn function and estiamtor.
+        n_jobs :
+            Controls parallel processing. -1 uses all cores. Propagated to every scikit-learn
+            function and estimator.
+        """
         super().__init__(
             estimators=estimators,
             metrics=metrics,

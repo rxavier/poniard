@@ -85,10 +85,10 @@ class PoniardBaseEstimator(object):
             Imputation method. Either "simple" or "iterative", aligned with scikit-learn imputers.
         custom_preprocessor :
             Preprocessor used instead of the default preprocessing pipeline.
-        numeric_threshold : Union[int, float], optional
+        numeric_threshold :
             Features with unique values above a certain threshold will be treated as numeric. If
             float, the threshold is `numeric_threshold * samples`.
-        cardinality_threshold : Union[int, float], optional
+        cardinality_threshold :
             Non-numeric features with cardinality above a certain threshold will be treated as
             ordinal encoded instead of one-hot encoded. If float, the threshold is
             `cardinality_threshold * samples`.
@@ -101,7 +101,7 @@ class PoniardBaseEstimator(object):
             RNG. Propagated to every scikit-learn function and estiamtor.
         n_jobs :
             Controls parallel processing. -1 uses all cores. Propagated to every scikit-learn
-            function and estiamtor.
+            function and estimator.
         """
         self.metrics = metrics
         self.preprocess = preprocess
