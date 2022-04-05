@@ -1,4 +1,4 @@
-<p style="text-align:center"><img src="https://raw.githubusercontent.com/rxavier/poniard/main/logo.png" alt="Poniard logo" title="Poniard" width="50%"/></p>
+<p align="center"><img src="https://raw.githubusercontent.com/rxavier/poniard/main/logo.png" alt="Poniard logo" title="Poniard" width="40%"/></p>
 
 # Introduction
 > A poniard /ˈpɒnjərd/ or poignard (Fr.) is a long, lightweight thrusting knife ([Wikipedia](https://en.wikipedia.org/wiki/Poignard))
@@ -10,8 +10,18 @@ This is not meant to be end to end solution, and you definitely should keep on w
 # Installation
 
 ```bash
-pip install poniard
+pip install poniard # Soon
 ```
+
+Or from source.
+
+```bash
+pip install git+https://github.com/rxavier/poniard
+```
+
+# Documentation
+
+Check the full docs at [Read The Docs](https://poniard.readthedocs.io/en/latest/index.html).
 
 # Usage/features
 
@@ -92,7 +102,7 @@ pnd.show_results()
 # Design philosophy
 
 ## Not another dependency
-We try very hard not to clutter the environment with stuff you won't use outside of this library. Poniard's dependencies are:
+We try very hard to cluttering the environment with stuff you won't use outside of this library. Poniard's dependencies are:
 
 1. scikit-learn (duh)
 2. pandas
