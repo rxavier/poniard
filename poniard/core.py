@@ -10,6 +10,7 @@ from sklearn.base import ClassifierMixin, RegressorMixin, TransformerMixin, clon
 from sklearn.model_selection._split import BaseCrossValidator, BaseShuffleSplit
 from sklearn.preprocessing import (
     StandardScaler,
+    MinMaxScaler,
     RobustScaler,
     OneHotEncoder,
     OrdinalEncoder,
@@ -48,11 +49,12 @@ class PoniardBaseEstimator(object):
     preprocess : bool, optional
         If True, impute missing values, standard scale numeric data and one-hot or ordinal encode categorical data.
     scaler :
-        Numeric scaler method. Either "standard" or "robust", aligned with scikit-learn scalers.
-    imputer :
-        Imputation method. Either "simple" or "iterative", aligned with scikit-learn imputers.
+        Numeric scaler method. Either "standard", "minmax", "robust" or scikit-learn Transformer.
+    numeric_imputer :
+        Imputation method. Either "simple", "iterative" or scikit-learn Transformer.
     custom_preprocessor :
-        Preprocessor used instead of the default preprocessing pipeline.
+        Preprocessor used instead of the default preprocessing pipeline. It must be able to be
+        included directly in a scikit-learn Pipeline.
     numeric_threshold :
         Features with unique values above a certain threshold will be treated as numeric. If
         float, the threshold is `numeric_threshold * samples`.
@@ -93,8 +95,8 @@ class PoniardBaseEstimator(object):
         ] = None,
         metrics: Optional[Union[Dict[str, Callable], List[str], Callable]] = None,
         preprocess: bool = True,
-        scaler: Optional[str] = None,
-        imputer: Optional[str] = None,
+        scaler: Optional[Union[str, TransformerMixin]] = None,
+        numeric_imputer: Optional[Union[str, TransformerMixin]] = None,
         custom_preprocessor: Union[None, Pipeline, TransformerMixin] = None,
         numeric_threshold: Union[int, float] = 0.1,
         cardinality_threshold: Union[int, float] = 50,
@@ -106,7 +108,7 @@ class PoniardBaseEstimator(object):
         self.metrics = metrics
         self.preprocess = preprocess
         self.scaler = scaler or "standard"
-        self.imputer = imputer or "simple"
+        self.numeric_imputer = numeric_imputer or "simple"
         self.numeric_threshold = numeric_threshold
         self.custom_preprocessor = custom_preprocessor
         self.cardinality_threshold = cardinality_threshold
@@ -267,18 +269,28 @@ class PoniardBaseEstimator(object):
         except AttributeError:
             pass
         numeric, categorical_high, categorical_low = self._classify_features(X=X)
-        if self.scaler == "standard":
+
+        if isinstance(self.scaler, TransformerMixin):
+            scaler = self.scaler
+        elif self.scaler == "standard":
             scaler = StandardScaler()
+        elif self.scaler == "minmax":
+            scaler = MinMaxScaler()
         else:
             scaler = RobustScaler()
+
         cat_imputer = SimpleImputer(strategy="most_frequent", verbose=self.verbose)
-        if self.imputer == "simple":
-            num_imputer = SimpleImputer(strategy="mean", verbose=self.verbose)
-        else:
+
+        if isinstance(self.numeric_imputer, TransformerMixin):
+            num_imputer = self.numeric_imputer
+        elif self.numeric_imputer == "iterative":
             from sklearn.experimental import enable_iterative_imputer
             from sklearn.impute import IterativeImputer
 
             num_imputer = IterativeImputer(random_state=self.random_state)
+        else:
+            num_imputer = SimpleImputer(strategy="mean", verbose=self.verbose)
+
         numeric_preprocessor = make_pipeline(num_imputer, scaler)
         cat_low_preprocessor = make_pipeline(
             cat_imputer, OneHotEncoder(drop="first", handle_unknown="ignore")

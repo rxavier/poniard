@@ -37,11 +37,12 @@ class PoniardRegressor(PoniardBaseEstimator):
         If True, impute missing values, standard scale numeric data and one-hot or ordinal
         encode categorical data.
     scaler :
-        Numeric scaler method. Either "standard" or "robust", aligned with scikit-learn scalers.
-    imputer :
-        Imputation method. Either "simple" or "iterative", aligned with scikit-learn imputers.
+        Numeric scaler method. Either "standard", "minmax", "robust" or scikit-learn Transformer.
+    numeric_imputer :
+        Imputation method. Either "simple", "iterative" or scikit-learn Transformer.
     custom_preprocessor :
-        Preprocessor used instead of the default preprocessing pipeline.
+        Preprocessor used instead of the default preprocessing pipeline. It must be able to be
+        included directly in a scikit-learn Pipeline.
     numeric_threshold :
         Features with unique values above a certain threshold will be treated as numeric. If
         float, the threshold is `numeric_threshold * samples`.
@@ -77,8 +78,8 @@ class PoniardRegressor(PoniardBaseEstimator):
         ] = None,
         metrics: Optional[Union[Dict[str, Callable], List[str], Callable]] = None,
         preprocess: bool = True,
-        scaler: Optional[str] = None,
-        imputer: Optional[str] = None,
+        scaler: Optional[Union[str, TransformerMixin]] = None,
+        numeric_imputer: Optional[Union[str, TransformerMixin]] = None,
         custom_preprocessor: Union[None, Pipeline, TransformerMixin] = None,
         numeric_threshold: Union[int, float] = 0.2,
         cardinality_threshold: Union[int, float] = 50,
@@ -92,7 +93,7 @@ class PoniardRegressor(PoniardBaseEstimator):
             metrics=metrics,
             preprocess=preprocess,
             scaler=scaler,
-            imputer=imputer,
+            numeric_imputer=numeric_imputer,
             custom_preprocessor=custom_preprocessor,
             numeric_threshold=numeric_threshold,
             cardinality_threshold=cardinality_threshold,
