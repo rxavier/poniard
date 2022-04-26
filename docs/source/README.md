@@ -1,4 +1,4 @@
-<p style="text-align:center"><img src="https://raw.githubusercontent.com/rxavier/poniard/main/logo.png" alt="Poniard logo" title="Poniard" width="50%"/></p>
+<p align="center"><img src="https://raw.githubusercontent.com/rxavier/poniard/main/logo.png" alt="Poniard logo" title="Poniard" width="40%"/></p>
 
 # Introduction
 > A poniard /ˈpɒnjərd/ or poignard (Fr.) is a long, lightweight thrusting knife ([Wikipedia](https://en.wikipedia.org/wiki/Poignard))
@@ -7,43 +7,21 @@ Poniard is a scikit-learn companion library that streamlines the process of fitt
 
 This is not meant to be end to end solution, and you definitely should keep on working on your models after you are done with Poniard.
 
-# Design philosophy
-
-## Not another dependency
-We try very hard not to clutter the environment with stuff you won't use outside of this library. Poniard's dependencies are:
-
-1. scikit-learn (duh)
-2. pandas
-3. XGBoost
-4. tqdm
-5. That's it!
-
-Apart from `tqdm`, all dependencies most likely were going to be installed anyway, so Poniard's added footprint should be minimal.
-
-## We don't do that here (AutoML)
-Poniard tries not to take control away from the user. As such, it is not designed to perform 2 hours of feature engineering and selection, try every model under the sun together with endless ensembles and select the top performing model according to some metric.
-
-Instead, it strives to abstract away some of the boilerplate code needed to fit and compare a number of models and allows the user to decide what to do with the results.
-
-Poniard can be your first stab at a prediction problem, but it definitely shouldn't be your last one.
-
-## Opinionated with a few exceptions
-While some parameters can be modified to control how variable type inference and preprocessing are performed, the API is designed to prevent parameter proliferation.
-
-## Cross validate all the things
-Everything in Poniard is run with cross validation by default, and in fact no relevant functionality can be used without cross validation.
-
-## Use baselines
-A dummy estimator is always included in model comparisons so you can gauge whether your model is better than a dumb strategy.
-
-## Fast TTFM (time to first model)
-Preprocessing tries to ensure that your models run successfully without significant data munging. By default, Poniard imputes missing data and one-hot encodes (or ordinal encodes) inferred categorical variables, which in most cases is enough for scikit-learn algorithms to fit without complaints.
-
 # Installation
 
 ```bash
-pip install poniard
+pip install poniard # Soon
 ```
+
+Or from source.
+
+```bash
+pip install git+https://github.com/rxavier/poniard
+```
+
+# Documentation
+
+Check the full docs at [Read The Docs](https://poniard.readthedocs.io/en/latest/index.html).
 
 # Usage/features
 
@@ -63,7 +41,7 @@ Poniard provides sane defaults for 1, 2 and 3, so in most cases you can just do.
 from poniard import PoniardClassifier
 
 pnd = PoniardClassifier(random_state=0)
-pnd.score_estimators(X_train, y_train)
+pnd.fit(X_train, y_train)
 pnd.show_results()
 ```
 
@@ -102,10 +80,10 @@ The `tune_estimator` method can be used to optimize the hyperparameters of a giv
 from poniard import PoniardRegressor
 
 pnd = PoniardRegressor(random_state=0)
-pnd.score_estimators(x, y)
+pnd.fit(x, y)
 pnd.show_results()
 pnd.tune_estimator("RandomForestRegressor", x, y, mode="grid", add_to_estimators=True)
-pnd.score_estimators(x, y) # This will only fit new estimators
+pnd.fit(x, y) # This will only fit new estimators
 pnd.show_results()
 ```
 |                               |   test_neg_mean_squared_error |   train_neg_mean_squared_error |   test_neg_mean_absolute_percentage_error |   train_neg_mean_absolute_percentage_error |   test_neg_median_absolute_error |   train_neg_median_absolute_error |    test_r2 |   train_r2 |   fit_time |   score_time |
@@ -120,6 +98,38 @@ pnd.show_results()
 | KNeighborsRegressor           |                     -22388.9  |               -16538.6         |                                  -5.35881 |                               -5.40109     |                        -109.728  |                     -86.218       |  0.105827  |   0.374221 | 0.0043016  |   0.127281   |
 | DummyRegressor                |                     -27480.4  |               -26460           |                                  -1.57572 |                               -1.89635     |                        -119.372  |                    -110.842       | -0.0950711 |   0        | 0.00351734 |   0          |
 | DecisionTreeRegressor         |                     -40700.6  |                    0           |                                 -24.6131  |                                0           |                        -151.028  |                       0           | -0.562759  |   1        | 0.0193477  |   0.00560312 |
+
+# Design philosophy
+
+## Not another dependency
+We try very hard to cluttering the environment with stuff you won't use outside of this library. Poniard's dependencies are:
+
+1. scikit-learn (duh)
+2. pandas
+3. XGBoost
+4. tqdm
+5. That's it!
+
+Apart from `tqdm`, all dependencies most likely were going to be installed anyway, so Poniard's added footprint should be minimal.
+
+## We don't do that here (AutoML)
+Poniard tries not to take control away from the user. As such, it is not designed to perform 2 hours of feature engineering and selection, try every model under the sun together with endless ensembles and select the top performing model according to some metric.
+
+Instead, it strives to abstract away some of the boilerplate code needed to fit and compare a number of models and allows the user to decide what to do with the results.
+
+Poniard can be your first stab at a prediction problem, but it definitely shouldn't be your last one.
+
+## Opinionated with a few exceptions
+While some parameters can be modified to control how variable type inference and preprocessing are performed, the API is designed to prevent parameter proliferation.
+
+## Cross validate all the things
+Everything in Poniard is run with cross validation by default, and in fact no relevant functionality can be used without cross validation.
+
+## Use baselines
+A dummy estimator is always included in model comparisons so you can gauge whether your model is better than a dumb strategy.
+
+## Fast TTFM (time to first model)
+Preprocessing tries to ensure that your models run successfully without significant data munging. By default, Poniard imputes missing data and one-hot encodes (or ordinal encodes) inferred categorical variables, which in most cases is enough for scikit-learn algorithms to fit without complaints.
 
 # Similar projects
 Poniard is not a groundbreaking idea, and a number of libraries follow a similar approach.

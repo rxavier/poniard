@@ -41,7 +41,7 @@ Poniard provides sane defaults for 1, 2 and 3, so in most cases you can just do.
 from poniard import PoniardClassifier
 
 pnd = PoniardClassifier(random_state=0)
-pnd.score_estimators(X_train, y_train)
+pnd.fit(X_train, y_train)
 pnd.show_results()
 ```
 
@@ -80,10 +80,10 @@ The `tune_estimator` method can be used to optimize the hyperparameters of a giv
 from poniard import PoniardRegressor
 
 pnd = PoniardRegressor(random_state=0)
-pnd.score_estimators(x, y)
+pnd.fit(x, y)
 pnd.show_results()
 pnd.tune_estimator("RandomForestRegressor", x, y, mode="grid", add_to_estimators=True)
-pnd.score_estimators(x, y) # This will only fit new estimators
+pnd.fit(x, y) # This will only fit new estimators
 pnd.show_results()
 ```
 |                               |   test_neg_mean_squared_error |   train_neg_mean_squared_error |   test_neg_mean_absolute_percentage_error |   train_neg_mean_absolute_percentage_error |   test_neg_median_absolute_error |   train_neg_median_absolute_error |    test_r2 |   train_r2 |   fit_time |   score_time |
