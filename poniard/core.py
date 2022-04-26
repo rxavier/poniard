@@ -118,7 +118,117 @@ class PoniardBaseEstimator(object):
         self.estimators = estimators
         self.n_jobs = n_jobs
 
-        self.processed_estimator_ids = []
+        self._fitted_estimator_ids = []
+
+    def fit(
+        self,
+        X: Union[pd.DataFrame, np.ndarray, List],
+        y: Union[pd.DataFrame, np.ndarray, List],
+    ) -> None:
+        """This is the main Poniard method. It uses scikit-learn's `cross_validate` function to
+        score all :attr:`metrics_` for every :attr:`preprocessor_` | :attr:`estimators_`, using
+        :attr:`cv` for cross validation.
+
+
+        Parameters
+        ----------
+        X :
+            Features.
+        y :
+            Target.
+        """
+        X, y = self._setup_experiments(X, y)
+
+        results = {}
+        filtered_estimators = {
+            name: estimator
+            for name, estimator in self.estimators_.items()
+            if id(estimator) not in self._fitted_estimator_ids
+        }
+        pbar = tqdm(filtered_estimators.items())
+        for i, (name, estimator) in enumerate(pbar):
+            pbar.set_description(f"{name}")
+            if self.preprocess:
+                final_estimator = Pipeline(
+                    [("preprocessor", self.preprocessor_), (name, estimator)]
+                )
+            else:
+                final_estimator = Pipeline([(name, estimator)])
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", category=UndefinedMetricWarning)
+                warnings.filterwarnings(
+                    "ignore", message=".*will be encoded as all zeros"
+                )
+                result = cross_validate(
+                    final_estimator,
+                    X,
+                    y,
+                    scoring=self.metrics_,
+                    cv=self.cv,
+                    return_train_score=True,
+                    return_estimator=True,
+                    verbose=self.verbose,
+                    n_jobs=self.n_jobs,
+                )
+            results.update({name: result})
+            self._fitted_estimator_ids.append(id(estimator))
+            if i == len(pbar) - 1:
+                pbar.set_description("Completed")
+        try:
+            self._experiment_results.update(results)
+        except AttributeError:
+            self._experiment_results = results
+
+        self._process_results()
+        return
+
+    def _setup_experiments(
+        self,
+        X: Union[pd.DataFrame, np.ndarray, List],
+        y: Union[pd.DataFrame, np.ndarray, List],
+    ) -> Tuple[Union[pd.DataFrame, np.ndarray], Union[pd.DataFrame, np.ndarray]]:
+        """Orchestrator.
+
+        Converts inputs to arrays if necessary, sets :attr:`metrics_`,
+        :attr:`preprocessor_` and :attr:`estimators_`.
+
+        Parameters
+        ----------
+        X :
+            Features.
+        y :
+            Target
+
+        Returns
+        -------
+        Tuple[Union[pd.DataFrame, np.ndarray], Union[pd.DataFrame, np.ndarray]]
+            X, y as numpy arrays or pandas dataframes.
+        """
+        if not isinstance(X, (pd.DataFrame, np.ndarray)):
+            X = np.array(X)
+        if not isinstance(y, (pd.DataFrame, np.ndarray)):
+            y = np.array(y)
+
+        if self.metrics:
+            self.metrics_ = self.metrics
+        else:
+            self.metrics_ = self._build_metrics(y)
+
+        if self.preprocess:
+            if self.custom_preprocessor:
+                self.preprocessor_ = self.custom_preprocessor
+            else:
+                self.preprocessor_ = self._build_preprocessor(X)
+
+        self.estimators_ = self._build_initial_estimators()
+        return X, y
+
+    @property
+    def _base_estimators(self) -> List[ClassifierMixin]:
+        return [
+            DummyRegressor(),
+            DummyClassifier(),
+        ]
 
     def _build_initial_estimators(
         self,
@@ -164,13 +274,6 @@ class PoniardBaseEstimator(object):
         for estimator in initial_estimators.values():
             self._pass_instance_attrs(estimator)
         return initial_estimators
-
-    @property
-    def _base_estimators(self) -> List[ClassifierMixin]:
-        return [
-            DummyRegressor(),
-            DummyClassifier(),
-        ]
 
     def _infer_dtypes(
         self, X: Union[pd.DataFrame, np.ndarray]
@@ -252,7 +355,7 @@ class PoniardBaseEstimator(object):
 
     def _build_preprocessor(
         self, X: Union[pd.DataFrame, np.ndarray]
-    ) -> Optional[Pipeline]:
+    ) -> Pipeline:
         """Build default preprocessor and assign to :attr:`preprocessor_`.
 
         The preprocessor imputes missing values, scales numeric features and encodes categorical
@@ -350,108 +453,38 @@ class PoniardBaseEstimator(object):
         self._stds = stds.reindex(self._means.index)
         return
 
-    def _setup_experiments(
+    def show_results(
         self,
-        X: Union[pd.DataFrame, np.ndarray, List],
-        y: Union[pd.DataFrame, np.ndarray, List],
-    ) -> Tuple[Union[pd.DataFrame, np.ndarray], Union[pd.DataFrame, np.ndarray]]:
-        """Orchestrator.
-
-        Converts inputs to arrays if necessary, sets :attr:`metrics_`,
-        :attr:`preprocessor_` and :attr:`estimators_`.
+        std: bool = False,
+        wrt_dummy: bool = False,
+    ) -> Union[Tuple[pd.DataFrame, pd.DataFrame], pd.DataFrame]:
+        """Return dataframe containing scoring results. By default returns the mean score and fit
+        and score times. Optionally returns standard deviations as well.
 
         Parameters
         ----------
-        X :
-            Features.
-        y :
-            Target
+        std :
+            Whether to return standard deviation of the scores. Default False.
+        wrt_dummy :
+            Whether to compute each score/time with respect to the dummy estimator results. Default
+            False.
 
         Returns
         -------
-        Tuple[Union[pd.DataFrame, np.ndarray], Union[pd.DataFrame, np.ndarray]]
-            X, y as numpy arrays or pandas dataframes.
+        Union[Tuple[pd.DataFrame, pd.DataFrame], pd.DataFrame]
+            Results
         """
-        if not isinstance(X, (pd.DataFrame, np.ndarray)):
-            X = np.array(X)
-        if not isinstance(y, (pd.DataFrame, np.ndarray)):
-            y = np.array(y)
-
-        if self.metrics:
-            self.metrics_ = self.metrics
+        means = self._means
+        stds = self._stds
+        if wrt_dummy:
+            dummy_means = means.loc[means.index.str.contains("Dummy")]
+            dummy_stds = stds.loc[stds.index.str.contains("Dummy")]
+            means = means / dummy_means.squeeze()
+            stds = stds / dummy_stds.squeeze()
+        if std is True:
+            return means, stds
         else:
-            self.metrics_ = self._build_metrics(y)
-
-        if self.preprocess:
-            if self.custom_preprocessor:
-                self.preprocessor_ = self.custom_preprocessor
-            else:
-                self.preprocessor_ = self._build_preprocessor(X)
-
-        self.estimators_ = self._build_initial_estimators()
-        return X, y
-
-    def fit(
-        self,
-        X: Union[pd.DataFrame, np.ndarray, List],
-        y: Union[pd.DataFrame, np.ndarray, List],
-    ) -> None:
-        """This is the main Poniard method. It uses scikit-learn's `cross_validate` function to
-        score all :attr:`metrics_` for every :attr:`preprocessor_` | :attr:`estimators_`, using
-        :attr:`cv` for cross validation.
-
-
-        Parameters
-        ----------
-        X :
-            Features.
-        y :
-            Target.
-        """
-        X, y = self._setup_experiments(X, y)
-
-        results = {}
-        filtered_estimators = {
-            name: estimator
-            for name, estimator in self.estimators_.items()
-            if id(estimator) not in self.processed_estimator_ids
-        }
-        pbar = tqdm(filtered_estimators.items())
-        for i, (name, estimator) in enumerate(pbar):
-            pbar.set_description(f"{name}")
-            if self.preprocess:
-                final_estimator = Pipeline(
-                    [("preprocessor", self.preprocessor_), (name, estimator)]
-                )
-            else:
-                final_estimator = Pipeline([(name, estimator)])
-            with warnings.catch_warnings():
-                warnings.filterwarnings("ignore", category=UndefinedMetricWarning)
-                warnings.filterwarnings(
-                    "ignore", message=".*will be encoded as all zeros"
-                )
-                result = cross_validate(
-                    final_estimator,
-                    X,
-                    y,
-                    scoring=self.metrics_,
-                    cv=self.cv,
-                    return_train_score=True,
-                    return_estimator=True,
-                    verbose=self.verbose,
-                    n_jobs=self.n_jobs,
-                )
-            results.update({name: result})
-            self.processed_estimator_ids.append(id(estimator))
-            if i == len(pbar) - 1:
-                pbar.set_description("Completed")
-        try:
-            self._experiment_results.update(results)
-        except AttributeError:
-            self._experiment_results = results
-
-        self._process_results()
-        return
+            return means
 
     def add_estimators(
         self, new_estimators: Union[Dict[str, ClassifierMixin], List[ClassifierMixin]]
@@ -496,39 +529,6 @@ class PoniardBaseEstimator(object):
                 k: v for k, v in self._experiment_results.items() if k not in names
             }
         return
-
-    def show_results(
-        self,
-        std: bool = False,
-        wrt_dummy: bool = False,
-    ) -> Union[Tuple[pd.DataFrame, pd.DataFrame], pd.DataFrame]:
-        """Return dataframe containing scoring results. By default returns the mean score and fit
-        and score times. Optionally returns standard deviations as well.
-
-        Parameters
-        ----------
-        std :
-            Whether to return standard deviation of the scores. Default False.
-        wrt_dummy :
-            Whether to compute each score/time with respect to the dummy estimator results. Default
-            False.
-
-        Returns
-        -------
-        Union[Tuple[pd.DataFrame, pd.DataFrame], pd.DataFrame]
-            Results
-        """
-        means = self._means
-        stds = self._stds
-        if wrt_dummy:
-            dummy_means = means.loc[means.index.str.contains("Dummy")]
-            dummy_stds = stds.loc[stds.index.str.contains("Dummy")]
-            means = means / dummy_means.squeeze()
-            stds = stds / dummy_stds.squeeze()
-        if std is True:
-            return means, stds
-        else:
-            return means
 
     def get_estimator(
         self, name: str, include_preprocessor: bool = True, fitted: bool = False
