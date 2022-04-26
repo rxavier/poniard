@@ -44,6 +44,7 @@ setup(
         "scikit-learn",
         "xgboost",
         "pandas",
+        "seaborn",
         "tqdm",
     ],
     include_package_data=True,

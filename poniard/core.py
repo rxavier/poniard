@@ -5,6 +5,7 @@ from typing import List, Optional, Union, Iterable, Callable, Dict, Tuple
 
 import pandas as pd
 import numpy as np
+import seaborn as sns
 from tqdm import tqdm
 from sklearn.base import ClassifierMixin, RegressorMixin, TransformerMixin, clone
 from sklearn.model_selection._split import BaseCrossValidator, BaseShuffleSplit
@@ -120,6 +121,8 @@ class PoniardBaseEstimator(object):
 
         self._fitted_estimator_ids = []
 
+        self._set_plotting_theme()
+
     def fit(
         self,
         X: Union[pd.DataFrame, np.ndarray, List],
@@ -180,6 +183,7 @@ class PoniardBaseEstimator(object):
             self._experiment_results = results
 
         self._process_results()
+        self._process_long_results()
         return
 
     def _setup_experiments(
@@ -354,9 +358,7 @@ class PoniardBaseEstimator(object):
         pprint(self._inferred_dtypes)
         return numeric, categorical_high, categorical_low
 
-    def _build_preprocessor(
-        self, X: Union[pd.DataFrame, np.ndarray]
-    ) -> Pipeline:
+    def _build_preprocessor(self, X: Union[pd.DataFrame, np.ndarray]) -> Pipeline:
         """Build default preprocessor and assign to :attr:`preprocessor_`.
 
         The preprocessor imputes missing values, scales numeric features and encodes categorical
@@ -486,6 +488,67 @@ class PoniardBaseEstimator(object):
             return means, stds
         else:
             return means
+
+    def _process_long_results(self) -> None:
+        """Prepare experiment results for plotting."""
+        base = pd.DataFrame(self._experiment_results).T.drop(["estimator"], axis=1)
+        melted = (
+            base.rename_axis("Model")
+            .reset_index()
+            .melt(id_vars="Model", var_name="Metric", value_name="Score")
+            .explode("Score")
+        )
+        melted["Type"] = "Fold"
+        means = melted.groupby(["Model", "Metric"])["Score"].mean().reset_index()
+        means["Type"] = "Mean"
+        melted = pd.concat([melted, means])
+        melted["Model"] = melted["Model"].str.replace("Classifier|Regressor", "", regex=True)
+
+        self._long_results = melted
+        return
+
+    def _set_plotting_theme(
+        self,
+        style: str = "darkgrid",
+        palette: str = "Paired",
+        figsize: tuple = (6, 6),
+        dpi: int = 100,
+    ) -> None:
+        sns.set_theme(style=style, palette=palette,
+                      rc={"figure.figsize": figsize, "figure.dpi": dpi})
+        return
+
+    def plot_metrics(
+        self,
+        kind: str = "strip",
+        metrics: Union[str, List[str]] = None,
+        only_test: bool = True,
+        exclude_dummy: bool = True,
+        show_means: bool = True,
+        **kwargs,
+    ) -> sns.FacetGrid:
+        results = self._long_results
+        results = results.loc[~results["Metric"].isin(["fit_time", "score_time"])]
+        if only_test:
+            results = results.loc[results["Metric"].str.contains("test", case=False)]
+        if exclude_dummy:
+            results = results.loc[~results["Model"].str.contains("Dummy")]
+        if metrics:
+            metrics = [metrics] if isinstance(metrics, str) else metrics
+            results = results.loc[results["Metric"].isin(metrics)]
+        if not show_means or kind == "bar":
+            results = results.loc[~(results["Type"] == "Mean")]
+        sns.catplot(
+            kind=kind,
+            y="Model",
+            x="Score",
+            hue="Type" if show_means and kind == "strip" else None,
+            row="Metric" if not metrics or len(metrics) > 1 else None,
+            sharex=False,
+            data=results,
+            **kwargs,
+        )
+        return
 
     def add_estimators(
         self, new_estimators: Union[Dict[str, ClassifierMixin], List[ClassifierMixin]]
