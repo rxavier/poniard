@@ -1,6 +1,6 @@
 import warnings
-import inspect
 import itertools
+from pprint import pprint
 from typing import List, Optional, Union, Iterable, Callable, Dict, Tuple
 
 import pandas as pd
@@ -351,6 +351,7 @@ class PoniardBaseEstimator(object):
             "categorical_high": categorical_high,
             "categorical_low": categorical_low,
         }
+        pprint(self._inferred_dtypes)
         return numeric, categorical_high, categorical_low
 
     def _build_preprocessor(
