@@ -174,7 +174,7 @@ class PoniardBaseEstimator(object):
             DummyClassifier(),
         ]
 
-    def _classify_features(
+    def _infer_dtypes(
         self, X: Union[pd.DataFrame, np.ndarray]
     ) -> Tuple[List[str], List[str], List[str]]:
         """Infer feature types (numeric, low-cardinality categorical or high-cardinality
@@ -245,7 +245,7 @@ class PoniardBaseEstimator(object):
                         categorical_high.append(i)
                     else:
                         categorical_low.append(i)
-        self._assumed_types = {
+        self._inferred_dtypes = {
             "numeric": numeric,
             "categorical_high": categorical_high,
             "categorical_low": categorical_low,
@@ -268,7 +268,7 @@ class PoniardBaseEstimator(object):
             return
         except AttributeError:
             pass
-        numeric, categorical_high, categorical_low = self._classify_features(X=X)
+        numeric, categorical_high, categorical_low = self._infer_dtypes(X=X)
 
         if isinstance(self.scaler, TransformerMixin):
             scaler = self.scaler
@@ -391,7 +391,7 @@ class PoniardBaseEstimator(object):
         self._build_initial_estimators()
         return X, y
 
-    def score_estimators(
+    def fit(
         self,
         X: Union[pd.DataFrame, np.ndarray, List],
         y: Union[pd.DataFrame, np.ndarray, List],
