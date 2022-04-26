@@ -120,52 +120,50 @@ class PoniardBaseEstimator(object):
 
         self.processed_estimator_ids = []
 
-    def _build_initial_estimators(self) -> None:
+    def _build_initial_estimators(
+        self,
+    ) -> Dict[str, Union[ClassifierMixin, RegressorMixin]]:
         """Build :attr:`estimators_` dict where keys are the estimator class names.
 
         Adds dummy estimators if not included during construction. Does nothing if
         :attr:`estimators_` exists.
 
-        Raises
-        ------
-        ValueError
-            If a class instead of a class instance is passed.
         """
         try:
             # If the estimators_ dict exists, don't build it again
             self.estimators_
-            return
+            return self.estimators_
         except AttributeError:
             pass
         if isinstance(self.estimators, dict):
-            self.estimators_ = self.estimators
+            return self.estimators
         elif self.estimators:
-            if any([inspect.isclass(v) for v in self.estimators]):
-                raise ValueError("Pass an instance of an estimator, not the class.")
-            self.estimators_ = {
+            initial_estimators = {
                 estimator.__class__.__name__: estimator for estimator in self.estimators
             }
         else:
-            self.estimators_ = {
+            initial_estimators = {
                 estimator.__class__.__name__: estimator
                 for estimator in self._base_estimators
             }
         if (
             self.__class__.__name__ == "PoniardClassifier"
-            and "DummyClassifier" not in self.estimators_.keys()
+            and "DummyClassifier" not in initial_estimators.keys()
         ):
-            self.estimators_.update(
+            initial_estimators.update(
                 {"DummyClassifier": DummyClassifier(strategy="prior")}
             )
         elif (
             self.__class__.__name__ == "PoniardRegressor"
-            and "DummyRegressor" not in self.estimators_.keys()
+            and "DummyRegressor" not in initial_estimators.keys()
         ):
-            self.estimators_.update({"DummyRegressor": DummyRegressor(strategy="mean")})
+            initial_estimators.update(
+                {"DummyRegressor": DummyRegressor(strategy="mean")}
+            )
 
-        for estimator in self.estimators_.values():
+        for estimator in initial_estimators.values():
             self._pass_instance_attrs(estimator)
-        return
+        return initial_estimators
 
     @property
     def _base_estimators(self) -> List[ClassifierMixin]:
@@ -252,7 +250,9 @@ class PoniardBaseEstimator(object):
         }
         return numeric, categorical_high, categorical_low
 
-    def _build_preprocessor(self, X: Union[pd.DataFrame, np.ndarray]) -> None:
+    def _build_preprocessor(
+        self, X: Union[pd.DataFrame, np.ndarray]
+    ) -> Optional[Pipeline]:
         """Build default preprocessor and assign to :attr:`preprocessor_`.
 
         The preprocessor imputes missing values, scales numeric features and encodes categorical
@@ -265,7 +265,7 @@ class PoniardBaseEstimator(object):
         """
         try:
             self.preprocessor_
-            return
+            return self.preprocessor_
         except AttributeError:
             pass
         numeric, categorical_high, categorical_low = self._infer_dtypes(X=X)
@@ -322,10 +322,11 @@ class PoniardBaseEstimator(object):
                     (cat_high_preprocessor, categorical_high),
                     n_jobs=self.n_jobs,
                 )
-        self.preprocessor_ = preprocessor
-        return
+        return preprocessor
 
-    def _build_metrics(self, y: Union[pd.DataFrame, np.ndarray]) -> None:
+    def _build_metrics(
+        self, y: Union[pd.DataFrame, np.ndarray]
+    ) -> Union[Dict[str, Callable], List[str], Callable]:
         """Build metrics and assign to :attr:`metrics_`.
 
         Parameters
@@ -334,8 +335,7 @@ class PoniardBaseEstimator(object):
             Target. Used to determine the task (regression, binary classification or multiclass
             classification).
         """
-        self.metrics_ = ["accuracy"]
-        return
+        return ["accuracy"]
 
     def _process_results(self) -> None:
         """Compute mean and standard deviations of  experiment results."""
@@ -355,7 +355,7 @@ class PoniardBaseEstimator(object):
         X: Union[pd.DataFrame, np.ndarray, List],
         y: Union[pd.DataFrame, np.ndarray, List],
     ) -> Tuple[Union[pd.DataFrame, np.ndarray], Union[pd.DataFrame, np.ndarray]]:
-        """Orhcestrator.
+        """Orchestrator.
 
         Converts inputs to arrays if necessary, sets :attr:`metrics_`,
         :attr:`preprocessor_` and :attr:`estimators_`.
@@ -377,18 +377,18 @@ class PoniardBaseEstimator(object):
         if not isinstance(y, (pd.DataFrame, np.ndarray)):
             y = np.array(y)
 
-        if not self.metrics:
-            self._build_metrics(y)
-        else:
+        if self.metrics:
             self.metrics_ = self.metrics
+        else:
+            self.metrics_ = self._build_metrics(y)
 
         if self.preprocess:
             if self.custom_preprocessor:
                 self.preprocessor_ = self.custom_preprocessor
             else:
-                self._build_preprocessor(X)
+                self.preprocessor_ = self._build_preprocessor(X)
 
-        self._build_initial_estimators()
+        self.estimators_ = self._build_initial_estimators()
         return X, y
 
     def fit(
@@ -465,10 +465,6 @@ class PoniardBaseEstimator(object):
         new_estimators :
             Estimators to add.
 
-        Raises
-        ------
-        ValueError
-            If a class and not an instance class is passed.
         """
         if not isinstance(new_estimators, dict):
             new_estimators = {
@@ -476,9 +472,7 @@ class PoniardBaseEstimator(object):
             }
         for estimator in new_estimators.values():
             self._pass_instance_attrs(estimator)
-        if any([inspect.isclass(v) for v in new_estimators.values()]):
-            raise ValueError("Pass an instance of an estimator, not the class.")
-        self._build_initial_estimators()
+        self.estimators_ = self._build_initial_estimators()
         self.estimators_.update(new_estimators)
         return
 

@@ -134,9 +134,11 @@ class PoniardClassifier(PoniardBaseEstimator):
             DummyClassifier(strategy="prior"),
         ]
 
-    def _build_metrics(self, y: Union[pd.DataFrame, np.ndarray]) -> None:
+    def _build_metrics(
+        self, y: Union[pd.DataFrame, np.ndarray]
+    ) -> Union[Dict[str, Callable], List[str], Callable]:
         if y.ndim > 1 or len(np.unique(y)) > 2:
-            self.metrics_ = [
+            return [
                 # "roc_auc_score",
                 "accuracy",
                 "precision_macro",
@@ -144,11 +146,10 @@ class PoniardClassifier(PoniardBaseEstimator):
                 "f1_macro",
             ]
         else:
-            self.metrics_ = [
+            return [
                 "roc_auc",
                 "accuracy",
                 "precision",
                 "recall",
                 "f1",
             ]
-        return
