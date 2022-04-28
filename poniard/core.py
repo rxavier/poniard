@@ -712,6 +712,7 @@ class PoniardBaseEstimator(object):
         self,
         X: Union[pd.DataFrame, np.ndarray, List],
         y: Union[pd.DataFrame, np.ndarray, List],
+        on_errors: bool = True,
     ) -> pd.DataFrame:
         """Compute correlation/association between cross validated predictions for each estimator.
 
@@ -723,6 +724,9 @@ class PoniardBaseEstimator(object):
             Features.
         y :
             Target.
+        on_errors :
+            Whether to compute similarity on prediction errors instead of predictions. Default
+            True.
 
         Returns
         -------
@@ -747,6 +751,11 @@ class PoniardBaseEstimator(object):
                 verbose=self.verbose,
                 n_jobs=self.n_jobs,
             )
+            if on_errors:
+                if self._check_estimator_type() == "regressor":
+                    result = y - result
+                else:
+                    result = np.where(result == y, 1, 0)
             results.update({name: result})
             if i == len(pbar) - 1:
                 pbar.set_description("Completed")
