@@ -547,7 +547,7 @@ class PoniardBaseEstimator(object):
             results = results.loc[results["Metric"].isin(metrics)]
         if not show_means or kind == "bar":
             results = results.loc[~(results["Type"] == "Mean")]
-        sns.catplot(
+        fig = sns.catplot(
             kind=kind,
             y="Model",
             x="Score",
@@ -557,7 +557,26 @@ class PoniardBaseEstimator(object):
             data=results,
             **kwargs,
         )
-        return
+        fig.set_axis_labels("Score", "")
+        fig.tight_layout()
+        return fig
+
+    def plot_overfitness(self, metric: Optional[str] = None) -> sns.FacetGrid:
+        if not metric:
+            if isinstance(self.metrics_, dict):
+                metric = list(self.metrics_)[0]
+            else:
+                metric = self.metrics_[0]
+        results = self._long_results
+        results = results.loc[(results["Type"] == "Mean") & (results["Metric"].str.contains(metric))]
+        results = results.pivot(columns="Metric", index="Model", values="Score")
+        results = results.loc[:, results.columns.str.contains("train")].div(results.loc[:, results.columns.str.contains("test")].squeeze(), axis=0)
+        results = results.sort_values(results.columns[0])
+        fig = sns.catplot(kind="strip", y="Model", x=results.columns[0], data=results.reset_index())
+        fig.set_axis_labels("Train / test ratio", "")
+        fig.fig.suptitle(f"{metric} overfitness")
+        fig.tight_layout()
+        return fig
 
     def add_estimators(
         self, new_estimators: Union[Dict[str, ClassifierMixin], List[ClassifierMixin]]
