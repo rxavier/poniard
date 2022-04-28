@@ -261,14 +261,14 @@ class PoniardBaseEstimator(object):
                 for estimator in self._base_estimators
             }
         if (
-            self.__class__.__name__ == "PoniardClassifier"
+            self._check_estimator_type() == "classifier"
             and "DummyClassifier" not in initial_estimators.keys()
         ):
             initial_estimators.update(
                 {"DummyClassifier": DummyClassifier(strategy="prior")}
             )
         elif (
-            self.__class__.__name__ == "PoniardRegressor"
+            self._check_estimator_type() == "regressor"
             and "DummyRegressor" not in initial_estimators.keys()
         ):
             initial_estimators.update(
@@ -683,7 +683,7 @@ class PoniardBaseEstimator(object):
                 ]
             ]
         if method == "voting":
-            if self.__class__.__name__ == "PoniardClassifier":
+            if self._check_estimator_type() == "classifier":
                 ensemble = VotingClassifier(
                     estimators=models, verbose=self.verbose, **kwargs
                 )
@@ -692,7 +692,7 @@ class PoniardBaseEstimator(object):
                     estimators=models, verbose=self.verbose, **kwargs
                 )
         else:
-            if self.__class__.__name__ == "PoniardClassifier":
+            if self._check_estimator_type() == "classifier":
                 ensemble = StackingClassifier(
                     estimators=models, verbose=self.verbose, cv=self.cv, **kwargs
                 )
@@ -751,7 +751,7 @@ class PoniardBaseEstimator(object):
             if i == len(pbar) - 1:
                 pbar.set_description("Completed")
         results = pd.DataFrame(results)
-        if self.__class__.__name__ == "PoniardClassifier":
+        if self._check_estimator_type() == "classifier":
             estimator_names = [
                 x
                 for x in self.estimators_
@@ -772,6 +772,22 @@ class PoniardBaseEstimator(object):
         else:
             table = results.corr()
         return table
+
+    def _check_estimator_type(self) -> Optional[str]:
+        """Utility to check whether self is a Poniard regressor or classifier.
+
+        Returns
+        -------
+        Optional[str]
+            "classifier", "regressor" or None
+        """
+        from poniard import PoniardRegressor, PoniardClassifier
+        if isinstance(self, PoniardRegressor):
+            return "regressor"
+        elif isinstance(self, PoniardClassifier):
+            return "classifier"
+        else:
+            return None
 
     def tune_estimator(
         self,
