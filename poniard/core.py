@@ -6,6 +6,7 @@ from typing import List, Optional, Union, Iterable, Callable, Dict, Tuple
 import pandas as pd
 import numpy as np
 import seaborn as sns
+from pandas.io.formats.style import Styler
 from tqdm import tqdm
 from sklearn.base import ClassifierMixin, RegressorMixin, TransformerMixin, clone
 from sklearn.model_selection._split import BaseCrossValidator, BaseShuffleSplit
@@ -460,7 +461,8 @@ class PoniardBaseEstimator(object):
         self,
         std: bool = False,
         wrt_dummy: bool = False,
-    ) -> Union[Tuple[pd.DataFrame, pd.DataFrame], pd.DataFrame]:
+        styled: bool = True,
+    ) -> Union[Tuple[Union[pd.DataFrame, Styler], Union[pd.DataFrame, Styler]], Union[pd.DataFrame, Styler]]:
         """Return dataframe containing scoring results. By default returns the mean score and fit
         and score times. Optionally returns standard deviations as well.
 
@@ -471,6 +473,8 @@ class PoniardBaseEstimator(object):
         wrt_dummy :
             Whether to compute each score/time with respect to the dummy estimator results. Default
             False.
+        styled :
+            Whether to return a pandas dataframe with a style. Default True.
 
         Returns
         -------
@@ -484,7 +488,10 @@ class PoniardBaseEstimator(object):
             dummy_stds = stds.loc[stds.index.str.contains("Dummy")]
             means = means / dummy_means.squeeze()
             stds = stds / dummy_stds.squeeze()
-        if std is True:
+        if styled:
+            means = means.style.background_gradient(cmap=self._cmap)
+            stds = stds.style.background_gradient(cmap=self._cmap)
+        if std:
             return means, stds
         else:
             return means
@@ -513,9 +520,11 @@ class PoniardBaseEstimator(object):
         palette: str = "Paired",
         figsize: tuple = (6, 6),
         dpi: int = 100,
+        cmap: str = "twilight_shifted",
     ) -> None:
         sns.set_theme(style=style, palette=palette,
                       rc={"figure.figsize": figsize, "figure.dpi": dpi})
+        self._cmap = sns.color_palette(cmap, as_cmap=True)
         return
 
     def plot_metrics(
@@ -713,6 +722,7 @@ class PoniardBaseEstimator(object):
         X: Union[pd.DataFrame, np.ndarray, List],
         y: Union[pd.DataFrame, np.ndarray, List],
         on_errors: bool = True,
+        styled: bool = True,
     ) -> pd.DataFrame:
         """Compute correlation/association between cross validated predictions for each estimator.
 
@@ -727,6 +737,8 @@ class PoniardBaseEstimator(object):
         on_errors :
             Whether to compute similarity on prediction errors instead of predictions. Default
             True.
+        styled :
+            Whether to return a styled DataFrame. Default True.
 
         Returns
         -------
@@ -761,6 +773,7 @@ class PoniardBaseEstimator(object):
                 pbar.set_description("Completed")
         results = pd.DataFrame(results)
         if self._check_estimator_type() == "classifier":
+            vmax, vmin = 1, 0
             estimator_names = [
                 x
                 for x in self.estimators_
@@ -779,7 +792,10 @@ class PoniardBaseEstimator(object):
                     table.loc[row, col] = cramer
                     table.loc[col, row] = cramer
         else:
+            vmax, vmin = 1, -1
             table = results.corr()
+        if styled:
+            table = table.style.background_gradient(cmap=self._cmap, vmin=vmin, vmax=vmax)
         return table
 
     def _check_estimator_type(self) -> Optional[str]:
