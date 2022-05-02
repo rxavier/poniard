@@ -1,4 +1,4 @@
-<p align="center"><img src="https://raw.githubusercontent.com/rxavier/poniard/main/logo.png" alt="Poniard logo" title="Poniard" width="40%"/></p>
+<p align="center"><img src="https://raw.githubusercontent.com/rxavier/poniard/main/logo.png" alt="Poniard logo" title="Poniard" width="50%"/></p>
 
 # Introduction
 > A poniard /ˈpɒnjərd/ or poignard (Fr.) is a long, lightweight thrusting knife ([Wikipedia](https://en.wikipedia.org/wiki/Poignard))
@@ -59,6 +59,10 @@ pnd.show_results()
 | KNeighborsClassifier           |          0.93  |         0.97975 |            0.87 |           0.9275 |         0.837483 |          0.894992 |          0.92 |           0.97 |  0.874865 |   0.930467 | 0.00526905 |    0.262831  |
 | DummyClassifier                |          0.5   |         0.5     |            0.5  |           0.5    |         0        |          0        |          0    |           0    |  0        |   0        | 0.00288043 |    0.0212384 |
 
+Alternatively, you can also get a nice plot of your different metrics by using the `plot_metrics()` method.
+
+<p align="center"><img src="https://i.ibb.co/bb4D6Hp/output.png" title="Output of the plot_metrics() method"></p>
+
 ## Type inference
 Poniard uses some basic heuristics to infer the data types.
 
@@ -107,10 +111,11 @@ We try very hard to cluttering the environment with stuff you won't use outside 
 1. scikit-learn (duh)
 2. pandas
 3. XGBoost
-4. tqdm
-5. That's it!
+4. Seaborn
+5. tqdm
+6. That's it!
 
-Apart from `tqdm`, all dependencies most likely were going to be installed anyway, so Poniard's added footprint should be minimal.
+Apart from `tqdm` and possibly `Seaborn`, all dependencies most likely were going to be installed anyway, so Poniard's added footprint should be small.
 
 ## We don't do that here (AutoML)
 Poniard tries not to take control away from the user. As such, it is not designed to perform 2 hours of feature engineering and selection, try every model under the sun together with endless ensembles and select the top performing model according to some metric.
