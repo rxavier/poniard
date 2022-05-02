@@ -75,7 +75,9 @@ For categorical features, high and low cardinality is defined by the `cardinalit
 ## Ensembles
 Poniard makes it easy to combine various estimators in stacking or voting ensembles. The base esimators can be selected according to their performance (top-n) or chosen by their names.
 
-Poniard also reports how similar the predictions of the base estimators are, so ensembles with different base esimators can be built. A basic correlation table of the cross-validated predictions is built for regression tasks, while [Cramer's V](https://en.wikipedia.org/wiki/Cram%C3%A9r%27s_V) is used for classification.
+Poniard also reports how similar the predictions of the estimators are, so ensembles with different base estimators can be built. A basic correlation table of the cross-validated predictions is built for regression tasks, while [Cramer's V](https://en.wikipedia.org/wiki/Cram%C3%A9r%27s_V) is used for classification.
+
+By default, it computes this similarity of prediction errors instead of the actual predictions; this helps in building ensembles with good scoring estimators and uncorrelated errors, which in principle and hopefully should lead to a "wisdom of crowds" kind of situation.
 
 ## Hyperparameter optimization
 The `tune_estimator` method can be used to optimize the hyperparameters of a given estimator, either by passing a grid of parameters or using the inbuilt ones available for default estimators. Optionally, the tuned estimator can be added to the list of estimators and scored, which will add it to results tables.
