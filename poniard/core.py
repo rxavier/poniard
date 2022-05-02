@@ -544,7 +544,8 @@ class PoniardBaseEstimator(object):
             results = results.loc[~results["Model"].str.contains("Dummy")]
         if metrics:
             metrics = [metrics] if isinstance(metrics, str) else metrics
-            results = results.loc[results["Metric"].isin(metrics)]
+            metrics = "|".join(metrics)
+            results = results.loc[results["Metric"].str.contains(metrics)]
         if not show_means or kind == "bar":
             results = results.loc[~(results["Type"] == "Mean")]
         fig = sns.catplot(
