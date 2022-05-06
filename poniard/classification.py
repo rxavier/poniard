@@ -129,7 +129,6 @@ class PoniardClassifier(PoniardBaseEstimator):
             XGBClassifier(
                 random_state=self.random_state,
                 use_label_encoder=False,
-                eval_metric="mlogloss",
             ),
             DummyClassifier(strategy="prior"),
         ]
