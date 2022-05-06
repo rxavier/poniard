@@ -490,8 +490,8 @@ class PoniardBaseEstimator(object):
             means = means / dummy_means.squeeze()
             stds = stds / dummy_stds.squeeze()
         if styled:
-            means = means.style.background_gradient(cmap=self._cmap)
-            stds = stds.style.background_gradient(cmap=self._cmap)
+            means = means.style.background_gradient(cmap=self._sequential_cmap)
+            stds = stds.style.background_gradient(cmap=self._sequential_cmap)
         if std:
             return means, stds
         else:
@@ -521,11 +521,13 @@ class PoniardBaseEstimator(object):
         palette: str = "Paired",
         figsize: tuple = (6, 6),
         dpi: int = 100,
-        cmap: str = "twilight_shifted",
+        cyclical_cmap: str = "twilight_shifted",
+        sequential_cmap: str = "BuPu",
     ) -> None:
         sns.set_theme(style=style, palette=palette,
                       rc={"figure.figsize": figsize, "figure.dpi": dpi})
-        self._cmap = sns.color_palette(cmap, as_cmap=True)
+        self._cyclical_cmap = sns.color_palette(cyclical_cmap, as_cmap=True)
+        self._sequential_cmap = sns.color_palette(sequential_cmap, as_cmap=True)
         return
 
     def plot_metrics(
@@ -794,6 +796,7 @@ class PoniardBaseEstimator(object):
         results = pd.DataFrame(results)
         if self._check_estimator_type() == "classifier":
             vmax, vmin = 1, 0
+            cmap = self._sequential_cmap
             estimator_names = [
                 x
                 for x in self.estimators_
@@ -813,9 +816,10 @@ class PoniardBaseEstimator(object):
                     table.loc[col, row] = cramer
         else:
             vmax, vmin = 1, -1
+            cmap = self._cyclical_cmap
             table = results.corr()
         if styled:
-            table = table.style.background_gradient(cmap=self._cmap, vmin=vmin, vmax=vmax)
+            table = table.style.background_gradient(cmap=cmap, vmin=vmin, vmax=vmax)
         return table
 
     def _check_estimator_type(self) -> Optional[str]:
