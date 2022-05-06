@@ -123,6 +123,7 @@ class PoniardBaseEstimator(object):
         self._fitted_estimator_ids = []
 
         self._set_plotting_theme()
+        self._build_initial_estimators()
 
     def fit(
         self,
@@ -225,7 +226,6 @@ class PoniardBaseEstimator(object):
             else:
                 self.preprocessor_ = self._build_preprocessor(X)
 
-        self.estimators_ = self._build_initial_estimators()
         return X, y
 
     @property
@@ -278,7 +278,8 @@ class PoniardBaseEstimator(object):
 
         for estimator in initial_estimators.values():
             self._pass_instance_attrs(estimator)
-        return initial_estimators
+        self.estimators_ = initial_estimators
+        return
 
     def _infer_dtypes(
         self, X: Union[pd.DataFrame, np.ndarray]
@@ -598,7 +599,6 @@ class PoniardBaseEstimator(object):
             }
         for estimator in new_estimators.values():
             self._pass_instance_attrs(estimator)
-        self.estimators_ = self._build_initial_estimators()
         self.estimators_.update(new_estimators)
         return
 
