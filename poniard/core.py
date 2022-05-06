@@ -73,7 +73,7 @@ class PoniardBaseEstimator(object):
         RNG. Propagated to every scikit-learn function and estiamtor.
     n_jobs :
         Controls parallel processing. -1 uses all cores. Propagated to every scikit-learn
-        function and estimator.
+        function.
 
     Attributes
     ----------
@@ -944,8 +944,9 @@ class PoniardBaseEstimator(object):
 
     def _pass_instance_attrs(self, estimator: Union[ClassifierMixin, RegressorMixin]):
         for attr, value in zip(
-            ["random_state", "verbose", "verbosity", "n_jobs"],
-            [self.random_state, self.verbose, self.verbose, self.n_jobs],
+            ["random_state", "verbose", "verbosity"],
+            [self.random_state, self.verbose, self.verbose],
         ):
             if attr in estimator.__dict__:
                 setattr(estimator, attr, value)
+        return
