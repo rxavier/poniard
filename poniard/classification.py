@@ -91,6 +91,7 @@ class PoniardClassifier(PoniardBaseEstimator):
         verbose: int = 0,
         random_state: Optional[int] = None,
         n_jobs: Optional[int] = None,
+        plugins: Optional[List[Any]] = None,
     ):
         super().__init__(
             estimators=estimators,
@@ -106,6 +107,7 @@ class PoniardClassifier(PoniardBaseEstimator):
             verbose=verbose,
             random_state=random_state,
             n_jobs=n_jobs,
+            plugins=plugins,
         )
 
     @property

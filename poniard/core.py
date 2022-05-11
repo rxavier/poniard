@@ -107,6 +107,7 @@ class PoniardBaseEstimator(object):
         verbose: int = 0,
         random_state: Optional[int] = None,
         n_jobs: Optional[int] = None,
+        plugins: Optional[List[Any]] = None,
     ):
         self.metrics = metrics
         self.preprocess = preprocess
@@ -120,11 +121,24 @@ class PoniardBaseEstimator(object):
         self.random_state = random_state
         self.estimators = estimators
         self.n_jobs = n_jobs
+        self.plugins = (
+            plugins if isinstance(plugins, Sequence) or plugins is None else [plugins]
+        )
 
         self._fitted_estimator_ids = []
-
         self._set_plotting_theme()
         self._build_initial_estimators()
+        if self.plugins:
+            [setattr(plugin, "poniard_instance", self) for plugin in self.plugins]
+
+    def _run_plugin_methods(self, method: str):
+        if not self.plugins:
+            return
+        for plugin in self.plugins:
+            method = getattr(plugin, method, None)
+            if callable(method):
+                method()
+        return
 
     def fit(
         self,
@@ -231,9 +245,9 @@ class PoniardBaseEstimator(object):
             if self.custom_preprocessor:
                 self.preprocessor_ = self.custom_preprocessor
             else:
-                self.preprocessor_ = self._build_preprocessor(X)
-
-        return X, y
+                self.preprocessor_ = self._build_preprocessor()
+        self._run_plugin_methods("on_setup_end")
+        return
 
     @property
     def _base_estimators(self) -> List[ClassifierMixin]:
