@@ -618,7 +618,7 @@ class PoniardBaseEstimator(object):
         return fig
 
     def add_estimators(
-        self, new_estimators: Union[Dict[str, ClassifierMixin], List[ClassifierMixin]]
+        self, estimators: Union[Dict[str, ClassifierMixin], List[ClassifierMixin]]
     ) -> None:
         """Include new estimator. This is the recommended way of adding an estimator (as opposed
         to modifying :attr:`estimators_` directly), since it also injects random state, n_jobs
@@ -626,16 +626,18 @@ class PoniardBaseEstimator(object):
 
         Parameters
         ----------
-        new_estimators :
+        estimators :
             Estimators to add.
 
         """
-        if not isinstance(new_estimators, dict):
+        if not isinstance(estimators, Sequence):
+            estimators = [estimators]
+        if not isinstance(estimators, dict):
             new_estimators = {
-                estimator.__class__.__name__: estimator for estimator in new_estimators
+                estimator.__class__.__name__: estimator for estimator in estimators
             }
-        for estimator in new_estimators.values():
-            self._pass_instance_attrs(estimator)
+        for new_estimator in new_estimators.values():
+            self._pass_instance_attrs(new_estimator)
         self.estimators_.update(new_estimators)
         return
 
