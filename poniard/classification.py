@@ -133,9 +133,8 @@ class PoniardClassifier(PoniardBaseEstimator):
             DummyClassifier(strategy="prior"),
         ]
 
-    def _build_metrics(
-        self, y: Union[pd.DataFrame, np.ndarray]
-    ) -> Union[Dict[str, Callable], List[str], Callable]:
+    def _build_metrics(self) -> Union[Dict[str, Callable], List[str], Callable]:
+        y = self.y
         if y.ndim > 1 or len(np.unique(y)) > 2:
             return [
                 # "roc_auc_score",

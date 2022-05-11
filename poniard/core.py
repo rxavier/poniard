@@ -143,7 +143,7 @@ class PoniardBaseEstimator(object):
         y :
             Target.
         """
-        X, y = self._setup_experiments(X, y)
+        self._setup_experiments(X, y)
 
         results = {}
         filtered_estimators = {
@@ -167,8 +167,8 @@ class PoniardBaseEstimator(object):
                 )
                 result = cross_validate(
                     final_estimator,
-                    X,
-                    y,
+                    self.X,
+                    self.y,
                     scoring=self.metrics_,
                     cv=self.cv,
                     return_train_score=True,
@@ -189,11 +189,15 @@ class PoniardBaseEstimator(object):
         self._process_long_results()
         return
 
+    def fit_new(self):
+        self.fit(self.X, self.y)
+        return
+
     def _setup_experiments(
         self,
         X: Union[pd.DataFrame, np.ndarray, List],
         y: Union[pd.DataFrame, np.ndarray, List],
-    ) -> Tuple[Union[pd.DataFrame, np.ndarray], Union[pd.DataFrame, np.ndarray]]:
+    ) -> None:
         """Orchestrator.
 
         Converts inputs to arrays if necessary, sets :attr:`metrics_`,
@@ -211,10 +215,12 @@ class PoniardBaseEstimator(object):
         Tuple[Union[pd.DataFrame, np.ndarray], Union[pd.DataFrame, np.ndarray]]
             X, y as numpy arrays or pandas dataframes.
         """
-        if not isinstance(X, (pd.DataFrame, np.ndarray)):
+        if not isinstance(X, (pd.DataFrame, pd.Series, np.ndarray)):
             X = np.array(X)
-        if not isinstance(y, (pd.DataFrame, np.ndarray)):
+        if not isinstance(y, (pd.DataFrame, pd.Series, np.ndarray)):
             y = np.array(y)
+        self.X = X
+        self.y = y
 
         if self.metrics:
             self.metrics_ = self.metrics
@@ -282,9 +288,7 @@ class PoniardBaseEstimator(object):
         self.estimators_ = initial_estimators
         return
 
-    def _infer_dtypes(
-        self, X: Union[pd.DataFrame, np.ndarray]
-    ) -> Tuple[List[str], List[str], List[str]]:
+    def _infer_dtypes(self) -> Tuple[List[str], List[str], List[str]]:
         """Infer feature types (numeric, low-cardinality categorical or high-cardinality
         categorical).
 
@@ -298,6 +302,7 @@ class PoniardBaseEstimator(object):
         List[str], List[str], List[str]
             Three lists with column names or indices.
         """
+        X = self.X
         numeric = []
         categorical_high = []
         categorical_low = []
@@ -361,23 +366,20 @@ class PoniardBaseEstimator(object):
         pprint(self._inferred_dtypes)
         return numeric, categorical_high, categorical_low
 
-    def _build_preprocessor(self, X: Union[pd.DataFrame, np.ndarray]) -> Pipeline:
+    def _build_preprocessor(self) -> Pipeline:
         """Build default preprocessor and assign to :attr:`preprocessor_`.
 
         The preprocessor imputes missing values, scales numeric features and encodes categorical
         features according to inferred types.
 
-        Parameters
-        ----------
-        X :
-            Input features.
         """
+        X = self.X
         try:
             self.preprocessor_
             return self.preprocessor_
         except AttributeError:
             pass
-        numeric, categorical_high, categorical_low = self._infer_dtypes(X=X)
+        numeric, categorical_high, categorical_low = self._infer_dtypes()
 
         if isinstance(self.scaler, TransformerMixin):
             scaler = self.scaler
@@ -433,17 +435,8 @@ class PoniardBaseEstimator(object):
                 )
         return preprocessor
 
-    def _build_metrics(
-        self, y: Union[pd.DataFrame, np.ndarray]
-    ) -> Union[Dict[str, Callable], List[str], Callable]:
-        """Build metrics and assign to :attr:`metrics_`.
-
-        Parameters
-        ----------
-        y :
-            Target. Used to determine the task (regression, binary classification or multiclass
-            classification).
-        """
+    def _build_metrics(self) -> Union[Dict[str, Callable], List[str], Callable]:
+        """Build metrics and assign to :attr:`metrics_`."""
         return ["accuracy"]
 
     def _process_results(self) -> None:
@@ -783,8 +776,6 @@ class PoniardBaseEstimator(object):
 
     def get_predictions_similarity(
         self,
-        X: Union[pd.DataFrame, np.ndarray, List],
-        y: Union[pd.DataFrame, np.ndarray, List],
         on_errors: bool = True,
     ) -> pd.DataFrame:
         """Compute correlation/association between cross validated predictions for each estimator.
@@ -793,10 +784,6 @@ class PoniardBaseEstimator(object):
 
         Parameters
         ----------
-        X :
-            Features.
-        y :
-            Target.
         on_errors :
             Whether to compute similarity on prediction errors instead of predictions. Default
             True.
@@ -806,8 +793,7 @@ class PoniardBaseEstimator(object):
         pd.DataFrame
             Similarity.
         """
-        X, y = self._setup_experiments(X, y)
-
+        X, y = self.X, self.y
         results = {}
         pbar = tqdm(self.estimators_.items())
         for i, (name, estimator) in enumerate(pbar):
@@ -875,8 +861,6 @@ class PoniardBaseEstimator(object):
     def tune_estimator(
         self,
         estimator_name: str,
-        X: Union[pd.DataFrame, np.ndarray, List],
-        y: Union[pd.DataFrame, np.ndarray, List],
         include_preprocessor: bool = True,
         grid: Optional[Dict] = None,
         mode: str = "grid",
@@ -889,10 +873,6 @@ class PoniardBaseEstimator(object):
         ----------
         estimator_name :
             Estimator to tune.
-        X :
-            Features.
-        y :
-            Target.
         include_preprocessor :
             Whether to include :attr:`preprocessor_`. Default True.
         grid :
@@ -915,7 +895,7 @@ class PoniardBaseEstimator(object):
         KeyError
             If no grid is defined and the estimator is not a default one.
         """
-        X, y = self._setup_experiments(X, y)
+        X, y = self.X, self.y
         estimator = self.estimators_[estimator_name]
         if not grid:
             try:

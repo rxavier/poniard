@@ -123,9 +123,7 @@ class PoniardRegressor(PoniardBaseEstimator):
             DummyRegressor(strategy="mean"),
         ]
 
-    def _build_metrics(
-        self, y: Union[pd.DataFrame, np.ndarray]
-    ) -> Union[Dict[str, Callable], List[str], Callable]:
+    def _build_metrics(self) -> Union[Dict[str, Callable], List[str], Callable]:
         return [
             "neg_mean_squared_error",
             "neg_mean_absolute_percentage_error",
