@@ -5,8 +5,9 @@ from typing import List, Optional, Union, Iterable, Callable, Dict, Tuple
 
 import pandas as pd
 import numpy as np
-import seaborn as sns
-from pandas.io.formats.style import Styler
+import plotly.express as px
+import plotly.io as pio
+from plotly.graph_objs._figure import Figure
 from tqdm import tqdm
 from sklearn.base import ClassifierMixin, RegressorMixin, TransformerMixin, clone
 from sklearn.model_selection._split import BaseCrossValidator, BaseShuffleSplit
@@ -462,8 +463,7 @@ class PoniardBaseEstimator(object):
         self,
         std: bool = False,
         wrt_dummy: bool = False,
-        styled: bool = True,
-    ) -> Union[Tuple[Union[pd.DataFrame, Styler], Union[pd.DataFrame, Styler]], Union[pd.DataFrame, Styler]]:
+    ) -> Union[Tuple[pd.DataFrame, pd.DataFrame], pd.DataFrame]:
         """Return dataframe containing scoring results. By default returns the mean score and fit
         and score times. Optionally returns standard deviations as well.
 
@@ -474,8 +474,6 @@ class PoniardBaseEstimator(object):
         wrt_dummy :
             Whether to compute each score/time with respect to the dummy estimator results. Default
             False.
-        styled :
-            Whether to return a pandas dataframe with a style. Default True.
 
         Returns
         -------
@@ -489,9 +487,6 @@ class PoniardBaseEstimator(object):
             dummy_stds = stds.loc[stds.index.str.contains("Dummy")]
             means = means / dummy_means.squeeze()
             stds = stds / dummy_stds.squeeze()
-        if styled:
-            means = means.style.background_gradient(cmap=self._sequential_cmap)
-            stds = stds.style.background_gradient(cmap=self._sequential_cmap)
         if std:
             return means, stds
         else:
@@ -510,35 +505,42 @@ class PoniardBaseEstimator(object):
         means = melted.groupby(["Model", "Metric"])["Score"].mean().reset_index()
         means["Type"] = "Mean"
         melted = pd.concat([melted, means])
-        melted["Model"] = melted["Model"].str.replace("Classifier|Regressor", "", regex=True)
+        melted["Model"] = melted["Model"].str.replace(
+            "Classifier|Regressor", "", regex=True
+        )
 
         self._long_results = melted
         return
 
     def _set_plotting_theme(
         self,
-        style: str = "darkgrid",
-        palette: str = "Paired",
-        figsize: tuple = (6, 6),
-        dpi: int = 100,
-        cyclical_cmap: str = "twilight_shifted",
-        sequential_cmap: str = "BuPu",
+        default: str = "plotly_white",
+        discrete_colors: List[str] = px.colors.qualitative.Bold,
+        font_family: str = "Helvetica",
+        font_color: str = "#8C8C8C",
     ) -> None:
-        sns.set_theme(style=style, palette=palette,
-                      rc={"figure.figsize": figsize, "figure.dpi": dpi})
-        self._cyclical_cmap = sns.color_palette(cyclical_cmap, as_cmap=True)
-        self._sequential_cmap = sns.color_palette(sequential_cmap, as_cmap=True)
+        pio.templates.default = default
+        pio.templates["plotly_white"].layout.font = {"family": font_family}
+        pio.templates["plotly_white"].layout.font = {"color": font_color}
+        pio.templates["plotly_white"].layout.margin = {"l": 20, "r": 20}
+        pio.templates["plotly_white"].layout.legend.yanchor = "top"
+        pio.templates["plotly_white"].layout.legend.y = -0.2
+        pio.templates["plotly_white"].layout.legend.xanchor = "left"
+        pio.templates["plotly_white"].layout.legend.x = 0.0
+        pio.templates["plotly_white"].layout.legend.orientation = "h"
+        px.defaults.color_discrete_sequence = discrete_colors
         return
 
     def plot_metrics(
         self,
         kind: str = "strip",
+        facet: str = "col",
         metrics: Union[str, List[str]] = None,
         only_test: bool = True,
         exclude_dummy: bool = True,
         show_means: bool = True,
         **kwargs,
-    ) -> sns.FacetGrid:
+    ) -> Figure:
         results = self._long_results
         results = results.loc[~results["Metric"].isin(["fit_time", "score_time"])]
         if only_test:
@@ -549,37 +551,77 @@ class PoniardBaseEstimator(object):
             metrics = [metrics] if isinstance(metrics, str) else metrics
             metrics = "|".join(metrics)
             results = results.loc[results["Metric"].str.contains(metrics)]
-        if not show_means or kind == "bar":
+        if not show_means:
             results = results.loc[~(results["Type"] == "Mean")]
-        fig = sns.catplot(
-            kind=kind,
-            y="Model",
-            x="Score",
-            hue="Type" if show_means and kind == "strip" else None,
-            row="Metric" if not metrics or len(metrics) > 1 else None,
-            sharex=False,
-            data=results,
-            **kwargs,
-        )
-        fig.set_axis_labels("Score", "")
-        fig.tight_layout()
+        height = 100 * results["Model"].nunique()
+        if facet == "col":
+            facet_row = None
+            facet_col = "Metric" if not metrics or len(metrics) > 1 else None
+        else:
+            facet_row = "Metric" if not metrics or len(metrics) > 1 else None
+            facet_col = None
+        if kind == "strip":
+            fig = px.strip(
+                results,
+                y="Model",
+                x="Score",
+                color="Type" if show_means else None,
+                facet_row=facet_row,
+                facet_col=facet_col,
+                title="Model scores",
+                height=height,
+                **kwargs,
+            )
+        else:
+            stds = self._stds.reset_index().melt(id_vars="index")
+            stds.columns = ["Model", "Metric", "Score"]
+            stds["Model"] = stds["Model"].str.replace(
+                "Classifier|Regressor", "", regex=True
+            )
+            results = results.loc[results["Type"] == "Mean"].merge(
+                stds, how="left", on=["Model", "Metric"], suffixes=(None, "_y")
+            )
+            results = results.rename(columns={"Score_y": "Std"})
+            results["Std"] = results["Std"] / 2
+            fig = px.bar(
+                results,
+                y="Model",
+                x="Score",
+                facet_row=facet_row,
+                facet_col=facet_col,
+                error_x="Std",
+                error_y="Std",
+                orientation="h",
+                title="Model scores",
+                height=height,
+                **kwargs,
+            )
+        fig.update_xaxes(matches=None)
+        fig.update_layout(yaxis_title="")
         return fig
 
-    def plot_overfitness(self, metric: Optional[str] = None) -> sns.FacetGrid:
+    def plot_overfitness(self, metric: Optional[str] = None) -> Figure:
         if not metric:
             if isinstance(self.metrics_, dict):
                 metric = list(self.metrics_)[0]
             else:
                 metric = self.metrics_[0]
         results = self._long_results
-        results = results.loc[(results["Type"] == "Mean") & (results["Metric"].str.contains(metric))]
+        results = results.loc[
+            (results["Type"] == "Mean") & (results["Metric"].str.contains(metric))
+        ]
         results = results.pivot(columns="Metric", index="Model", values="Score")
-        results = results.loc[:, results.columns.str.contains("train")].div(results.loc[:, results.columns.str.contains("test")].squeeze(), axis=0)
+        results = results.loc[:, results.columns.str.contains("train")].div(
+            results.loc[:, results.columns.str.contains("test")].squeeze(), axis=0
+        )
         results = results.sort_values(results.columns[0])
-        fig = sns.catplot(kind="strip", y="Model", x=results.columns[0], data=results.reset_index())
-        fig.set_axis_labels("Train / test ratio", "")
-        fig.fig.suptitle(f"{metric} overfitness")
-        fig.tight_layout()
+        fig = px.strip(
+            results.reset_index(),
+            y="Model",
+            x=results.columns[0],
+            title=f"{metric} overfitness",
+        )
+        fig.update_layout(xaxis_title="Train / test ratio", yaxis_title="")
         return fig
 
     def add_estimators(
@@ -744,7 +786,6 @@ class PoniardBaseEstimator(object):
         X: Union[pd.DataFrame, np.ndarray, List],
         y: Union[pd.DataFrame, np.ndarray, List],
         on_errors: bool = True,
-        styled: bool = True,
     ) -> pd.DataFrame:
         """Compute correlation/association between cross validated predictions for each estimator.
 
@@ -759,8 +800,6 @@ class PoniardBaseEstimator(object):
         on_errors :
             Whether to compute similarity on prediction errors instead of predictions. Default
             True.
-        styled :
-            Whether to return a styled DataFrame. Default True.
 
         Returns
         -------
@@ -795,8 +834,6 @@ class PoniardBaseEstimator(object):
                 pbar.set_description("Completed")
         results = pd.DataFrame(results)
         if self._check_estimator_type() == "classifier":
-            vmax, vmin = 1, 0
-            cmap = self._sequential_cmap
             estimator_names = [
                 x
                 for x in self.estimators_
@@ -815,11 +852,7 @@ class PoniardBaseEstimator(object):
                     table.loc[row, col] = cramer
                     table.loc[col, row] = cramer
         else:
-            vmax, vmin = 1, -1
-            cmap = self._cyclical_cmap
             table = results.corr()
-        if styled:
-            table = table.style.background_gradient(cmap=cmap, vmin=vmin, vmax=vmax)
         return table
 
     def _check_estimator_type(self) -> Optional[str]:
@@ -831,6 +864,7 @@ class PoniardBaseEstimator(object):
             "classifier", "regressor" or None
         """
         from poniard import PoniardRegressor, PoniardClassifier
+
         if isinstance(self, PoniardRegressor):
             return "regressor"
         elif isinstance(self, PoniardClassifier):

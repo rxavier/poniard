@@ -44,7 +44,7 @@ setup(
         "scikit-learn",
         "xgboost",
         "pandas",
-        "seaborn",
+        "plotly",
         "tqdm",
     ],
     include_package_data=True,

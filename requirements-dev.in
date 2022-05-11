@@ -1,5 +1,4 @@
 -c requirements.txt
-black
 pytest
 sphinx
 sphinx-autobuild
@@ -8,3 +7,4 @@ recommonmark
 sphinx-bootstrap-theme
 sphinx-toolbox
 jupyter
+black

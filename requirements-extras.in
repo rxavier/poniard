@@ -1,0 +1,3 @@
+-c requirements-dev.txt
+wandb
+pandas-profiling
