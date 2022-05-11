@@ -75,6 +75,8 @@ class PoniardBaseEstimator(object):
     n_jobs :
         Controls parallel processing. -1 uses all cores. Propagated to every scikit-learn
         function.
+    plugins :
+        Plugin instances that run in set moments of setup, fit and plotting.
 
     Attributes
     ----------
@@ -224,10 +226,6 @@ class PoniardBaseEstimator(object):
         y :
             Target
 
-        Returns
-        -------
-        Tuple[Union[pd.DataFrame, np.ndarray], Union[pd.DataFrame, np.ndarray]]
-            X, y as numpy arrays or pandas dataframes.
         """
         if not isinstance(X, (pd.DataFrame, pd.Series, np.ndarray)):
             X = np.array(X)
@@ -305,11 +303,6 @@ class PoniardBaseEstimator(object):
     def _infer_dtypes(self) -> Tuple[List[str], List[str], List[str]]:
         """Infer feature types (numeric, low-cardinality categorical or high-cardinality
         categorical).
-
-        Parameters
-        ----------
-        X :
-            Input features.
 
         Returns
         -------

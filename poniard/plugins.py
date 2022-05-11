@@ -7,11 +7,22 @@ import numpy as np
 
 
 class BasePlugin(object):
+    """Base plugin class. New plugins should inherit from this class."""
+
     def on_setup_end(self):
         pass
 
 
 class WandBPlugin(BasePlugin):
+    """Weights and Biases plugin. Kwargs from the constructor are passed to `wandb.init()`.
+
+    Parameters
+    ----------
+    project :
+        Name of the Weights and Biases project.
+    entity :
+        Name of the Weights and Biases entity (username).
+    """
     def __init__(
         self, project: Optional[str] = None, entity: Optional[str] = None, **kwargs
     ):
@@ -20,18 +31,6 @@ class WandBPlugin(BasePlugin):
         wandb.init(project=project, entity=entity, **kwargs)
 
     def on_setup_end(self):
-        X = self.poniard_instance.X
-        y = self.poniard_instance.y
-        try:
-            dataset = pd.concat([X, y], axis=1)
-        except TypeError:
-            if y.ndim == 1:
-                dataset = np.concatenate([X, np.expand_dims(y, 1)], axis=1)
-            else:
-                dataset = np.concatenate([X, y], axis=1)
-            dataset = pd.DataFrame(dataset)
-        table = wandb.Table(dataframe=dataset)
-        wandb.log({"dataset": table})
         parameters = {
             "estimators": self.poniard_instance.estimators_,
             "metrics": self.poniard_instance.metrics_,
@@ -48,4 +47,16 @@ class WandBPlugin(BasePlugin):
             "random_state": self.poniard_instance.random_state,
         }
         wandb.config.update(parameters)
+
+        X, y = self.poniard_instance.X, self.poniard_instance.y
+        try:
+            dataset = pd.concat([X, y], axis=1)
+        except TypeError:
+            if y.ndim == 1:
+                dataset = np.concatenate([X, np.expand_dims(y, 1)], axis=1)
+            else:
+                dataset = np.concatenate([X, y], axis=1)
+            dataset = pd.DataFrame(dataset)
+        table = wandb.Table(dataframe=dataset)
+        wandb.log({"dataset": table})
         return
