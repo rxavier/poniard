@@ -661,7 +661,7 @@ class PoniardBaseEstimator(object):
         return
 
     def get_estimator(
-        self, name: str, include_preprocessor: bool = True, fitted: bool = False
+        self, name: str, include_preprocessor: bool = True, retrain: bool = False
     ) -> ClassifierMixin:
         """Obtain an estimator in :attr:`estimators_` by name. This is useful for extracting default
         estimators or hyperparmeter-optimized estimators (after using :meth:`tune_estimator`).
@@ -672,8 +672,8 @@ class PoniardBaseEstimator(object):
             Estimator name.
         include_preprocessor :
             Whether to return a pipeline with a preprocessor or just the estimator. Default True.
-        fitted :
-            Whether to return a fitted estimator/pipeline or a clone. Default False.
+        retrain :
+            Whether to retrain with full data. Default False.
 
         Returns
         -------
@@ -683,10 +683,12 @@ class PoniardBaseEstimator(object):
         model = self._experiment_results[name]["estimator"][0]
         if not include_preprocessor:
             model = model._final_estimator
-        if fitted:
+        model = clone(model)
+        if retrain:
+            model.fit(self.X, self.y)
             return model
         else:
-            return clone(model)
+            return model
 
     def build_ensemble(
         self,
