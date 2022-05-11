@@ -1,4 +1,4 @@
-from typing import List, Optional, Union, Iterable, Callable, Dict
+from typing import List, Optional, Union, Callable, Dict, Any, Sequence
 
 import pandas as pd
 import numpy as np
@@ -83,7 +83,7 @@ class PoniardRegressor(PoniardBaseEstimator):
         custom_preprocessor: Union[None, Pipeline, TransformerMixin] = None,
         numeric_threshold: Union[int, float] = 0.2,
         cardinality_threshold: Union[int, float] = 50,
-        cv: Union[int, BaseCrossValidator, BaseShuffleSplit, Iterable] = None,
+        cv: Union[int, BaseCrossValidator, BaseShuffleSplit, Sequence] = None,
         verbose: int = 0,
         random_state: Optional[int] = None,
         n_jobs: Optional[int] = None,
