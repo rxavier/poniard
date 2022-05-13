@@ -1,5 +1,6 @@
 import warnings
 import itertools
+import inspect
 from pprint import pprint
 from typing import List, Optional, Union, Callable, Dict, Tuple, Any, Sequence
 
@@ -133,13 +134,15 @@ class PoniardBaseEstimator(object):
         if self.plugins:
             [setattr(plugin, "poniard_instance", self) for plugin in self.plugins]
 
-    def _run_plugin_methods(self, method: str):
+    def _run_plugin_methods(self, method: str, **kwargs):
         if not self.plugins:
             return
         for plugin in self.plugins:
             method = getattr(plugin, method, None)
             if callable(method):
-                method()
+                accepted_kwargs = inspect.getargs(method.__code__).args
+                kwargs = {k: v for k, v in kwargs.items() if k in accepted_kwargs}
+                method(**kwargs)
         return
 
     def fit(
@@ -159,6 +162,7 @@ class PoniardBaseEstimator(object):
         y :
             Target.
         """
+        self._run_plugin_methods("on_fit_start")
         self._setup_experiments(X, y)
 
         results = {}
@@ -203,6 +207,7 @@ class PoniardBaseEstimator(object):
 
         self._process_results()
         self._process_long_results()
+        self._run_plugin_methods("on_fit_end")
         return
 
     def fit_new(self):
@@ -227,6 +232,7 @@ class PoniardBaseEstimator(object):
             Target
 
         """
+        self._run_plugin_methods("on_setup_start")
         if not isinstance(X, (pd.DataFrame, pd.Series, np.ndarray)):
             X = np.array(X)
         if not isinstance(y, (pd.DataFrame, pd.Series, np.ndarray)):
@@ -598,6 +604,7 @@ class PoniardBaseEstimator(object):
             )
         fig.update_xaxes(matches=None)
         fig.update_layout(yaxis_title="")
+        self._run_plugin_methods("on_plot", figure=fig, name="scores_plot")
         return fig
 
     def plot_overfitness(self, metric: Optional[str] = None) -> Figure:
@@ -622,6 +629,7 @@ class PoniardBaseEstimator(object):
             title=f"{metric} overfitness",
         )
         fig.update_layout(xaxis_title="Train / test ratio", yaxis_title="")
+        self._run_plugin_methods("on_plot", figure=fig, name="overfitness_plot")
         return fig
 
     def add_estimators(
@@ -667,6 +675,7 @@ class PoniardBaseEstimator(object):
             self._experiment_results = {
                 k: v for k, v in self._experiment_results.items() if k not in names
             }
+        self._run_plugin_methods("on_remove_estimators")
         return
 
     def get_estimator(
@@ -695,9 +704,8 @@ class PoniardBaseEstimator(object):
         model = clone(model)
         if retrain:
             model.fit(self.X, self.y)
-            return model
-        else:
-            return model
+        self._run_plugin_methods("on_get_estimator", estimator=model, name=name)
+        return model
 
     def build_ensemble(
         self,
