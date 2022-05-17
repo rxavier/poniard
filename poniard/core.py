@@ -25,8 +25,8 @@ from sklearn.ensemble import (
     StackingClassifier,
     StackingRegressor,
 )
-from sklearn.pipeline import make_pipeline, Pipeline
-from sklearn.compose import make_column_transformer
+from sklearn.pipeline import Pipeline
+from sklearn.compose import ColumnTransformer
 from sklearn.dummy import DummyClassifier, DummyRegressor
 from sklearn.model_selection import (
     cross_validate,
@@ -409,35 +409,81 @@ class PoniardBaseEstimator(object):
         else:
             num_imputer = SimpleImputer(strategy="mean", verbose=self.verbose)
 
-        numeric_preprocessor = make_pipeline(num_imputer, scaler)
-        cat_low_preprocessor = make_pipeline(
-            cat_imputer, OneHotEncoder(drop="first", handle_unknown="ignore")
+        numeric_preprocessor = Pipeline(
+            [("numeric_imputer", num_imputer), ("scaler", scaler)]
         )
-        cat_high_preprocessor = make_pipeline(
-            cat_imputer,
-            OrdinalEncoder(handle_unknown="use_encoded_value", unknown_value=99999),
+        cat_low_preprocessor = Pipeline(
+            [
+                ("categorical_imputer", cat_imputer),
+                (
+                    "one-hot_encoder",
+                    OneHotEncoder(drop="first", handle_unknown="ignore"),
+                ),
+            ]
+        )
+
+        cat_high_preprocessor = Pipeline(
+            [
+                ("categorical_imputer", cat_imputer),
+                (
+                    "ordinal_encoder",
+                    OrdinalEncoder(
+                        handle_unknown="use_encoded_value", unknown_value=99999
+                    ),
+                ),
+            ],
         )
         if isinstance(X, pd.DataFrame):
-            preprocessor = make_column_transformer(
-                (numeric_preprocessor, numeric),
-                (cat_low_preprocessor, categorical_low),
-                (cat_high_preprocessor, categorical_high),
+            preprocessor = ColumnTransformer(
+                [
+                    ("numeric_preprocessor", numeric_preprocessor, numeric),
+                    (
+                        "categorical_low_preprocessor",
+                        cat_low_preprocessor,
+                        categorical_low,
+                    ),
+                    (
+                        "categorical_high_preprocessor",
+                        cat_high_preprocessor,
+                        categorical_high,
+                    ),
+                ],
                 n_jobs=self.n_jobs,
             )
         else:
             if np.issubdtype(X.dtype, float):
                 preprocessor = numeric_preprocessor
             elif np.issubdtype(X.dtype, int):
-                preprocessor = make_column_transformer(
-                    (numeric_preprocessor, numeric),
-                    (cat_low_preprocessor, categorical_low),
-                    (cat_high_preprocessor, categorical_high),
+                preprocessor = ColumnTransformer(
+                    [
+                        ("numeric_preprocessor", numeric_preprocessor, numeric),
+                        (
+                            "categorical_low_preprocessor",
+                            cat_low_preprocessor,
+                            categorical_low,
+                        ),
+                        (
+                            "categorical_high_preprocessor",
+                            cat_high_preprocessor,
+                            categorical_high,
+                        ),
+                    ],
                     n_jobs=self.n_jobs,
                 )
             else:
-                preprocessor = make_column_transformer(
-                    (cat_low_preprocessor, categorical_low),
-                    (cat_high_preprocessor, categorical_high),
+                preprocessor = ColumnTransformer(
+                    [
+                        (
+                            "categorical_low_preprocessor",
+                            cat_low_preprocessor,
+                            categorical_low,
+                        ),
+                        (
+                            "categorical_high_preprocessor",
+                            cat_high_preprocessor,
+                            categorical_high,
+                        ),
+                    ],
                     n_jobs=self.n_jobs,
                 )
         return preprocessor
@@ -783,7 +829,9 @@ class PoniardBaseEstimator(object):
             name = name or ensemble.__class__.__name__
             self.add_estimators(new_estimators={name: ensemble})
         if include_preprocessor:
-            return make_pipeline(self.preprocessor_, ensemble)
+            return Pipeline(
+                [("preprocessor", self.preprocessor_), ("ensemble", ensemble)]
+            )
         else:
             return ensemble
 
@@ -812,7 +860,9 @@ class PoniardBaseEstimator(object):
         for i, (name, estimator) in enumerate(pbar):
             pbar.set_description(f"{name}")
             if self.preprocess:
-                final_estimator = make_pipeline(self.preprocessor_, estimator)
+                final_estimator = Pipeline(
+                    [("preprocessor", self.preprocessor_), ("estimator", estimator)]
+                )
             else:
                 final_estimator = estimator
             result = cross_val_predict(
