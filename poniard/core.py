@@ -200,9 +200,9 @@ class PoniardBaseEstimator(object):
             self._fitted_estimator_ids.append(id(estimator))
             if i == len(pbar) - 1:
                 pbar.set_description("Completed")
-        try:
+        if hasattr(self, "_experiment_results"):
             self._experiment_results.update(results)
-        except AttributeError:
+        else:
             self._experiment_results = results
 
         self._process_results()
@@ -269,12 +269,9 @@ class PoniardBaseEstimator(object):
         :attr:`estimators_` exists.
 
         """
-        try:
-            # If the estimators_ dict exists, don't build it again
-            self.estimators_
+        if hasattr(self, "estimators_"):
             return self.estimators_
-        except AttributeError:
-            pass
+
         if isinstance(self.estimators, dict):
             return self.estimators
         elif self.estimators:
@@ -387,11 +384,8 @@ class PoniardBaseEstimator(object):
 
         """
         X = self.X
-        try:
-            self.preprocessor_
+        if hasattr(self, "preprocessor_"):
             return self.preprocessor_
-        except AttributeError:
-            pass
         numeric, categorical_high, categorical_low = self._infer_dtypes()
 
         if isinstance(self.scaler, TransformerMixin):
