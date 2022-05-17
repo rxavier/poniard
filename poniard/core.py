@@ -1,7 +1,6 @@
 import warnings
 import itertools
 import inspect
-from pprint import pprint
 from typing import List, Optional, Union, Callable, Dict, Tuple, Any, Sequence
 
 import pandas as pd
@@ -317,13 +316,22 @@ class PoniardBaseEstimator(object):
         categorical_high = []
         categorical_low = []
         if isinstance(self.cardinality_threshold, int):
-            card_threshold = self.cardinality_threshold
+            self.cardinality_threshold_ = self.cardinality_threshold
         else:
-            card_threshold = int(self.cardinality_threshold * X.shape[0])
+            self.cardinality_threshold_ = int(self.cardinality_threshold * X.shape[0])
         if isinstance(self.numeric_threshold, int):
-            num_threshold = self.numeric_threshold
+            self.numeric_threshold_ = self.numeric_threshold
         else:
-            num_threshold = int(self.numeric_threshold * X.shape[0])
+            self.numeric_threshold_ = int(self.numeric_threshold * X.shape[0])
+        print(
+            "Minimum unique values to consider an integer feature numeric:",
+            self.numeric_threshold_,
+        )
+        print(
+            "Minimum unique values to consider a non-float feature high cardinality:",
+            self.cardinality_threshold_,
+            end="\n\n",
+        )
         if isinstance(X, pd.DataFrame):
             numeric.extend(X.select_dtypes(include="float").columns)
             ints = X.select_dtypes(include="int").columns
@@ -334,15 +342,15 @@ class PoniardBaseEstimator(object):
                     stacklevel=2,
                 )
             for column in ints:
-                if X[column].nunique() > num_threshold:
+                if X[column].nunique() > self.numeric_threshold_:
                     numeric.append(column)
-                elif X[column].nunique() > card_threshold:
+                elif X[column].nunique() > self.cardinality_threshold_:
                     categorical_high.append(column)
                 else:
                     categorical_low.append(column)
             strings = X.select_dtypes(exclude="number").columns
             for column in strings:
-                if X[column].nunique() > card_threshold:
+                if X[column].nunique() > self.cardinality_threshold_:
                     categorical_high.append(column)
                 else:
                     categorical_low.append(column)
@@ -356,15 +364,15 @@ class PoniardBaseEstimator(object):
                     stacklevel=2,
                 )
                 for i in range(X.shape[1]):
-                    if np.unique(X[:, i]).shape[0] > num_threshold:
+                    if np.unique(X[:, i]).shape[0] > self.numeric_threshold_:
                         numeric.append(i)
-                    elif np.unique(X[:, i]).shape[0] > card_threshold:
+                    elif np.unique(X[:, i]).shape[0] > self.cardinality_threshold_:
                         categorical_high.append(i)
                     else:
                         categorical_low.append(i)
             else:
                 for i in range(X.shape[1]):
-                    if np.unique(X[:, i]).shape[0] > card_threshold:
+                    if np.unique(X[:, i]).shape[0] > self.cardinality_threshold_:
                         categorical_high.append(i)
                     else:
                         categorical_low.append(i)
@@ -373,7 +381,11 @@ class PoniardBaseEstimator(object):
             "categorical_high": categorical_high,
             "categorical_low": categorical_low,
         }
-        pprint(self._inferred_dtypes)
+        print(
+            "Inferred feature types:",
+            pd.DataFrame.from_dict(self._inferred_dtypes, orient="index").T,
+            sep="\n",
+        )
         return numeric, categorical_high, categorical_low
 
     def _build_preprocessor(self) -> Pipeline:
