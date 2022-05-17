@@ -17,7 +17,7 @@ with open(os.path.join(here, "README.md"), encoding="utf-8") as f:
 setup(
     name="poniard",
     version=main_ns["__version__"],
-    description="Cross-validate multiple scikit-learn estimators in one line.",
+    description="Streamline scikit-learn model comparison",
     long_description=long_description,
     long_description_content_type="text/markdown",
     author="Rafael Xavier",
@@ -31,9 +31,9 @@ setup(
         "Topic :: Sociology",
         "License :: OSI Approved :: MIT License",
         "Programming Language :: Python",
-        "Programming Language :: Python :: 3.6",
-        "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
         "Operating System :: OS Independent",
     ],
     keywords=[
@@ -49,5 +49,5 @@ setup(
     ],
     include_package_data=True,
     packages=packages,
-    python_requires=">=3.6",
+    python_requires=">=3.8",
 )

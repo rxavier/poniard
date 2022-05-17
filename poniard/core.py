@@ -397,7 +397,7 @@ class PoniardBaseEstimator(object):
         else:
             scaler = RobustScaler()
 
-        cat_imputer = SimpleImputer(strategy="most_frequent", verbose=self.verbose)
+        cat_imputer = SimpleImputer(strategy="most_frequent")
 
         if isinstance(self.numeric_imputer, TransformerMixin):
             num_imputer = self.numeric_imputer
@@ -407,7 +407,7 @@ class PoniardBaseEstimator(object):
 
             num_imputer = IterativeImputer(random_state=self.random_state)
         else:
-            num_imputer = SimpleImputer(strategy="mean", verbose=self.verbose)
+            num_imputer = SimpleImputer(strategy="mean")
 
         numeric_preprocessor = Pipeline(
             [("numeric_imputer", num_imputer), ("scaler", scaler)]
