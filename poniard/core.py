@@ -11,6 +11,7 @@ from plotly.graph_objs._figure import Figure
 from tqdm import tqdm
 from sklearn.base import ClassifierMixin, RegressorMixin, TransformerMixin, clone
 from sklearn.model_selection import BaseCrossValidator, BaseShuffleSplit, train_test_split
+from sklearn.inspection import permutation_importance
 from sklearn.preprocessing import (
     StandardScaler,
     MinMaxScaler,
@@ -692,6 +693,58 @@ class PoniardBaseEstimator(object):
         self._run_plugin_methods("on_plot", figure=fig, name="overfitness_plot")
         return fig
 
+    def plot_permutation_importances(self, estimator_names: Union[str, List[str]], kind: str = "bar",
+                                     facet: str = "col") -> Figure:
+        """Plot permutation importances for a list of estimators.
+
+        Parameters
+        ----------
+        estimator_names :
+            Estimators to include.
+        kind :
+            Either "bar" or "strip". Default "bar". "strip" plots each permutation repetition
+            as well as the mean. Bar plots only the mean.
+        facet :
+           Either "col" or "row". Default "col".
+
+        Returns
+        -------
+        Figure
+            Plotly bar or strip plot.
+        """
+        if isinstance(estimator_names, str):
+            estimator_names = [estimator_names]
+        importances = {estimator: self._experiment_results[estimator]["permutation_importances"]["importances"]
+                       for estimator in estimator_names}
+        importances_arr = []
+        for estimator, importance_values in importances.items():
+            aux = pd.DataFrame(importance_values, index=self.X.columns)
+            aux.rename_axis("Feature", inplace=True)
+            aux.reset_index(inplace=True)
+            aux.insert(0, "Estimator", estimator)
+            importances_arr.append(aux)
+        importances = pd.concat(importances_arr)
+        importances = importances.melt(id_vars=["Estimator", "Feature"], var_name="Type", value_name="Importance")
+        importances["Type"] = "Repetition"
+        aggs = importances.groupby(["Estimator", "Feature"])["Importance"].agg(Mean=np.mean, Std=np.std).reset_index()
+        aggs = aggs.melt(id_vars=["Estimator", "Feature"], var_name="Type", value_name="Importance")
+        importances = pd.concat([importances, aggs])
+
+        if kind == "strip":
+            if facet == "row":
+                facet_row = "Estimator"
+                facet_col = None
+            else:
+                facet_row = None
+                facet_col = "Estimator"
+            importances = importances.loc[importances["Type"] != "Std"]
+            fig = px.strip(importances, x="Importance", y="Feature", color="Type",
+                           facet_col=facet_col, facet_row=facet_row)
+        else:
+            importances = importances.loc[-importances["Type"].isin(["Repetition", "Std"])]
+            fig = px.bar(importances, x="Importance", y="Feature", color="Estimator")
+        return fig
+
     def add_estimators(
         self, estimators: Union[Dict[str, ClassifierMixin], List[ClassifierMixin]]
     ) -> None:
@@ -1038,7 +1091,89 @@ class PoniardBaseEstimator(object):
             )
         return search
 
+    def get_permutation_importances(
+        self,
+        estimator_name: str,
+        include_preprocessor: bool = True,
+        n_repeats: int = 10,
+        std: bool = False,
+        **kwargs,
+    ) -> Union[pd.DataFrame, Tuple[pd.DataFrame, pd.DataFrame]]:
+        """Compute permutation importances mean and standard deviations for a single estimator.
+
+        Kwargs are passed to the sklearn permutation importance function.
+
+        Parameters
+        ----------
+        estimator_name :
+            Estimator to tune.
+        include_preprocessor :
+            Whether to include :attr:`preprocessor_`. Default True.
+        n_repeats :
+            How many times to repeat random permutations of a single feature. Default 10.
+        std : bool, optional
+            Whether to return standard deviations. Default True.
+
+        Returns
+        -------
+        Union[pd.DataFrame, Tuple[pd.DataFrame, pd.DataFrame]]
+            Permutation importances mean, optionally also standard deviations.
+        """
+        estimator = self.estimators_[estimator_name]
+        self._pass_instance_attrs(estimator)
+        if include_preprocessor:
+            estimator = Pipeline(
+                [("preprocessor", self.preprocessor_), (estimator_name, estimator)]
+            )
+        else:
+            estimator = Pipeline([(estimator_name, estimator)])
+        scoring = self._first_scorer(sklearn_scorer=True)
+
+        X_train, X_test, y_train, y_test = self._train_test_split_from_cv()
+        estimator.fit(X_train, y_train)
+        result = permutation_importance(
+            estimator,
+            X_test,
+            y_test,
+            scoring=scoring,
+            random_state=self.random_state,
+            n_repeats=n_repeats,
+            n_jobs=self.n_jobs,
+            **kwargs,
+        )
+        self._experiment_results[estimator_name]["permutation_importances"] = result
+        if isinstance(self.X, pd.DataFrame):
+            new_idx = self.X.columns
+        else:
+            new_idx = range(self.X.shape[1])
+        means = pd.DataFrame(result["importances_mean"])
+        means.columns = [f"Permutation importances mean ({n_repeats} repeats)"]
+        means.index = new_idx
+        if std:
+            stds = pd.DataFrame(result["importances_std"])
+            stds.columns = [f"Permutation importances std. ({n_repeats} repeats)"]
+            stds.index = new_idx
+            return means, stds
+        else:
+            return means
+
+    def _train_test_split_from_cv(self):
+        """Split data in a 80/20 fashion following the cross-validation strategy defined in the constructor.
+        """
+        if isinstance(self.cv, (int, Iterable)):
+            cv_params_for_split = {}
+        else:
+            cv_params_for_split = {
+                k: v
+                for k, v in vars(self.cv).items()
+                if k in ["shuffle", "random_state"]
+            }
+            stratify = self.y if "Stratified" in self.cv.__class__.__name__ else None
+            cv_params_for_split.update({"stratify": stratify})
+        return train_test_split(self.X, self.y, test_size=0.2, **cv_params_for_split)
+
     def _pass_instance_attrs(self, estimator: Union[ClassifierMixin, RegressorMixin]):
+        """Helper method to propagate instance attributes to estimators."""
         for attr, value in zip(
             ["random_state", "verbose", "verbosity"],
             [self.random_state, self.verbose, self.verbose],
