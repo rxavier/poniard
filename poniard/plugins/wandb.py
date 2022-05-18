@@ -91,23 +91,12 @@ class WandBPlugin(BasePlugin):
         artifact.add_file(saved_model_path.as_posix(), name=name)
         wandb.log_artifact(artifact)
 
-        if isinstance(self.poniard_instance.cv, (int, Iterable)):
-            cv_params_for_split = {}
-        else:
-            cv_params_for_split = {
-                k: v
-                for k, v in vars(self.poniard_instance.cv).items()
-                if k in ["shuffle", "random_state"]
-            }
-            stratify = (
-                y
-                if "Stratified" in self.poniard_instance.cv.__class__.__name__
-                else None
-            )
-            cv_params_for_split.update({"stratify": stratify})
-        X_train, X_test, y_train, y_test = train_test_split(
-            X, y, test_size=0.2, **cv_params_for_split
-        )
+        (
+            X_train,
+            X_test,
+            y_train,
+            y_test,
+        ) = self.poniard_instance._train_test_split_from_cv()
         estimator.fit(X_train, y_train)
         y_pred = estimator.predict(X_test)
         estimator_type = self.poniard_instance._check_estimator_type()
