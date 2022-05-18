@@ -22,6 +22,13 @@ Base class
    :undoc-members:
    :show-inheritance:
 
+Plugins
+-------
+.. autoclass:: poniard.plugins.wandb.WandbPlugin
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 Utilities
 ---------
 .. automodule:: poniard.utils
