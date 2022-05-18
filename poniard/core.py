@@ -773,6 +773,9 @@ class PoniardBaseEstimator(object):
         aggs = aggs.melt(id_vars=["Estimator", "Feature"], var_name="Type", value_name="Importance")
         importances = pd.concat([importances, aggs])
 
+        scoring = self._first_scorer(sklearn_scorer=False)
+        repeats = self._experiment_results[estimator_names[0]]["permutation_importances"]["importances"].shape[1]
+        title = f"Permutation importances ({scoring}, {repeats} repeats)"
         if kind == "strip":
             if facet == "row":
                 facet_row = "Estimator"
@@ -782,10 +785,14 @@ class PoniardBaseEstimator(object):
                 facet_col = "Estimator"
             importances = importances.loc[importances["Type"] != "Std"]
             fig = px.strip(importances, x="Importance", y="Feature", color="Type",
-                           facet_col=facet_col, facet_row=facet_row)
+                           facet_col=facet_col, facet_row=facet_row,
+                           title=title)
         else:
             importances = importances.loc[-importances["Type"].isin(["Repetition", "Std"])]
-            fig = px.bar(importances, x="Importance", y="Feature", color="Estimator")
+            fig = px.bar(importances, x="Importance", y="Feature", color="Estimator",
+                         title=title)
+            fig.update_layout(yaxis={"categoryorder": "total ascending"})
+        self._run_plugin_methods("on_plot", figure=fig, name="permutation_importances_plot")
         return fig
 
     def add_estimators(
