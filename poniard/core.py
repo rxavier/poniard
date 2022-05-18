@@ -1,7 +1,7 @@
 import warnings
 import itertools
 import inspect
-from typing import List, Optional, Union, Callable, Dict, Tuple, Any, Sequence
+from typing import List, Optional, Union, Callable, Dict, Tuple, Any, Sequence, Iterable
 
 import pandas as pd
 import numpy as np
@@ -145,6 +145,7 @@ class PoniardBaseEstimator(object):
             [setattr(plugin, "poniard_instance", self) for plugin in self.plugins]
 
     def _run_plugin_methods(self, method: str, **kwargs):
+        """Helper method to run plugin methods by name."""
         if not self.plugins:
             return
         for plugin in self.plugins:
@@ -164,6 +165,7 @@ class PoniardBaseEstimator(object):
         score all :attr:`metrics_` for every :attr:`preprocessor_` | :attr:`estimators_`, using
         :attr:`cv` for cross validation.
 
+        After running :meth:`fit`, both :attr:`X` and :attr:`y` will be held as attributes.
 
         Parameters
         ----------
@@ -221,6 +223,8 @@ class PoniardBaseEstimator(object):
         return
 
     def fit_new(self):
+        """Helper method for fitting new estimators. Doesn't require features or target as those
+        are registered when :meth:`fit` is called for the first time."""
         self.fit(self.X, self.y)
         return
 
@@ -401,7 +405,7 @@ class PoniardBaseEstimator(object):
         return numeric, categorical_high, categorical_low
 
     def _build_preprocessor(self) -> Pipeline:
-        """Build default preprocessor and assign to :attr:`preprocessor_`.
+        """Build default preprocessor.
 
         The preprocessor imputes missing values, scales numeric features and encodes categorical
         features according to inferred types.
@@ -513,7 +517,7 @@ class PoniardBaseEstimator(object):
         return preprocessor
 
     def _build_metrics(self) -> Union[Dict[str, Callable], List[str], Callable]:
-        """Build metrics and assign to :attr:`metrics_`."""
+        """Build metrics."""
         return ["accuracy"]
 
     def _process_results(self) -> None:
@@ -589,6 +593,7 @@ class PoniardBaseEstimator(object):
         font_family: str = "Helvetica",
         font_color: str = "#8C8C8C",
     ) -> None:
+        """Setup Plotly plotting aesthetics."""
         pio.templates.default = default
         pio.templates["plotly_white"].layout.font = {"family": font_family}
         pio.templates["plotly_white"].layout.font = {"color": font_color}
@@ -611,6 +616,30 @@ class PoniardBaseEstimator(object):
         show_means: bool = True,
         **kwargs,
     ) -> Figure:
+        """Plot metrics.
+
+        Parameters
+        ----------
+        kind :
+            Either "strip" or "bar". Default "strip".
+        facet :
+            Either "col" or "row". Default "col".
+        metrics :
+            String representing one or more metrics. This must follow the names passed to the
+            Poniard constructor. For example, if during init a dict of metrics was passed, its
+            keys can be passed here. Default None, which plots every estimator metric available.
+        only_test :
+            Whether to plot only test scores. Default True.
+        exclude_dummy :
+            Whether to exclude dummy estimators. Default True.
+        show_means :
+            Whether to plot means along with fold scores. Default True.
+
+        Returns
+        -------
+        Figure
+            Plotly strip or bar plot.
+        """
         results = self._long_results
         results = results.loc[~results["Metric"].isin(["fit_time", "score_time"])]
         if only_test:
@@ -672,6 +701,20 @@ class PoniardBaseEstimator(object):
         return fig
 
     def plot_overfitness(self, metric: Optional[str] = None) -> Figure:
+        """Plot the ratio of test scores to train scores for every estimator.
+
+        Parameters
+        ----------
+        metric :
+            String representing a metric. This must follow the names passed to the
+            Poniard constructor. For example, if during init a dict of metrics was passed, one of
+            its keys can be passed here. Default None, which plots the first metric.
+
+        Returns
+        -------
+        Figure
+            Plotly strip plot.
+        """
         if not metric:
             metric = self._first_scorer(sklearn_scorer=False)
         results = self._long_results
@@ -793,7 +836,7 @@ class PoniardBaseEstimator(object):
 
     def get_estimator(
         self, name: str, include_preprocessor: bool = True, retrain: bool = False
-    ) -> ClassifierMixin:
+    ) -> Union[Pipeline, ClassifierMixin, RegressorMixin]:
         """Obtain an estimator in :attr:`estimators_` by name. This is useful for extracting default
         estimators or hyperparmeter-optimized estimators (after using :meth:`tune_estimator`).
 
@@ -830,7 +873,7 @@ class PoniardBaseEstimator(object):
         add_to_estimators: bool = False,
         name: Optional[str] = None,
         **kwargs,
-    ) -> Union[ClassifierMixin, RegressorMixin]:
+    ) -> Union[ClassifierMixin, RegressorMixin, Pipeline]:
         """Combine estimators into an ensemble.
 
         By default, orders estimators according to the first metric.
