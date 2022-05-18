@@ -1,10 +1,9 @@
 from typing import List, Optional, Union, Callable, Dict, Any, Sequence
 
-import pandas as pd
 import numpy as np
 from sklearn.base import ClassifierMixin, TransformerMixin
 from sklearn.pipeline import Pipeline
-from sklearn.model_selection._split import (
+from sklearn.model_selection import (
     BaseCrossValidator,
     BaseShuffleSplit,
     StratifiedKFold,
@@ -36,7 +35,9 @@ class PoniardClassifier(PoniardBaseEstimator):
     estimators :
         Estimators to evaluate.
     metrics :
-        Metrics to compute for each estimator.
+        Metrics to compute for each estimator. This is more restrictive than sklearn's scoring
+        parameter, as it does not allow callable scorers. Single strings are cast to lists
+        automatically.
     preprocess : bool, optional
         If True, impute missing values, standard scale numeric data and one-hot or ordinal
         encode categorical data.
@@ -80,7 +81,7 @@ class PoniardClassifier(PoniardBaseEstimator):
         estimators: Optional[
             Union[Dict[str, ClassifierMixin], List[ClassifierMixin]]
         ] = None,
-        metrics: Optional[Union[Dict[str, Callable], List[str], Callable]] = None,
+        metrics: Optional[Union[str, Dict[str, Callable], Sequence[str]]] = None,
         preprocess: bool = True,
         scaler: Optional[Union[str, TransformerMixin]] = None,
         numeric_imputer: Optional[Union[str, TransformerMixin]] = None,

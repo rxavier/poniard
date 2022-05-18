@@ -1,10 +1,8 @@
 from typing import List, Optional, Union, Callable, Dict, Any, Sequence
 
-import pandas as pd
-import numpy as np
 from sklearn.base import RegressorMixin, TransformerMixin
 from sklearn.pipeline import Pipeline
-from sklearn.model_selection._split import BaseCrossValidator, BaseShuffleSplit, KFold
+from sklearn.model_selection import BaseCrossValidator, BaseShuffleSplit, KFold
 
 from sklearn.linear_model import LinearRegression, ElasticNet
 from sklearn.svm import LinearSVR
@@ -32,7 +30,9 @@ class PoniardRegressor(PoniardBaseEstimator):
     estimators :
         Estimators to evaluate.
     metrics :
-        Metrics to compute for each estimator.
+        Metrics to compute for each estimator. This is more restrictive than sklearn's scoring
+        parameter, as it does not allow callable scorers. Single strings are cast to lists
+        automatically.
     preprocess : bool, optional
         If True, impute missing values, standard scale numeric data and one-hot or ordinal
         encode categorical data.
@@ -76,7 +76,7 @@ class PoniardRegressor(PoniardBaseEstimator):
         estimators: Optional[
             Union[Dict[str, RegressorMixin], List[RegressorMixin]]
         ] = None,
-        metrics: Optional[Union[Dict[str, Callable], List[str], Callable]] = None,
+        metrics: Optional[Union[str, Dict[str, Callable], Sequence[str]]] = None,
         preprocess: bool = True,
         scaler: Optional[Union[str, TransformerMixin]] = None,
         numeric_imputer: Optional[Union[str, TransformerMixin]] = None,

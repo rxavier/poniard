@@ -10,7 +10,7 @@ import plotly.io as pio
 from plotly.graph_objs._figure import Figure
 from tqdm import tqdm
 from sklearn.base import ClassifierMixin, RegressorMixin, TransformerMixin, clone
-from sklearn.model_selection._split import BaseCrossValidator, BaseShuffleSplit
+from sklearn.model_selection import BaseCrossValidator, BaseShuffleSplit, train_test_split
 from sklearn.preprocessing import (
     StandardScaler,
     MinMaxScaler,
@@ -48,9 +48,12 @@ class PoniardBaseEstimator(object):
     estimators :
         Estimators to evaluate.
     metrics :
-        Metrics to compute for each estimator.
+        Metrics to compute for each estimator. This is more restrictive than sklearn's scoring
+        parameter, as it does not allow callable scorers. Single strings are cast to lists
+        automatically.
     preprocess : bool, optional
-        If True, impute missing values, standard scale numeric data and one-hot or ordinal encode categorical data.
+        If True, impute missing values, standard scale numeric data and one-hot or ordinal
+        encode categorical data.
     scaler :
         Numeric scaler method. Either "standard", "minmax", "robust" or scikit-learn Transformer.
     numeric_imputer :
@@ -98,7 +101,7 @@ class PoniardBaseEstimator(object):
                 Dict[str, RegressorMixin],
             ]
         ] = None,
-        metrics: Optional[Union[Dict[str, Callable], List[str], Callable]] = None,
+        metrics: Optional[Union[str, Dict[str, Callable], List[str]]] = None,
         preprocess: bool = True,
         scaler: Optional[Union[str, TransformerMixin]] = None,
         numeric_imputer: Optional[Union[str, TransformerMixin]] = None,
@@ -111,6 +114,13 @@ class PoniardBaseEstimator(object):
         n_jobs: Optional[int] = None,
         plugins: Optional[List[Any]] = None,
     ):
+        # TODO: Ugly check that metrics conforms to expected types. Should improve.
+        if (metrics and
+            ((isinstance(metrics, (List, Tuple)) and not all(isinstance(m, str) for m in metrics)) or
+             (isinstance(metrics, Dict) and not all(isinstance(m, str) for m in metrics.values())
+             and not all(isinstance(m, Callable) for m in metrics.values())))):
+            raise ValueError("metrics can only be a string, a sequence of strings, a dict with "
+                             "strings as keys and callables as values, or None.")
         self.metrics = metrics
         self.preprocess = preprocess
         self.scaler = scaler or "standard"
@@ -240,9 +250,10 @@ class PoniardBaseEstimator(object):
         self.y = y
 
         if self.metrics:
-            self.metrics_ = self.metrics
+            self.metrics_ = self.metrics if not isinstance(self.metrics, str) else [self.metrics]
         else:
-            self.metrics_ = self._build_metrics(y)
+            self.metrics_ = self._build_metrics()
+        print(f"Main metric: {self._first_scorer(sklearn_scorer=False)}")
 
         if self.preprocess:
             if self.custom_preprocessor:
@@ -661,10 +672,7 @@ class PoniardBaseEstimator(object):
 
     def plot_overfitness(self, metric: Optional[str] = None) -> Figure:
         if not metric:
-            if isinstance(self.metrics_, dict):
-                metric = list(self.metrics_)[0]
-            else:
-                metric = self.metrics_[0]
+            metric = self._first_scorer(sklearn_scorer=False)
         results = self._long_results
         results = results.loc[
             (results["Type"] == "Mean") & (results["Metric"].str.contains(metric))
@@ -989,12 +997,7 @@ class PoniardBaseEstimator(object):
         else:
             estimator = Pipeline([(estimator_name, estimator)])
 
-        if isinstance(self.metrics_, dict):
-            scoring = list(self.metrics_.values())[0]
-        elif isinstance(self.metrics_, (list, tuple, set)):
-            scoring = self.metrics_[0]
-        else:
-            scoring = self.metrics_
+        scoring = self._first_scorer(sklearn_scorer=True)
         if mode == "random":
             search = RandomizedSearchCV(
                 estimator,
@@ -1043,3 +1046,15 @@ class PoniardBaseEstimator(object):
             if attr in estimator.__dict__:
                 setattr(estimator, attr, value)
         return
+
+    def _first_scorer(self, sklearn_scorer: bool) -> Union[str, Callable]:
+        """Helper method to get the first scoring function or name."""
+        if isinstance(self.metrics_, (List, Tuple)):
+            return self.metrics_[0]
+        elif isinstance(self.metrics_, dict):
+            if sklearn_scorer:
+                return list(self.metrics_.values())[0]
+            else:
+                return list(self.metrics_.keys())[0]
+        else:
+            raise ValueError("self.metrics_ can only be a sequence of str or dict of str: callable.")
