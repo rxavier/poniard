@@ -38,7 +38,7 @@ from sklearn.impute import SimpleImputer
 from sklearn.exceptions import UndefinedMetricWarning
 
 from poniard.utils import cramers_v
-from poniard.hyperparameters import GRID
+from poniard.utils import GRID
 
 
 class PoniardBaseEstimator(object):
