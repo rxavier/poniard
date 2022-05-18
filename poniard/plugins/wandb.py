@@ -1,4 +1,4 @@
-from typing import Optional, Iterable
+from typing import Optional
 from pathlib import Path
 
 import wandb
@@ -7,7 +7,6 @@ import pandas as pd
 import numpy as np
 from plotly.graph_objs._figure import Figure
 from sklearn.base import BaseEstimator
-from sklearn.model_selection import train_test_split
 from sklearn.utils.validation import check_is_fitted
 from sklearn.exceptions import NotFittedError
 from sklearn.pipeline import Pipeline
@@ -33,7 +32,8 @@ class WandBPlugin(BasePlugin):
         self.entity = entity
         wandb.init(project=project, entity=entity, **kwargs)
 
-    def build_config(self):
+    def build_config(self) -> dict:
+        """Helper method that builds a config dict from the poniard instance."""
         return {
             "estimators": self.poniard_instance.estimators_,
             "metrics": self.poniard_instance.metrics_,
@@ -50,7 +50,8 @@ class WandBPlugin(BasePlugin):
             "random_state": self.poniard_instance.random_state,
         }
 
-    def on_setup_end(self):
+    def on_setup_end(self) -> None:
+        """Log config and dataset."""
         config = self.build_config()
         wandb.config.update(config)
 
@@ -68,10 +69,12 @@ class WandBPlugin(BasePlugin):
         return
 
     def on_plot(self, figure: Figure, name: str):
+        """Lot plots."""
         wandb.log({name: figure})
         return
 
     def on_fit_end(self):
+        """Log  results table."""
         results = self.poniard_instance.show_results().reset_index()
         results.rename(columns={"index": "Estimator"}, inplace=True)
         table = wandb.Table(dataframe=results)
@@ -79,6 +82,7 @@ class WandBPlugin(BasePlugin):
         return
 
     def on_get_estimator(self, estimator: BaseEstimator, name: str):
+        """Log fitted estimator on full data and log multiple estimator plots provided by WandB."""
         X, y = self.poniard_instance.X, self.poniard_instance.y
         saved_model_path = Path(wandb.run.dir, f"{name}.joblib")
         # This works fine for sklearn and sklearn-like models only.
@@ -117,6 +121,7 @@ class WandBPlugin(BasePlugin):
         return
 
     def on_remove_estimators(self):
+        """Log config and results table."""
         self.on_fit_end()
         config = self.build_config()
         wandb.config.update(config)
