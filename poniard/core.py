@@ -1047,7 +1047,6 @@ class PoniardBaseEstimator(object):
     def tune_estimator(
         self,
         estimator_name: str,
-        include_preprocessor: bool = True,
         grid: Optional[Dict] = None,
         mode: str = "grid",
         add_to_estimators: bool = False,
@@ -1059,8 +1058,6 @@ class PoniardBaseEstimator(object):
         ----------
         estimator_name :
             Estimator to tune.
-        include_preprocessor :
-            Whether to include :attr:`preprocessor_`. Default True.
         grid :
             Hyperparameter grid. Default None, which uses the grids available for default
             estimators.
@@ -1082,7 +1079,7 @@ class PoniardBaseEstimator(object):
             If no grid is defined and the estimator is not a default one.
         """
         X, y = self.X, self.y
-        estimator = self.estimators_[estimator_name]
+        estimator = clone(self._experiment_results[estimator_name][0])
         if not grid:
             try:
                 grid = GRID[estimator_name]
@@ -1092,13 +1089,6 @@ class PoniardBaseEstimator(object):
                     f"Estimator {estimator_name} has no predefined hyperparameter grid, so it has to be supplied."
                 )
         self._pass_instance_attrs(estimator)
-
-        if include_preprocessor:
-            estimator = Pipeline(
-                [("preprocessor", self.preprocessor_), (estimator_name, estimator)]
-            )
-        else:
-            estimator = Pipeline([(estimator_name, estimator)])
 
         scoring = self._first_scorer(sklearn_scorer=True)
         if mode == "random":
@@ -1144,7 +1134,6 @@ class PoniardBaseEstimator(object):
     def get_permutation_importances(
         self,
         estimator_name: str,
-        include_preprocessor: bool = True,
         n_repeats: int = 10,
         std: bool = False,
         **kwargs,
@@ -1157,8 +1146,6 @@ class PoniardBaseEstimator(object):
         ----------
         estimator_name :
             Estimator to tune.
-        include_preprocessor :
-            Whether to include :attr:`preprocessor_`. Default True.
         n_repeats :
             How many times to repeat random permutations of a single feature. Default 10.
         std : bool, optional
@@ -1169,14 +1156,7 @@ class PoniardBaseEstimator(object):
         Union[pd.DataFrame, Tuple[pd.DataFrame, pd.DataFrame]]
             Permutation importances mean, optionally also standard deviations.
         """
-        estimator = self.estimators_[estimator_name]
-        self._pass_instance_attrs(estimator)
-        if include_preprocessor:
-            estimator = Pipeline(
-                [("preprocessor", self.preprocessor_), (estimator_name, estimator)]
-            )
-        else:
-            estimator = Pipeline([(estimator_name, estimator)])
+        estimator = clone(self._experiment_results[estimator_name][0])
         scoring = self._first_scorer(sklearn_scorer=True)
 
         X_train, X_test, y_train, y_test = self._train_test_split_from_cv()
