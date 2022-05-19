@@ -10,7 +10,11 @@ import plotly.io as pio
 from plotly.graph_objs._figure import Figure
 from tqdm import tqdm
 from sklearn.base import ClassifierMixin, RegressorMixin, TransformerMixin, clone
-from sklearn.model_selection import BaseCrossValidator, BaseShuffleSplit, train_test_split
+from sklearn.model_selection import (
+    BaseCrossValidator,
+    BaseShuffleSplit,
+    train_test_split,
+)
 from sklearn.inspection import permutation_importance
 from sklearn.preprocessing import (
     StandardScaler,
@@ -116,12 +120,21 @@ class PoniardBaseEstimator(object):
         plugins: Optional[List[Any]] = None,
     ):
         # TODO: Ugly check that metrics conforms to expected types. Should improve.
-        if (metrics and
-            ((isinstance(metrics, (List, Tuple)) and not all(isinstance(m, str) for m in metrics)) or
-             (isinstance(metrics, Dict) and not all(isinstance(m, str) for m in metrics.values())
-             and not all(isinstance(m, Callable) for m in metrics.values())))):
-            raise ValueError("metrics can only be a string, a sequence of strings, a dict with "
-                             "strings as keys and callables as values, or None.")
+        if metrics and (
+            (
+                isinstance(metrics, (List, Tuple))
+                and not all(isinstance(m, str) for m in metrics)
+            )
+            or (
+                isinstance(metrics, Dict)
+                and not all(isinstance(m, str) for m in metrics.values())
+                and not all(isinstance(m, Callable) for m in metrics.values())
+            )
+        ):
+            raise ValueError(
+                "metrics can only be a string, a sequence of strings, a dict with "
+                "strings as keys and callables as values, or None."
+            )
         self.metrics = metrics
         self.preprocess = preprocess
         self.scaler = scaler or "standard"
@@ -255,7 +268,9 @@ class PoniardBaseEstimator(object):
         self.y = y
 
         if self.metrics:
-            self.metrics_ = self.metrics if not isinstance(self.metrics, str) else [self.metrics]
+            self.metrics_ = (
+                self.metrics if not isinstance(self.metrics, str) else [self.metrics]
+            )
         else:
             self.metrics_ = self._build_metrics()
         print(f"Main metric: {self._first_scorer(sklearn_scorer=False)}")
@@ -736,8 +751,12 @@ class PoniardBaseEstimator(object):
         self._run_plugin_methods("on_plot", figure=fig, name="overfitness_plot")
         return fig
 
-    def plot_permutation_importances(self, estimator_names: Union[str, List[str]], kind: str = "bar",
-                                     facet: str = "col") -> Figure:
+    def plot_permutation_importances(
+        self,
+        estimator_names: Union[str, List[str]],
+        kind: str = "bar",
+        facet: str = "col",
+    ) -> Figure:
         """Plot permutation importances for a list of estimators.
 
         Parameters
@@ -757,8 +776,12 @@ class PoniardBaseEstimator(object):
         """
         if isinstance(estimator_names, str):
             estimator_names = [estimator_names]
-        importances = {estimator: self._experiment_results[estimator]["permutation_importances"]["importances"]
-                       for estimator in estimator_names}
+        importances = {
+            estimator: self._experiment_results[estimator]["permutation_importances"][
+                "importances"
+            ]
+            for estimator in estimator_names
+        }
         importances_arr = []
         for estimator, importance_values in importances.items():
             aux = pd.DataFrame(importance_values, index=self.X.columns)
@@ -767,14 +790,24 @@ class PoniardBaseEstimator(object):
             aux.insert(0, "Estimator", estimator)
             importances_arr.append(aux)
         importances = pd.concat(importances_arr)
-        importances = importances.melt(id_vars=["Estimator", "Feature"], var_name="Type", value_name="Importance")
+        importances = importances.melt(
+            id_vars=["Estimator", "Feature"], var_name="Type", value_name="Importance"
+        )
         importances["Type"] = "Repetition"
-        aggs = importances.groupby(["Estimator", "Feature"])["Importance"].agg(Mean=np.mean, Std=np.std).reset_index()
-        aggs = aggs.melt(id_vars=["Estimator", "Feature"], var_name="Type", value_name="Importance")
+        aggs = (
+            importances.groupby(["Estimator", "Feature"])["Importance"]
+            .agg(Mean=np.mean, Std=np.std)
+            .reset_index()
+        )
+        aggs = aggs.melt(
+            id_vars=["Estimator", "Feature"], var_name="Type", value_name="Importance"
+        )
         importances = pd.concat([importances, aggs])
 
         scoring = self._first_scorer(sklearn_scorer=False)
-        repeats = self._experiment_results[estimator_names[0]]["permutation_importances"]["importances"].shape[1]
+        repeats = self._experiment_results[estimator_names[0]][
+            "permutation_importances"
+        ]["importances"].shape[1]
         title = f"Permutation importances ({scoring}, {repeats} repeats)"
         if kind == "strip":
             if facet == "row":
@@ -784,15 +817,26 @@ class PoniardBaseEstimator(object):
                 facet_row = None
                 facet_col = "Estimator"
             importances = importances.loc[importances["Type"] != "Std"]
-            fig = px.strip(importances, x="Importance", y="Feature", color="Type",
-                           facet_col=facet_col, facet_row=facet_row,
-                           title=title)
+            fig = px.strip(
+                importances,
+                x="Importance",
+                y="Feature",
+                color="Type",
+                facet_col=facet_col,
+                facet_row=facet_row,
+                title=title,
+            )
         else:
-            importances = importances.loc[-importances["Type"].isin(["Repetition", "Std"])]
-            fig = px.bar(importances, x="Importance", y="Feature", color="Estimator",
-                         title=title)
+            importances = importances.loc[
+                -importances["Type"].isin(["Repetition", "Std"])
+            ]
+            fig = px.bar(
+                importances, x="Importance", y="Feature", color="Estimator", title=title
+            )
             fig.update_layout(yaxis={"categoryorder": "total ascending"})
-        self._run_plugin_methods("on_plot", figure=fig, name="permutation_importances_plot")
+        self._run_plugin_methods(
+            "on_plot", figure=fig, name="permutation_importances_plot"
+        )
         return fig
 
     def add_estimators(
@@ -1188,8 +1232,7 @@ class PoniardBaseEstimator(object):
             return means
 
     def _train_test_split_from_cv(self):
-        """Split data in a 80/20 fashion following the cross-validation strategy defined in the constructor.
-        """
+        """Split data in a 80/20 fashion following the cross-validation strategy defined in the constructor."""
         if isinstance(self.cv, (int, Iterable)):
             cv_params_for_split = {}
         else:
@@ -1222,4 +1265,6 @@ class PoniardBaseEstimator(object):
             else:
                 return list(self.metrics_.keys())[0]
         else:
-            raise ValueError("self.metrics_ can only be a sequence of str or dict of str: callable.")
+            raise ValueError(
+                "self.metrics_ can only be a sequence of str or dict of str: callable."
+            )

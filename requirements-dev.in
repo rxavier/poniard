@@ -8,3 +8,4 @@ sphinx-bootstrap-theme
 sphinx-toolbox
 jupyter
 black
+pre-commit

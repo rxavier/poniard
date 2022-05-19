@@ -134,6 +134,7 @@ pywavelets==1.3.0
     # via imagehash
 pyyaml==6.0
     # via
+    #   -c requirements-dev.txt
     #   pandas-profiling
     #   wandb
 requests==2.27.1
