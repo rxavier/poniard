@@ -268,7 +268,7 @@ pytz==2021.3
     #   babel
 #pywin32==304
     # via jupyter-core
-pywinpty==2.0.5
+#pywinpty==2.0.5
     # via terminado
 pyyaml==6.0
     # via pre-commit
