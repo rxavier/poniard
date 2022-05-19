@@ -23,5 +23,6 @@ API documentation
 Or read the API documentation (automatically generated from source code) for the specifics.
 
 .. toctree::
-
-   api.rst
+   estimators.rst
+   plugins.rst
+   utils.rst

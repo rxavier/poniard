@@ -1,4 +1,4 @@
-<p align="center"><img src="https://raw.githubusercontent.com/rxavier/poniard/main/logo.png" alt="Poniard logo" title="Poniard" width="40%"/></p>
+<p align="center"><img src="https://raw.githubusercontent.com/rxavier/poniard/main/logo.png" alt="Poniard logo" title="Poniard" width="50%"/></p>
 
 # Introduction
 > A poniard /ˈpɒnjərd/ or poignard (Fr.) is a long, lightweight thrusting knife ([Wikipedia](https://en.wikipedia.org/wiki/Poignard))
@@ -59,6 +59,7 @@ pnd.show_results()
 | KNeighborsClassifier           |          0.93  |         0.97975 |            0.87 |           0.9275 |         0.837483 |          0.894992 |          0.92 |           0.97 |  0.874865 |   0.930467 | 0.00526905 |    0.262831  |
 | DummyClassifier                |          0.5   |         0.5     |            0.5  |           0.5    |         0        |          0        |          0    |           0    |  0        |   0        | 0.00288043 |    0.0212384 |
 
+Alternatively, you can also get a nice plot of your different metrics by using the `plot_metrics()` method.
 ## Type inference
 Poniard uses some basic heuristics to infer the data types.
 
@@ -71,7 +72,9 @@ For categorical features, high and low cardinality is defined by the `cardinalit
 ## Ensembles
 Poniard makes it easy to combine various estimators in stacking or voting ensembles. The base esimators can be selected according to their performance (top-n) or chosen by their names.
 
-Poniard also reports how similar the predictions of the base estimators are, so ensembles with different base esimators can be built. A basic correlation table of the cross-validated predictions is built for regression tasks, while [Cramer's V](https://en.wikipedia.org/wiki/Cram%C3%A9r%27s_V) is used for classification.
+Poniard also reports how similar the predictions of the estimators are, so ensembles with different base estimators can be built. A basic correlation table of the cross-validated predictions is built for regression tasks, while [Cramér's V](https://en.wikipedia.org/wiki/Cram%C3%A9r%27s_V) is used for classification.
+
+By default, it computes this similarity of prediction errors instead of the actual predictions; this helps in building ensembles with good scoring estimators and uncorrelated errors, which in principle and hopefully should lead to a "wisdom of crowds" kind of situation.
 
 ## Hyperparameter optimization
 The `tune_estimator` method can be used to optimize the hyperparameters of a given estimator, either by passing a grid of parameters or using the inbuilt ones available for default estimators. Optionally, the tuned estimator can be added to the list of estimators and scored, which will add it to results tables.
@@ -102,15 +105,16 @@ pnd.show_results()
 # Design philosophy
 
 ## Not another dependency
-We try very hard to cluttering the environment with stuff you won't use outside of this library. Poniard's dependencies are:
+We try very hard to avoid cluttering the environment with stuff you won't use outside of this library. Poniard's dependencies are:
 
 1. scikit-learn (duh)
 2. pandas
 3. XGBoost
-4. tqdm
-5. That's it!
+4. Plotly
+5. tqdm
+6. That's it!
 
-Apart from `tqdm`, all dependencies most likely were going to be installed anyway, so Poniard's added footprint should be minimal.
+Apart from `tqdm` and possibly `Plotly`, all dependencies most likely were going to be installed anyway, so Poniard's added footprint should be small.
 
 ## We don't do that here (AutoML)
 Poniard tries not to take control away from the user. As such, it is not designed to perform 2 hours of feature engineering and selection, try every model under the sun together with endless ensembles and select the top performing model according to some metric.
