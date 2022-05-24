@@ -155,7 +155,7 @@ class PoniardBaseEstimator(object):
         self._set_plotting_theme()
         self._build_initial_estimators()
         if self.plugins:
-            [setattr(plugin, "poniard_instance", self) for plugin in self.plugins]
+            [setattr(plugin, "poniard", self) for plugin in self.plugins]
 
     def _run_plugin_methods(self, method: str, **kwargs):
         """Helper method to run plugin methods by name."""

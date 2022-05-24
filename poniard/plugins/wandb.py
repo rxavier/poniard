@@ -35,19 +35,19 @@ class WandBPlugin(BasePlugin):
     def build_config(self) -> dict:
         """Helper method that builds a config dict from the poniard instance."""
         return {
-            "estimators": self.poniard_instance.estimators_,
-            "metrics": self.poniard_instance.metrics_,
-            "cv": self.poniard_instance.cv,
-            "preprocess": self.poniard_instance.preprocess,
-            "preprocessor": self.poniard_instance.preprocessor_,
-            "custom_preprocessor": self.poniard_instance.custom_preprocessor,
-            "numeric_imputer": self.poniard_instance.numeric_imputer,
-            "scaler": self.poniard_instance.scaler,
-            "numeric_threshold": self.poniard_instance.numeric_threshold,
-            "cardinality_threshold": self.poniard_instance.cardinality_threshold,
-            "verbosity": self.poniard_instance.verbose,
-            "n_jobs": self.poniard_instance.n_jobs,
-            "random_state": self.poniard_instance.random_state,
+            "estimators": self.poniard.estimators_,
+            "metrics": self.poniard.metrics_,
+            "cv": self.poniard.cv,
+            "preprocess": self.poniard.preprocess,
+            "preprocessor": self.poniard.preprocessor_,
+            "custom_preprocessor": self.poniard.custom_preprocessor,
+            "numeric_imputer": self.poniard.numeric_imputer,
+            "scaler": self.poniard.scaler,
+            "numeric_threshold": self.poniard.numeric_threshold,
+            "cardinality_threshold": self.poniard.cardinality_threshold,
+            "verbosity": self.poniard.verbose,
+            "n_jobs": self.poniard.n_jobs,
+            "random_state": self.poniard.random_state,
         }
 
     def on_setup_end(self) -> None:
@@ -55,7 +55,7 @@ class WandBPlugin(BasePlugin):
         config = self.build_config()
         wandb.config.update(config)
 
-        X, y = self.poniard_instance.X, self.poniard_instance.y
+        X, y = self.poniard.X, self.poniard.y
         try:
             dataset = pd.concat([X, y], axis=1)
         except TypeError:
@@ -75,7 +75,7 @@ class WandBPlugin(BasePlugin):
 
     def on_fit_end(self):
         """Log  results table."""
-        results = self.poniard_instance.show_results().reset_index()
+        results = self.poniard.show_results().reset_index()
         results.rename(columns={"index": "Estimator"}, inplace=True)
         table = wandb.Table(dataframe=results)
         wandb.log({"results": table})
@@ -83,7 +83,7 @@ class WandBPlugin(BasePlugin):
 
     def on_get_estimator(self, estimator: BaseEstimator, name: str):
         """Log fitted estimator on full data and log multiple estimator plots provided by WandB."""
-        X, y = self.poniard_instance.X, self.poniard_instance.y
+        X, y = self.poniard.X, self.poniard.y
         saved_model_path = Path(wandb.run.dir, f"{name}.joblib")
         # This works fine for sklearn and sklearn-like models only.
         try:
@@ -100,10 +100,10 @@ class WandBPlugin(BasePlugin):
             X_test,
             y_train,
             y_test,
-        ) = self.poniard_instance._train_test_split_from_cv()
+        ) = self.poniard._train_test_split_from_cv()
         estimator.fit(X_train, y_train)
         y_pred = estimator.predict(X_test)
-        estimator_type = self.poniard_instance._check_estimator_type()
+        estimator_type = self.poniard._check_estimator_type()
         if estimator_type == "classifier":
             labels = y_test.unique()
             wandb.sklearn.plot_confusion_matrix(y_test, y_pred, labels)
