@@ -157,18 +157,6 @@ class PoniardBaseEstimator(ABC):
         if self.plugins:
             [setattr(plugin, "_poniard", self) for plugin in self.plugins]
 
-    def _run_plugin_methods(self, method: str, **kwargs):
-        """Helper method to run plugin methods by name."""
-        if not self.plugins:
-            return
-        for plugin in self.plugins:
-            method = getattr(plugin, method, None)
-            if callable(method):
-                accepted_kwargs = inspect.getargs(method.__code__).args
-                kwargs = {k: v for k, v in kwargs.items() if k in accepted_kwargs}
-                method(**kwargs)
-        return
-
     def fit(
         self,
         X: Union[pd.DataFrame, np.ndarray, List],
@@ -241,48 +229,6 @@ class PoniardBaseEstimator(ABC):
         self.fit(self.X, self.y)
         return
 
-    def _setup_experiments(
-        self,
-        X: Union[pd.DataFrame, np.ndarray, List],
-        y: Union[pd.DataFrame, np.ndarray, List],
-    ) -> None:
-        """Orchestrator.
-
-        Converts inputs to arrays if necessary, sets :attr:`metrics_`,
-        :attr:`preprocessor_` and :attr:`estimators_`.
-
-        Parameters
-        ----------
-        X :
-            Features.
-        y :
-            Target
-
-        """
-        self._run_plugin_methods("on_setup_start")
-        if not isinstance(X, (pd.DataFrame, pd.Series, np.ndarray)):
-            X = np.array(X)
-        if not isinstance(y, (pd.DataFrame, pd.Series, np.ndarray)):
-            y = np.array(y)
-        self.X = X
-        self.y = y
-
-        if self.metrics:
-            self.metrics_ = (
-                self.metrics if not isinstance(self.metrics, str) else [self.metrics]
-            )
-        else:
-            self.metrics_ = self._build_metrics()
-        print(f"Main metric: {self._first_scorer(sklearn_scorer=False)}")
-
-        if self.preprocess:
-            if self.custom_preprocessor:
-                self.preprocessor_ = self.custom_preprocessor
-            else:
-                self.preprocessor_ = self._build_preprocessor()
-        self._run_plugin_methods("on_setup_end")
-        return
-
     @property
     @abstractmethod
     def _base_estimators(self) -> List[ClassifierMixin]:
@@ -332,6 +278,48 @@ class PoniardBaseEstimator(ABC):
         for estimator in initial_estimators.values():
             self._pass_instance_attrs(estimator)
         self.estimators_ = initial_estimators
+        return
+
+    def _setup_experiments(
+        self,
+        X: Union[pd.DataFrame, np.ndarray, List],
+        y: Union[pd.DataFrame, np.ndarray, List],
+    ) -> None:
+        """Orchestrator.
+
+        Converts inputs to arrays if necessary, sets :attr:`metrics_`,
+        :attr:`preprocessor_` and :attr:`estimators_`.
+
+        Parameters
+        ----------
+        X :
+            Features.
+        y :
+            Target
+
+        """
+        self._run_plugin_methods("on_setup_start")
+        if not isinstance(X, (pd.DataFrame, pd.Series, np.ndarray)):
+            X = np.array(X)
+        if not isinstance(y, (pd.DataFrame, pd.Series, np.ndarray)):
+            y = np.array(y)
+        self.X = X
+        self.y = y
+
+        if self.metrics:
+            self.metrics_ = (
+                self.metrics if not isinstance(self.metrics, str) else [self.metrics]
+            )
+        else:
+            self.metrics_ = self._build_metrics()
+        print(f"Main metric: {self._first_scorer(sklearn_scorer=False)}")
+
+        if self.preprocess:
+            if self.custom_preprocessor:
+                self.preprocessor_ = self.custom_preprocessor
+            else:
+                self.preprocessor_ = self._build_preprocessor()
+        self._run_plugin_methods("on_setup_end")
         return
 
     def _infer_dtypes(self) -> Tuple[List[str], List[str], List[str]]:
@@ -537,19 +525,6 @@ class PoniardBaseEstimator(ABC):
         """Build metrics."""
         return ["accuracy"]
 
-    def _process_results(self) -> None:
-        """Compute mean and standard deviations of  experiment results."""
-        # TODO: This processes every result, even those that were processed
-        # in previous runs (before add_estimators). Should be made more efficient
-        results = pd.DataFrame(self._experiment_results).T.drop(["estimator"], axis=1)
-        means = results.apply(lambda x: np.mean(x.values.tolist(), axis=1))
-        stds = results.apply(lambda x: np.std(x.values.tolist(), axis=1))
-        means = means[list(means.columns[2:]) + ["fit_time", "score_time"]]
-        stds = stds[list(stds.columns[2:]) + ["fit_time", "score_time"]]
-        self._means = means.sort_values(means.columns[0], ascending=False)
-        self._stds = stds.reindex(self._means.index)
-        return
-
     def show_results(
         self,
         std: bool = False,
@@ -582,26 +557,6 @@ class PoniardBaseEstimator(ABC):
             return means, stds
         else:
             return means
-
-    def _process_long_results(self) -> None:
-        """Prepare experiment results for plotting."""
-        base = pd.DataFrame(self._experiment_results).T.drop(["estimator"], axis=1)
-        melted = (
-            base.rename_axis("Model")
-            .reset_index()
-            .melt(id_vars="Model", var_name="Metric", value_name="Score")
-            .explode("Score")
-        )
-        melted["Type"] = "Fold"
-        means = melted.groupby(["Model", "Metric"])["Score"].mean().reset_index()
-        means["Type"] = "Mean"
-        melted = pd.concat([melted, means])
-        melted["Model"] = melted["Model"].str.replace(
-            "Classifier|Regressor", "", regex=True
-        )
-
-        self._long_results = melted
-        return
 
     def add_estimators(
         self, estimators: Union[Dict[str, ClassifierMixin], List[ClassifierMixin]]
@@ -835,23 +790,6 @@ class PoniardBaseEstimator(ABC):
             table = results.corr()
         return table
 
-    def _check_estimator_type(self) -> Optional[str]:
-        """Utility to check whether self is a Poniard regressor or classifier.
-
-        Returns
-        -------
-        Optional[str]
-            "classifier", "regressor" or None
-        """
-        from poniard import PoniardRegressor, PoniardClassifier
-
-        if isinstance(self, PoniardRegressor):
-            return "regressor"
-        elif isinstance(self, PoniardClassifier):
-            return "classifier"
-        else:
-            return None
-
     def tune_estimator(
         self,
         estimator_name: str,
@@ -995,28 +933,37 @@ class PoniardBaseEstimator(ABC):
         else:
             return means
 
-    def _train_test_split_from_cv(self):
-        """Split data in a 80/20 fashion following the cross-validation strategy defined in the constructor."""
-        if isinstance(self.cv, (int, Iterable)):
-            cv_params_for_split = {}
-        else:
-            cv_params_for_split = {
-                k: v
-                for k, v in vars(self.cv).items()
-                if k in ["shuffle", "random_state"]
-            }
-            stratify = self.y if "Stratified" in self.cv.__class__.__name__ else None
-            cv_params_for_split.update({"stratify": stratify})
-        return train_test_split(self.X, self.y, test_size=0.2, **cv_params_for_split)
+    def _process_results(self) -> None:
+        """Compute mean and standard deviations of  experiment results."""
+        # TODO: This processes every result, even those that were processed
+        # in previous runs (before add_estimators). Should be made more efficient
+        results = pd.DataFrame(self._experiment_results).T.drop(["estimator"], axis=1)
+        means = results.apply(lambda x: np.mean(x.values.tolist(), axis=1))
+        stds = results.apply(lambda x: np.std(x.values.tolist(), axis=1))
+        means = means[list(means.columns[2:]) + ["fit_time", "score_time"]]
+        stds = stds[list(stds.columns[2:]) + ["fit_time", "score_time"]]
+        self._means = means.sort_values(means.columns[0], ascending=False)
+        self._stds = stds.reindex(self._means.index)
+        return
 
-    def _pass_instance_attrs(self, estimator: Union[ClassifierMixin, RegressorMixin]):
-        """Helper method to propagate instance attributes to estimators."""
-        for attr, value in zip(
-            ["random_state", "verbose", "verbosity"],
-            [self.random_state, self.verbose, self.verbose],
-        ):
-            if attr in estimator.__dict__:
-                setattr(estimator, attr, value)
+    def _process_long_results(self) -> None:
+        """Prepare experiment results for plotting."""
+        base = pd.DataFrame(self._experiment_results).T.drop(["estimator"], axis=1)
+        melted = (
+            base.rename_axis("Model")
+            .reset_index()
+            .melt(id_vars="Model", var_name="Metric", value_name="Score")
+            .explode("Score")
+        )
+        melted["Type"] = "Fold"
+        means = melted.groupby(["Model", "Metric"])["Score"].mean().reset_index()
+        means["Type"] = "Mean"
+        melted = pd.concat([melted, means])
+        melted["Model"] = melted["Model"].str.replace(
+            "Classifier|Regressor", "", regex=True
+        )
+
+        self._long_results = melted
         return
 
     def _first_scorer(self, sklearn_scorer: bool) -> Union[str, Callable]:
@@ -1032,3 +979,56 @@ class PoniardBaseEstimator(ABC):
             raise ValueError(
                 "self.metrics_ can only be a sequence of str or dict of str: callable."
             )
+
+    def _train_test_split_from_cv(self):
+        """Split data in a 80/20 fashion following the cross-validation strategy defined in the constructor."""
+        if isinstance(self.cv, (int, Iterable)):
+            cv_params_for_split = {}
+        else:
+            cv_params_for_split = {
+                k: v
+                for k, v in vars(self.cv).items()
+                if k in ["shuffle", "random_state"]
+            }
+            stratify = self.y if "Stratified" in self.cv.__class__.__name__ else None
+            cv_params_for_split.update({"stratify": stratify})
+        return train_test_split(self.X, self.y, test_size=0.2, **cv_params_for_split)
+
+    def _check_estimator_type(self) -> Optional[str]:
+        """Utility to check whether self is a Poniard regressor or classifier.
+
+        Returns
+        -------
+        Optional[str]
+            "classifier", "regressor" or None
+        """
+        from poniard import PoniardRegressor, PoniardClassifier
+
+        if isinstance(self, PoniardRegressor):
+            return "regressor"
+        elif isinstance(self, PoniardClassifier):
+            return "classifier"
+        else:
+            return None
+
+    def _pass_instance_attrs(self, estimator: Union[ClassifierMixin, RegressorMixin]):
+        """Helper method to propagate instance attributes to estimators."""
+        for attr, value in zip(
+            ["random_state", "verbose", "verbosity"],
+            [self.random_state, self.verbose, self.verbose],
+        ):
+            if attr in estimator.__dict__:
+                setattr(estimator, attr, value)
+        return
+
+    def _run_plugin_methods(self, method: str, **kwargs):
+        """Helper method to run plugin methods by name."""
+        if not self.plugins:
+            return
+        for plugin in self.plugins:
+            method = getattr(plugin, method, None)
+            if callable(method):
+                accepted_kwargs = inspect.getargs(method.__code__).args
+                kwargs = {k: v for k, v in kwargs.items() if k in accepted_kwargs}
+                method(**kwargs)
+        return
