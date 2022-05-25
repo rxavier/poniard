@@ -302,10 +302,10 @@ class PoniardBaseEstimator(ABC):
 
         """
         if hasattr(self, "estimators_"):
-            return self.estimators_
+            return
 
         if isinstance(self.estimators, dict):
-            return self.estimators
+            initial_estimators = self.estimators.copy()
         elif self.estimators:
             initial_estimators = {
                 estimator.__class__.__name__: estimator for estimator in self.estimators
