@@ -46,7 +46,7 @@ from poniard.utils import cramers_v
 from poniard.utils import GRID
 
 
-class PoniardBaseEstimator(object):
+class PoniardBaseEstimator(ABC):
     """Base estimator that sets up all the functionality for the classifier and regressor.
 
     Parameters
@@ -285,6 +285,7 @@ class PoniardBaseEstimator(object):
         return
 
     @property
+    @abstractmethod
     def _base_estimators(self) -> List[ClassifierMixin]:
         return [
             DummyRegressor(),
@@ -532,7 +533,8 @@ class PoniardBaseEstimator(object):
                 )
         return preprocessor
 
-    def _build_metrics(self) -> Union[Dict[str, Callable], List[str], Callable]:
+    @abstractmethod
+    def _build_metrics(self) -> Union[Dict[str, Callable], List[str]]:
         """Build metrics."""
         return ["accuracy"]
 
