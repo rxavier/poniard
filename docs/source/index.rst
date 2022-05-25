@@ -24,5 +24,6 @@ Or read the API documentation (automatically generated from source code) for the
 
 .. toctree::
    estimators.rst
+   plot.rst
    plugins.rst
    utils.rst

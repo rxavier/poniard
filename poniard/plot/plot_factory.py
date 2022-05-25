@@ -8,7 +8,7 @@ import numpy as np
 from plotly.graph_objs._figure import Figure
 
 if TYPE_CHECKING:
-    from poniard.core import PoniardBaseEstimator
+    from poniard.estimators.core import PoniardBaseEstimator
 
 
 class PoniardPlotFactory:

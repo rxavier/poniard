@@ -20,7 +20,7 @@ from sklearn.ensemble import (
 from xgboost import XGBClassifier
 from sklearn.dummy import DummyClassifier
 
-from poniard.core import PoniardBaseEstimator
+from poniard.estimators.core import PoniardBaseEstimator
 
 
 class PoniardClassifier(PoniardBaseEstimator):

@@ -2,7 +2,7 @@ from typing import Optional, TYPE_CHECKING
 from abc import ABC
 
 if TYPE_CHECKING:
-    from poniard.core import PoniardBaseEstimator
+    from poniard.estimators.core import PoniardBaseEstimator
 
 
 class BasePlugin(ABC):

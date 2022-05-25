@@ -15,7 +15,7 @@ from sklearn.ensemble import (
 from xgboost import XGBRegressor
 from sklearn.dummy import DummyRegressor
 
-from poniard.core import PoniardBaseEstimator
+from poniard.estimators.core import PoniardBaseEstimator
 
 
 class PoniardRegressor(PoniardBaseEstimator):
