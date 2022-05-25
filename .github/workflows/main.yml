@@ -10,10 +10,10 @@ jobs:
     - name: Checkout repo
       uses: actions/checkout@master
 
-    - name: Set up Python 3.7
+    - name: Set up Python 3.8
       uses: actions/setup-python@v2.2.2
       with:
-        python-version: 3.7
+        python-version: 3.8
 
     - name: Install dependencies
       run: |
