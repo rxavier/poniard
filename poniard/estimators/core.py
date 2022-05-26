@@ -84,6 +84,9 @@ class PoniardBaseEstimator(ABC):
         function.
     plugins :
         Plugin instances that run in set moments of setup, fit and plotting.
+    plot_options :
+        :class:poniard.plot.plot_factory.PoniardPlotFactory instance specifying Plotly format
+        options or None, which sets the default factory.
 
     Attributes
     ----------
@@ -117,6 +120,7 @@ class PoniardBaseEstimator(ABC):
         random_state: Optional[int] = None,
         n_jobs: Optional[int] = None,
         plugins: Optional[List[Any]] = None,
+        plot_options: Optional[PoniardPlotFactory] = None,
     ):
         # TODO: Ugly check that metrics conforms to expected types. Should improve.
         if metrics and (
@@ -149,7 +153,7 @@ class PoniardBaseEstimator(ABC):
         self.plugins = (
             plugins if isinstance(plugins, Sequence) or plugins is None else [plugins]
         )
-        self.plot = PoniardPlotFactory()
+        self.plot = plot_options or PoniardPlotFactory()
         self.plot._poniard = self
 
         self._fitted_estimator_ids = []

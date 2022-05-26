@@ -16,6 +16,7 @@ from xgboost import XGBRegressor
 from sklearn.dummy import DummyRegressor
 
 from poniard.estimators.core import PoniardBaseEstimator
+from poniard.plot.plot_factory import PoniardPlotFactory
 
 
 class PoniardRegressor(PoniardBaseEstimator):
@@ -60,6 +61,11 @@ class PoniardRegressor(PoniardBaseEstimator):
     n_jobs :
         Controls parallel processing. -1 uses all cores. Propagated to every scikit-learn
         function and estimator.
+    plugins :
+        Plugin instances that run in set moments of setup, fit and plotting.
+    plot_options :
+        :class:poniard.plot.plot_factory.PoniardPlotFactory instance specifying Plotly format
+        options or None, which sets the default factory.
 
     Attributes
     ----------
@@ -88,6 +94,7 @@ class PoniardRegressor(PoniardBaseEstimator):
         random_state: Optional[int] = None,
         n_jobs: Optional[int] = None,
         plugins: Optional[List[Any]] = None,
+        plot_options: Optional[PoniardPlotFactory] = None,
     ):
         super().__init__(
             estimators=estimators,
@@ -103,6 +110,7 @@ class PoniardRegressor(PoniardBaseEstimator):
             random_state=random_state,
             n_jobs=n_jobs,
             plugins=plugins,
+            plot_options=plot_options,
         )
 
     @property
