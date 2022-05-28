@@ -145,14 +145,22 @@ class PoniardClassifier(PoniardBaseEstimator):
 
     def _build_metrics(self) -> Union[Dict[str, Callable], List[str], Callable]:
         y = self.y
-        if y.ndim > 1 or len(np.unique(y)) > 2:
+        if y.ndim > 1:
             return [
-                # "roc_auc_score",
                 "accuracy",
                 "precision_macro",
                 "recall_macro",
                 "f1_macro",
             ]
+        elif y.ndim == 1 and len(np.unique(y)) > 2:
+            return [
+                "roc_auc_ovr",
+                "accuracy",
+                "precision_macro",
+                "recall_macro",
+                "f1_macro",
+            ]
+
         else:
             return [
                 "roc_auc",
