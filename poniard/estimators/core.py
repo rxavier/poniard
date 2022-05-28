@@ -1030,9 +1030,9 @@ class PoniardBaseEstimator(ABC):
         if not self.plugins:
             return
         for plugin in self.plugins:
-            method = getattr(plugin, method, None)
-            if callable(method):
-                accepted_kwargs = inspect.getargs(method.__code__).args
+            fetched_method = getattr(plugin, method, None)
+            if callable(fetched_method):
+                accepted_kwargs = inspect.getargs(fetched_method.__code__).args
                 kwargs = {k: v for k, v in kwargs.items() if k in accepted_kwargs}
-                method(**kwargs)
+                fetched_method(**kwargs)
         return
