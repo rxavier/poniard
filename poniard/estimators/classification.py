@@ -110,8 +110,7 @@ class PoniardClassifier(PoniardBaseEstimator):
             numeric_threshold=numeric_threshold,
             custom_preprocessor=custom_preprocessor,
             cardinality_threshold=cardinality_threshold,
-            cv=cv
-            or StratifiedKFold(n_splits=5, shuffle=True, random_state=random_state),
+            cv=cv,
             verbose=verbose,
             random_state=random_state,
             n_jobs=n_jobs,
