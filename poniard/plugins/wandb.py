@@ -69,12 +69,12 @@ class WandBPlugin(BasePlugin):
         return
 
     def on_plot(self, figure: Figure, name: str):
-        """Lot plots."""
+        """Log plots."""
         wandb.log({name: figure})
         return
 
     def on_fit_end(self):
-        """Log  results table."""
+        """Log results table."""
         results = self._poniard.show_results().reset_index()
         results.rename(columns={"index": "Estimator"}, inplace=True)
         table = wandb.Table(dataframe=results)
