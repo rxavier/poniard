@@ -3,6 +3,7 @@ import pandas as pd
 import numpy as np
 from sklearn.linear_model import LogisticRegression, LinearRegression
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
+from sklearn.multioutput import MultiOutputClassifier, MultiOutputRegressor
 from sklearn.model_selection import StratifiedKFold, KFold
 from sklearn.metrics import (
     make_scorer,
@@ -10,6 +11,11 @@ from sklearn.metrics import (
     roc_auc_score,
     mean_absolute_percentage_error,
     mean_squared_error,
+)
+from sklearn.datasets import (
+    make_classification,
+    make_multilabel_classification,
+    make_regression,
 )
 
 from poniard import PoniardClassifier, PoniardRegressor
@@ -36,6 +42,12 @@ from poniard import PoniardClassifier, PoniardRegressor
             {"acc": make_scorer(accuracy_score), "roc": make_scorer(roc_auc_score)},
             [LogisticRegression(), RandomForestClassifier()],
             KFold(n_splits=3),
+        ),
+        (
+            np.random.randint(0, 3, (20,)),
+            None,
+            [LogisticRegression(), RandomForestClassifier()],
+            None,
         ),
     ],
 )
@@ -104,3 +116,33 @@ def test_regressor_fit(target, metrics, estimators, cv):
         n_metrics = len(clf.metrics_)
     assert results.isna().sum().sum() == 0
     assert results.shape == (n_estimators, n_metrics * 2 + 2)
+
+
+def test_multilabel_fit():
+    X, y = make_multilabel_classification(n_classes=3, n_labels=3)
+    clf = PoniardClassifier(
+        estimators={
+            "RF": MultiOutputClassifier(RandomForestClassifier()),
+            "LR": MultiOutputClassifier(LogisticRegression()),
+        },
+        random_state=0,
+    )
+    clf.fit(X, y)
+    results = clf.show_results()
+    assert results.isna().sum().sum() == 0
+    assert results.shape == (3, 10)
+
+
+def test_multioutput_fit():
+    X, y = make_regression(n_targets=3)
+    clf = PoniardRegressor(
+        estimators={
+            "RF": MultiOutputRegressor(RandomForestRegressor()),
+            "LR": MultiOutputRegressor(LinearRegression()),
+        },
+        random_state=0,
+    )
+    clf.fit(X, y)
+    results = clf.show_results()
+    assert results.isna().sum().sum() == 0
+    assert results.shape == (3, 10)
