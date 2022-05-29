@@ -744,6 +744,8 @@ class PoniardBaseEstimator(ABC):
         pd.DataFrame
             Similarity.
         """
+        if self.y.ndim > 1:
+            raise ValueError("y must be a 1-dimensional array.")
         X, y = self.X, self.y
         results = {}
         pbar = tqdm(self.estimators_.items())
