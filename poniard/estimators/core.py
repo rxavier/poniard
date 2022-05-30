@@ -564,7 +564,7 @@ class PoniardBaseEstimator(ABC):
 
     def add_estimators(
         self, estimators: Union[Dict[str, ClassifierMixin], List[ClassifierMixin]]
-    ) -> None:
+    ) -> PoniardBaseEstimator:
         """Include new estimator. This is the recommended way of adding an estimator (as opposed
         to modifying :attr:`estimators_` directly), since it also injects random state, n_jobs
         and verbosity.
@@ -574,19 +574,26 @@ class PoniardBaseEstimator(ABC):
         estimators :
             Estimators to add.
 
+        Returns
+        -------
+        PoniardBaseEstimator
+            Self.
+
         """
-        if not isinstance(estimators, Sequence):
+        if not isinstance(estimators, (Sequence, dict)):
             estimators = [estimators]
         if not isinstance(estimators, dict):
             new_estimators = {
                 estimator.__class__.__name__: estimator for estimator in estimators
             }
+        else:
+            new_estimators = estimators
         for new_estimator in new_estimators.values():
             self._pass_instance_attrs(new_estimator)
         self.estimators_.update(new_estimators)
-        return
+        return self
 
-    def remove_estimators(self, names: List[str], drop_results: bool = True) -> None:
+    def remove_estimators(self, names: List[str], drop_results: bool = True) -> PoniardBaseEstimator:
         """Remove estimators. This is the recommended way of removing an estimator (as opposed
         to modifying :attr:`estimators_` directly), since it also removes the associated rows from
         the results tables.
