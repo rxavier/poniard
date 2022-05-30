@@ -31,3 +31,9 @@ class BasePlugin(ABC):
 
     def on_remove_estimators(self):
         pass
+
+    def _check_plugin_used(self, plugin_cls_name: str):
+        if any(x.__class__.__name__ == plugin_cls_name for x in self._poniard.plugins):
+            return True
+        else:
+            return False

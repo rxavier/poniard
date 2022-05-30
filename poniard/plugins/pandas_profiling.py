@@ -1,4 +1,3 @@
-import importlib
 from typing import Union
 from pathlib import Path
 
@@ -61,11 +60,9 @@ class PandasProfilingPlugin(BasePlugin):
         return
 
     def _log_to_wandb_if_available(self):
-        if importlib.util.find_spec("wandb"):
-            import wandb
-            from poniard.plugins import WandBPlugin
+        if self._check_plugin_used("WandBPlugin"):
+            with open(self.html_path) as report:
+                import wandb
 
-            if any(isinstance(x, WandBPlugin) for x in self._poniard.plugins):
-                with open(self.html_path) as report:
-                    wandb.log({"profile_report": wandb.Html(report)})
+                wandb.log({"profile_report": wandb.Html(report)})
         return
