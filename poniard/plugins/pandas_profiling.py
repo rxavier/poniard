@@ -25,7 +25,7 @@ class PandasProfilingPlugin(BasePlugin):
 
     def __init__(
         self,
-        title: str,
+        title: str = "pandas_profiling_report",
         explorative: bool = False,
         minimal: bool = True,
         html_path: Union[str, Path] = None,
