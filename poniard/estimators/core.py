@@ -1,3 +1,4 @@
+from __future__ import annotations
 import warnings
 import itertools
 import inspect
@@ -165,7 +166,7 @@ class PoniardBaseEstimator(ABC):
         self,
         X: Union[pd.DataFrame, np.ndarray, List],
         y: Union[pd.DataFrame, np.ndarray, List],
-    ) -> None:
+    ) -> PoniardBaseEstimator:
         """This is the main Poniard method. It uses scikit-learn's `cross_validate` function to
         score all :attr:`metrics_` for every :attr:`preprocessor_` | :attr:`estimators_`, using
         :attr:`cv` for cross validation.
@@ -178,6 +179,11 @@ class PoniardBaseEstimator(ABC):
             Features.
         y :
             Target.
+
+        Returns
+        -------
+        PoniardBaseEstimator
+            Self.
         """
         self._run_plugin_methods("on_fit_start")
         self._setup_experiments(X, y)
@@ -225,13 +231,13 @@ class PoniardBaseEstimator(ABC):
         self._process_results()
         self._process_long_results()
         self._run_plugin_methods("on_fit_end")
-        return
+        return self
 
-    def fit_new(self):
+    def fit_new(self) -> PoniardBaseEstimator:
         """Helper method for fitting new estimators. Doesn't require features or target as those
         are registered when :meth:`fit` is called for the first time."""
         self.fit(self.X, self.y)
-        return
+        return self
 
     @property
     @abstractmethod
@@ -593,7 +599,9 @@ class PoniardBaseEstimator(ABC):
         self.estimators_.update(new_estimators)
         return self
 
-    def remove_estimators(self, names: List[str], drop_results: bool = True) -> PoniardBaseEstimator:
+    def remove_estimators(
+        self, names: List[str], drop_results: bool = True
+    ) -> PoniardBaseEstimator:
         """Remove estimators. This is the recommended way of removing an estimator (as opposed
         to modifying :attr:`estimators_` directly), since it also removes the associated rows from
         the results tables.
@@ -604,6 +612,11 @@ class PoniardBaseEstimator(ABC):
             Estimators to remove.
         drop_results :
             Whether to remove the results associated with the estimators. Default True.
+
+        Returns
+        -------
+        PoniardBaseEstimator
+            Self.
         """
         self.estimators_ = {k: v for k, v in self.estimators_.items() if k not in names}
         if drop_results:
@@ -613,7 +626,7 @@ class PoniardBaseEstimator(ABC):
                 k: v for k, v in self._experiment_results.items() if k not in names
             }
         self._run_plugin_methods("on_remove_estimators")
-        return
+        return self
 
     def get_estimator(
         self, name: str, include_preprocessor: bool = True, retrain: bool = False
@@ -651,10 +664,9 @@ class PoniardBaseEstimator(ABC):
         top_n: int = 3,
         sort_by: Optional[str] = None,
         include_preprocessor: bool = True,
-        add_to_estimators: bool = False,
         name: Optional[str] = None,
         **kwargs,
-    ) -> Union[ClassifierMixin, RegressorMixin, Pipeline]:
+    ) -> PoniardBaseEstimator:
         """Combine estimators into an ensemble.
 
         By default, orders estimators according to the first metric.
@@ -671,15 +683,13 @@ class PoniardBaseEstimator(ABC):
             Which metric to consider for ordering results. Default None, which uses the first metric.
         include_preprocessor :
             Whether to include preprocessing. Default True.
-        add_to_estimators :
-            Whether to include in :attr:`estimators_`. Default False.
         name :
             Ensemble name when adding to :attr:`estimators_`. Default None.
 
         Returns
         -------
-        Union[ClassifierMixin, RegressorMixin]
-           scikit-learn ensemble
+        PoniardBaseEstimator
+            Self.
 
         Raises
         ------
@@ -722,15 +732,9 @@ class PoniardBaseEstimator(ABC):
                 ensemble = StackingRegressor(
                     estimators=models, verbose=self.verbose, cv=self.cv, **kwargs
                 )
-        if add_to_estimators:
-            name = name or ensemble.__class__.__name__
-            self.add_estimators(new_estimators={name: ensemble})
-        if include_preprocessor:
-            return Pipeline(
-                [("preprocessor", self.preprocessor_), ("ensemble", ensemble)]
-            )
-        else:
-            return ensemble
+        name = name or ensemble.__class__.__name__
+        self.add_estimators(estimators={name: ensemble})
+        return self
 
     def get_predictions_similarity(
         self,
@@ -808,7 +812,6 @@ class PoniardBaseEstimator(ABC):
         estimator_name: str,
         grid: Optional[Dict] = None,
         mode: str = "grid",
-        add_to_estimators: bool = False,
         name: Optional[str] = None,
     ) -> Union[GridSearchCV, RandomizedSearchCV]:
         """Hyperparameter tuning for a single estimator.
@@ -822,15 +825,13 @@ class PoniardBaseEstimator(ABC):
             estimators.
         mode :
             Type of search. Eithe "grid", "halving" or "random". Default "grid".
-        add_to_estimators :
-            Whether to include in :attr:`estimators_`. Default False.
         name :
             Estimator name when adding to :attr:`estimators_`. Default None.
 
         Returns
         -------
-        Union[GridSearchCV, RandomizedSearchCV]
-            scikit-learn search object.
+        PoniardBaseEstimator
+            Self.
 
         Raises
         ------
@@ -838,7 +839,7 @@ class PoniardBaseEstimator(ABC):
             If no grid is defined and the estimator is not a default one.
         """
         X, y = self.X, self.y
-        estimator = clone(self._experiment_results[estimator_name][0])
+        estimator = clone(self._experiment_results[estimator_name]["estimator"][0])
         if not grid:
             try:
                 grid = GRID[estimator_name]
@@ -883,12 +884,11 @@ class PoniardBaseEstimator(ABC):
                 n_jobs=self.n_jobs,
             )
         search.fit(X, y)
-        if add_to_estimators:
-            name = name or f"{estimator_name}_tuned"
-            self.add_estimators(
-                new_estimators={name: clone(search.best_estimator_._final_estimator)}
-            )
-        return search
+        name = name or f"{estimator_name}_tuned"
+        self.add_estimators(
+            estimators={name: clone(search.best_estimator_._final_estimator)}
+        )
+        return self
 
     def get_permutation_importances(
         self,
@@ -915,7 +915,7 @@ class PoniardBaseEstimator(ABC):
         Union[pd.DataFrame, Tuple[pd.DataFrame, pd.DataFrame]]
             Permutation importances mean, optionally also standard deviations.
         """
-        estimator = clone(self._experiment_results[estimator_name][0])
+        estimator = clone(self._experiment_results[estimator_name]["estimator"][0])
         scoring = self._first_scorer(sklearn_scorer=True)
 
         X_train, X_test, y_train, y_test = self._train_test_split_from_cv()
@@ -1045,3 +1045,11 @@ class PoniardBaseEstimator(ABC):
                 kwargs = {k: v for k, v in kwargs.items() if k in accepted_kwargs}
                 fetched_method(**kwargs)
         return
+
+    def __add__(
+        self, estimators: Union[Dict[str, ClassifierMixin], List[ClassifierMixin]]
+    ) -> PoniardBaseEstimator:
+        return self.add_estimators(estimators)
+
+    def __sub__(self, estimator: List[str]) -> PoniardBaseEstimator:
+        return self.remove_estimators(estimator, drop_results=True)
