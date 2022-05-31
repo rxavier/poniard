@@ -1059,10 +1059,46 @@ class PoniardBaseEstimator(ABC):
     def __add__(
         self, estimators: Union[Dict[str, ClassifierMixin], List[ClassifierMixin]]
     ) -> PoniardBaseEstimator:
+        """Add estimators to a Poniard Estimator.
+
+        Parameters
+        ----------
+        estimators :
+            List or dict of estimators to add.
+
+        Returns
+        -------
+        PoniardBaseEstimator
+            Self.
+        """
         return self.add_estimators(estimators)
 
     def __sub__(self, estimator: List[str]) -> PoniardBaseEstimator:
+        """Remove an estimator and its results.
+
+        Parameters
+        ----------
+        estimator :
+            List of estimators names.
+
+        Returns
+        -------
+        PoniardBaseEstimator
+            Self.
+        """
         return self.remove_estimators(estimator, drop_results=True)
 
     def __getitem__(self, estimators: Union[str, List[str]]) -> pd.DataFrame:
+        """Get results by indexing with estimator names.
+
+        Parameters
+        ----------
+        estimators :
+            Estimator name(s) as string or list of strings.
+
+        Returns
+        -------
+        pd.DataFrame
+            Filtered results.
+        """
         return self.show_results().loc[estimators, :]
