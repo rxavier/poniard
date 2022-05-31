@@ -154,13 +154,14 @@ class PoniardBaseEstimator(ABC):
         self.plugins = (
             plugins if isinstance(plugins, Sequence) or plugins is None else [plugins]
         )
-        self.plot = plot_options or PoniardPlotFactory()
-        self.plot._poniard = self
+        self.plot_options = plot_options or PoniardPlotFactory()
 
         self._fitted_estimator_ids = []
         self._build_initial_estimators()
         if self.plugins:
             [setattr(plugin, "_poniard", self) for plugin in self.plugins]
+        self.plot = self.plot_options
+        self.plot._poniard = self
 
     def fit(
         self,
