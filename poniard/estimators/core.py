@@ -1063,3 +1063,6 @@ class PoniardBaseEstimator(ABC):
 
     def __sub__(self, estimator: List[str]) -> PoniardBaseEstimator:
         return self.remove_estimators(estimator, drop_results=True)
+
+    def __getitem__(self, estimators: Union[str, List[str]]) -> pd.DataFrame:
+        return self.show_results().loc[estimators, :]
