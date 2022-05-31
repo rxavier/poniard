@@ -664,7 +664,6 @@ class PoniardBaseEstimator(ABC):
         estimator_names: Optional[List[str]] = None,
         top_n: int = 3,
         sort_by: Optional[str] = None,
-        include_preprocessor: bool = True,
         name: Optional[str] = None,
         **kwargs,
     ) -> PoniardBaseEstimator:
@@ -682,8 +681,6 @@ class PoniardBaseEstimator(ABC):
             How many of the best estimators to include.
         sort_by :
             Which metric to consider for ordering results. Default None, which uses the first metric.
-        include_preprocessor :
-            Whether to include preprocessing. Default True.
         name :
             Ensemble name when adding to :attr:`estimators_`. Default None.
 
