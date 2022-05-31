@@ -1047,6 +1047,15 @@ class PoniardBaseEstimator(ABC):
                 fetched_method(**kwargs)
         return
 
+    def __repr__(self):
+        return f"""{self.__class__.__name__}(estimators={self.estimators}, metrics={self.metrics},
+    preprocess={self.preprocess}, scaler={self.scaler}, numeric_imputer={self.numeric_imputer},
+    custom_preprocessor={self.custom_preprocessor}, numeric_threshold={self.numeric_threshold},
+    cardinality_threshold={self.cardinality_threshold}, cv={self.cv}, verbose={self.verbose},
+    random_state={self.random_state}, n_jobs={self.n_jobs}, plugins={self.plugins},
+    plot_options={self.plot_options})
+            """
+
     def __add__(
         self, estimators: Union[Dict[str, ClassifierMixin], List[ClassifierMixin]]
     ) -> PoniardBaseEstimator:

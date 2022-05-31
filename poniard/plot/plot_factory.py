@@ -21,6 +21,10 @@ class PoniardPlotFactory:
         font_family: str = "Helvetica",
         font_color: str = "#8C8C8C",
     ):
+        self.template = template
+        self.discrete_colors = discrete_colors
+        self.font_family = font_family
+        self.font_color = font_color
         pio.templates.default = template
         pio.templates["plotly_white"].layout.font = {"family": font_family}
         pio.templates["plotly_white"].layout.font = {"color": font_color}
@@ -253,3 +257,9 @@ class PoniardPlotFactory:
             "on_plot", figure=fig, name="permutation_importances_plot"
         )
         return fig
+
+    def __repr__(self):
+        return f"""{self.__class__.__name__}(template={self.template},
+    discrete_colors={self.discrete_colors}, font_family={self.font_family},
+    font_color={self.font_color})
+    """
