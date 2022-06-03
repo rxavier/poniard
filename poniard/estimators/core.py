@@ -619,7 +619,12 @@ class PoniardBaseEstimator(ABC):
         PoniardBaseEstimator
             Self.
         """
-        self.estimators_ = {k: v for k, v in self.estimators_.items() if k not in names}
+        pruned_estimators = {
+            k: v for k, v in self.estimators_.items() if k not in estimator_names
+        }
+        if len(pruned_estimators) == 0:
+            raise ValueError("Cannot remove all estimators.")
+        self.estimators_ = pruned_estimators
         if drop_results:
             self._means = self._means.loc[~self._means.index.isin(estimator_names)]
             self._stds = self._stds.loc[~self._stds.index.isin(estimator_names)]
