@@ -24,27 +24,27 @@ from poniard import PoniardClassifier, PoniardRegressor
 @pytest.mark.parametrize(
     "target,metrics,estimators,cv",
     [
-        (np.random.randint(0, 2, (20,)), None, None, None),
+        (np.array([0, 0, 0, 1, 1, 1, 0, 0, 1, 1, 0, 1]), None, None, None),
         (
-            pd.Series(np.random.randint(0, 2, (20,))),
+            pd.Series(np.array([0, 0, 0, 1, 1, 1, 0, 0, 1, 1, 0, 1])),
             "accuracy",
             [LogisticRegression()],
             5,
         ),
         (
-            np.random.randint(0, 2, (20,)).tolist(),
+            np.array([0, 0, 0, 1, 1, 1, 0, 0, 1, 1, 0, 1]).tolist(),
             ["accuracy", "roc_auc"],
             {"logreg": LogisticRegression(), "rf": RandomForestClassifier()},
             StratifiedKFold(n_splits=2),
         ),
         (
-            np.random.randint(0, 2, (20,)),
+            np.array([0, 0, 0, 1, 1, 1, 0, 0, 1, 1, 0, 1]),
             {"acc": make_scorer(accuracy_score), "roc": make_scorer(roc_auc_score)},
             [LogisticRegression(), RandomForestClassifier()],
             KFold(n_splits=3),
         ),
         (
-            np.random.randint(0, 3, (20,)),
+            np.array([0, 0, 2, 2, 1, 1, 0, 0, 0, 2, 2, 2, 1, 1, 1]),
             None,
             [LogisticRegression(), RandomForestClassifier()],
             None,
@@ -52,7 +52,7 @@ from poniard import PoniardClassifier, PoniardRegressor
     ],
 )
 def test_classifier_fit(target, metrics, estimators, cv):
-    features = pd.DataFrame(np.random.normal(size=(20, 5)))
+    features = pd.DataFrame(np.random.normal(size=(len(target), 5)))
     clf = PoniardClassifier(
         estimators=estimators, cv=cv, metrics=metrics, random_state=0
     )
