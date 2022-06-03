@@ -1,3 +1,4 @@
 -c requirements-dev.txt
 wandb
 pandas-profiling
+Pillow>=9.1.1
