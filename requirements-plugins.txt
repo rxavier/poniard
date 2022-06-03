@@ -21,11 +21,6 @@ click==8.1.3
     # via
     #   -c requirements-dev.txt
     #   wandb
-colorama==0.4.4
-    # via
-    #   -c requirements-dev.txt
-    #   click
-    #   tqdm
 cycler==0.11.0
     # via matplotlib
 docker-pycreds==0.4.0
@@ -81,6 +76,7 @@ numpy==1.21.5
     #   pandas
     #   pandas-profiling
     #   phik
+    #   pywavelets
     #   scipy
     #   seaborn
     #   visions
