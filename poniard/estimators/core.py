@@ -601,7 +601,7 @@ class PoniardBaseEstimator(ABC):
         return self
 
     def remove_estimators(
-        self, names: List[str], drop_results: bool = True
+        self, estimator_names: List[str], drop_results: bool = True
     ) -> PoniardBaseEstimator:
         """Remove estimators. This is the recommended way of removing an estimator (as opposed
         to modifying :attr:`estimators_` directly), since it also removes the associated rows from
@@ -609,7 +609,7 @@ class PoniardBaseEstimator(ABC):
 
         Parameters
         ----------
-        names :
+        estimator_names :
             Estimators to remove.
         drop_results :
             Whether to remove the results associated with the estimators. Default True.
@@ -621,23 +621,28 @@ class PoniardBaseEstimator(ABC):
         """
         self.estimators_ = {k: v for k, v in self.estimators_.items() if k not in names}
         if drop_results:
-            self._means = self._means.loc[~self._means.index.isin(names)]
-            self._stds = self._stds.loc[~self._stds.index.isin(names)]
+            self._means = self._means.loc[~self._means.index.isin(estimator_names)]
+            self._stds = self._stds.loc[~self._stds.index.isin(estimator_names)]
             self._experiment_results = {
-                k: v for k, v in self._experiment_results.items() if k not in names
+                k: v
+                for k, v in self._experiment_results.items()
+                if k not in estimator_names
             }
         self._run_plugin_methods("on_remove_estimators")
         return self
 
     def get_estimator(
-        self, name: str, include_preprocessor: bool = True, retrain: bool = False
+        self,
+        estimator_name: str,
+        include_preprocessor: bool = True,
+        retrain: bool = False,
     ) -> Union[Pipeline, ClassifierMixin, RegressorMixin]:
         """Obtain an estimator in :attr:`estimators_` by name. This is useful for extracting default
         estimators or hyperparmeter-optimized estimators (after using :meth:`tune_estimator`).
 
         Parameters
         ----------
-        name :
+        estimator_name :
             Estimator name.
         include_preprocessor :
             Whether to return a pipeline with a preprocessor or just the estimator. Default True.
@@ -649,13 +654,15 @@ class PoniardBaseEstimator(ABC):
         ClassifierMixin
             Estimator.
         """
-        model = self._experiment_results[name]["estimator"][0]
+        model = self._experiment_results[estimator_name]["estimator"][0]
         if not include_preprocessor:
             model = model._final_estimator
         model = clone(model)
         if retrain:
             model.fit(self.X, self.y)
-        self._run_plugin_methods("on_get_estimator", estimator=model, name=name)
+        self._run_plugin_methods(
+            "on_get_estimator", estimator=model, name=estimator_name
+        )
         return model
 
     def build_ensemble(
@@ -664,7 +671,7 @@ class PoniardBaseEstimator(ABC):
         estimator_names: Optional[List[str]] = None,
         top_n: int = 3,
         sort_by: Optional[str] = None,
-        name: Optional[str] = None,
+        ensemble_name: Optional[str] = None,
         **kwargs,
     ) -> PoniardBaseEstimator:
         """Combine estimators into an ensemble.
@@ -681,7 +688,7 @@ class PoniardBaseEstimator(ABC):
             How many of the best estimators to include.
         sort_by :
             Which metric to consider for ordering results. Default None, which uses the first metric.
-        name :
+        ensemble_name :
             Ensemble name when adding to :attr:`estimators_`. Default None.
 
         Returns
@@ -730,8 +737,8 @@ class PoniardBaseEstimator(ABC):
                 ensemble = StackingRegressor(
                     estimators=models, verbose=self.verbose, cv=self.cv, **kwargs
                 )
-        name = name or ensemble.__class__.__name__
-        self.add_estimators(estimators={name: ensemble})
+        ensemble_name = ensemble_name or ensemble.__class__.__name__
+        self.add_estimators(estimators={ensemble_name: ensemble})
         return self
 
     def get_predictions_similarity(
@@ -810,7 +817,7 @@ class PoniardBaseEstimator(ABC):
         estimator_name: str,
         grid: Optional[Dict] = None,
         mode: str = "grid",
-        name: Optional[str] = None,
+        tuned_estimator_name: Optional[str] = None,
     ) -> Union[GridSearchCV, RandomizedSearchCV]:
         """Hyperparameter tuning for a single estimator.
 
@@ -823,7 +830,7 @@ class PoniardBaseEstimator(ABC):
             estimators.
         mode :
             Type of search. Eithe "grid", "halving" or "random". Default "grid".
-        name :
+        tuned_estimator_name :
             Estimator name when adding to :attr:`estimators_`. Default None.
 
         Returns
@@ -882,9 +889,11 @@ class PoniardBaseEstimator(ABC):
                 n_jobs=self.n_jobs,
             )
         search.fit(X, y)
-        name = name or f"{estimator_name}_tuned"
+        tuned_estimator_name = tuned_estimator_name or f"{estimator_name}_tuned"
         self.add_estimators(
-            estimators={name: clone(search.best_estimator_._final_estimator)}
+            estimators={
+                tuned_estimator_name: clone(search.best_estimator_._final_estimator)
+            }
         )
         return self
 
@@ -1070,7 +1079,7 @@ class PoniardBaseEstimator(ABC):
         """
         return self.add_estimators(estimators)
 
-    def __sub__(self, estimator: List[str]) -> PoniardBaseEstimator:
+    def __sub__(self, estimator_names: List[str]) -> PoniardBaseEstimator:
         """Remove an estimator and its results.
 
         Parameters
@@ -1083,7 +1092,7 @@ class PoniardBaseEstimator(ABC):
         PoniardBaseEstimator
             Self.
         """
-        return self.remove_estimators(estimator, drop_results=True)
+        return self.remove_estimators(estimator_names, drop_results=True)
 
     def __getitem__(self, estimators: Union[str, List[str]]) -> pd.DataFrame:
         """Get results by indexing with estimator names.
