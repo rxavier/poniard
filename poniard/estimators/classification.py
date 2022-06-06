@@ -6,7 +6,6 @@ from sklearn.pipeline import Pipeline
 from sklearn.model_selection import (
     BaseCrossValidator,
     BaseShuffleSplit,
-    StratifiedKFold,
 )
 from sklearn.linear_model import LogisticRegression
 from sklearn.naive_bayes import GaussianNB
