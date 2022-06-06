@@ -625,7 +625,7 @@ class PoniardBaseEstimator(ABC):
         if len(pruned_estimators) == 0:
             raise ValueError("Cannot remove all estimators.")
         self.estimators_ = pruned_estimators
-        if drop_results:
+        if drop_results and hasattr(self, "_means"):
             self._means = self._means.loc[~self._means.index.isin(estimator_names)]
             self._stds = self._stds.loc[~self._stds.index.isin(estimator_names)]
             self._experiment_results = {
