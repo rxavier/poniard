@@ -4,8 +4,6 @@
 #
 #    pip-compile setup.py
 #
-colorama==0.4.4
-    # via tqdm
 joblib==1.1.0
     # via scikit-learn
 numpy==1.21.5
