@@ -1,7 +1,7 @@
 <p align="center"><img src="https://raw.githubusercontent.com/rxavier/poniard/main/logo.png" alt="Poniard logo" title="Poniard" width="50%"/></p>
 
 # Introduction
-> A poniard /ˈpɒnjərd/ or poignard (Fr.) is a long, lightweight thrusting knife ([Wikipedia](https://en.wikipedia.org/wiki/Poignard))
+> A poniard /ˈpɒnjərd/ or poignard (Fr.) is a long, lightweight thrusting knife ([Wikipedia](https://en.wikipedia.org/wiki/Poignard)).
 
 Poniard is a scikit-learn companion library that streamlines the process of fitting different machine learning models and comparing them. It is meant to measure how "challenging" a problem/dataset is, which types of models work well for the task, and help decide which algorithm to choose.
 
@@ -61,7 +61,7 @@ pnd.show_results()
 | KNeighborsClassifier           |          0.93  |         0.97975 |            0.87 |           0.9275 |         0.837483 |          0.894992 |          0.92 |           0.97 |  0.874865 |   0.930467 | 0.00526905 |    0.262831  |
 | DummyClassifier                |          0.5   |         0.5     |            0.5  |           0.5    |         0        |          0        |          0    |           0    |  0        |   0        | 0.00288043 |    0.0212384 |
 
-Alternatively, you can also get a nice plot of your different metrics by using the `plot_metrics()` method.
+Alternatively, you can also get a nice plot of your different metrics by using the `estimator.plot.metrics()` method.
 ## Type inference
 Poniard uses some basic heuristics to infer the data types.
 
@@ -87,8 +87,8 @@ from poniard import PoniardRegressor
 pnd = PoniardRegressor(random_state=0)
 pnd.fit(x, y)
 pnd.show_results()
-pnd.tune_estimator("RandomForestRegressor", x, y, mode="grid", add_to_estimators=True)
-pnd.fit(x, y) # This will only fit new estimators
+pnd.tune_estimator("RandomForestRegressor", mode="grid", add_to_estimators=True)
+pnd.fit_new() # This will only fit new estimators
 pnd.show_results()
 ```
 |                               |   test_neg_mean_squared_error |   train_neg_mean_squared_error |   test_neg_mean_absolute_percentage_error |   train_neg_mean_absolute_percentage_error |   test_neg_median_absolute_error |   train_neg_median_absolute_error |    test_r2 |   train_r2 |   fit_time |   score_time |
@@ -103,6 +103,20 @@ pnd.show_results()
 | KNeighborsRegressor           |                     -22388.9  |               -16538.6         |                                  -5.35881 |                               -5.40109     |                        -109.728  |                     -86.218       |  0.105827  |   0.374221 | 0.0043016  |   0.127281   |
 | DummyRegressor                |                     -27480.4  |               -26460           |                                  -1.57572 |                               -1.89635     |                        -119.372  |                    -110.842       | -0.0950711 |   0        | 0.00351734 |   0          |
 | DecisionTreeRegressor         |                     -40700.6  |                    0           |                                 -24.6131  |                                0           |                        -151.028  |                       0           | -0.562759  |   1        | 0.0193477  |   0.00560312 |
+
+## Plotting
+The `plot` accessor provides several plotting methods based on the attached Poniard estimator instance. These Plotly plots are based on a default template, but can be modified by passing a different `PoniardPlotFactory` to the Poniard `plot_options` argument.
+
+## Plugin system
+The `plugins` argument in Poniard estimators takes a plugin or list of plugins that subclass `BasePlugin`. These plugins have access to the Poniard estimator instance and hook onto different sections of the process, for example, on setup start, on fit end, on remove estimator, etc.
+
+This makes it easy for third parties to extend Poniard's functionality.
+
+Two plugins are baked into Poniard.
+1. Weights and Biases: logs your data, plots, runs wandb scikit-learn analysis, saves model artifacts, etc.
+2. Pandas Profiling: generates an HTML report of the features and target. If the Weights and Biases plugin is present, also logs this report to the wandb run.
+
+The requirements for these plugins are not included in the base Poniard dependencies, so you can safely ignore them if you don't intend to use them.
 
 # Design philosophy
 
