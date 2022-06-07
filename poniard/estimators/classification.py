@@ -59,9 +59,9 @@ class PoniardClassifier(PoniardBaseEstimator):
         Cross validation strategy. Either an integer, a scikit-learn cross validation object,
         or an iterable.
     verbose :
-        Verbosity level. Propagated to every scikit-learn function and estiamtor.
+        Verbosity level. Propagated to every scikit-learn function and estimator.
     random_state :
-        RNG. Propagated to every scikit-learn function and estiamtor.
+        RNG. Propagated to every scikit-learn function and estimator.
     n_jobs :
         Controls parallel processing. -1 uses all cores. Propagated to every scikit-learn
         function and estimator.
