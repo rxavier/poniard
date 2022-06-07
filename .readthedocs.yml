@@ -22,3 +22,4 @@ python:
   install:
     - requirements: requirements.txt
     - requirements: requirements-dev.txt
+    - requirements: requirements-plugins.txt
