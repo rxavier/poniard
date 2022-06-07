@@ -127,6 +127,9 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# Added
 wandb
 Scripts
 pyvenv.cfg
+.DS_Store
