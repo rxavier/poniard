@@ -57,7 +57,8 @@ class PoniardRegressor(PoniardBaseEstimator):
     verbose :
         Verbosity level. Propagated to every scikit-learn function and estimator.
     random_state :
-        RNG. Propagated to every scikit-learn function and estimator.
+        RNG. Propagated to every scikit-learn function and estimator. The default None sets
+        random_state to 0 so that cross_validate results are comparable.
     n_jobs :
         Controls parallel processing. -1 uses all cores. Propagated to every scikit-learn
         function and estimator.
@@ -75,6 +76,8 @@ class PoniardRegressor(PoniardBaseEstimator):
         Pipeline that preprocesses the data.
     metrics_ :
         Metrics used for scoring estimators during fit and hyperparameter optimization.
+    cv_ :
+        Cross validation strategy.
     """
 
     def __init__(
@@ -140,3 +143,10 @@ class PoniardRegressor(PoniardBaseEstimator):
             "neg_median_absolute_error",
             "r2",
         ]
+
+    def _build_cv(self) -> BaseCrossValidator:
+        cv = self.cv or 5
+        if isinstance(cv, int):
+            return KFold(n_splits=cv, shuffle=True, random_state=self.random_state)
+        else:
+            return cv

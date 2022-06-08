@@ -79,7 +79,8 @@ class PoniardBaseEstimator(ABC):
     verbose :
         Verbosity level. Propagated to every scikit-learn function and estimator.
     random_state :
-        RNG. Propagated to every scikit-learn function and estimator.
+        RNG. Propagated to every scikit-learn function and estimator. The default None sets
+        random_state to 0 so that cross_validate results are comparable.
     n_jobs :
         Controls parallel processing. -1 uses all cores. Propagated to every scikit-learn
         function.
@@ -97,6 +98,8 @@ class PoniardBaseEstimator(ABC):
         Pipeline that preprocesses the data.
     metrics_ :
         Metrics used for scoring estimators during fit and hyperparameter optimization.
+    cv_ :
+        Cross validation strategy.
     """
 
     def __init__(
@@ -148,7 +151,7 @@ class PoniardBaseEstimator(ABC):
         self.cardinality_threshold = cardinality_threshold
         self.cv = cv
         self.verbose = verbose
-        self.random_state = random_state
+        self.random_state = random_state or 0
         self.estimators = estimators
         self.n_jobs = n_jobs
         self.plugins = (
@@ -214,7 +217,7 @@ class PoniardBaseEstimator(ABC):
                     self.X,
                     self.y,
                     scoring=self.metrics_,
-                    cv=self.cv,
+                    cv=self.cv_,
                     return_train_score=True,
                     return_estimator=True,
                     verbose=self.verbose,
@@ -330,6 +333,9 @@ class PoniardBaseEstimator(ABC):
                 self.preprocessor_ = self.custom_preprocessor
             else:
                 self.preprocessor_ = self._build_preprocessor()
+
+        self.cv_ = self._build_cv()
+
         self._run_plugin_methods("on_setup_end")
         return
 
@@ -569,6 +575,10 @@ class PoniardBaseEstimator(ABC):
         else:
             return means
 
+    @abstractmethod
+    def _build_cv(self):
+        return self.cv
+
     def add_estimators(
         self, estimators: Union[Dict[str, ClassifierMixin], List[ClassifierMixin]]
     ) -> PoniardBaseEstimator:
@@ -736,11 +746,11 @@ class PoniardBaseEstimator(ABC):
         else:
             if self._check_estimator_type() == "classifier":
                 ensemble = StackingClassifier(
-                    estimators=models, verbose=self.verbose, cv=self.cv, **kwargs
+                    estimators=models, verbose=self.verbose, cv=self.cv_, **kwargs
                 )
             else:
                 ensemble = StackingRegressor(
-                    estimators=models, verbose=self.verbose, cv=self.cv, **kwargs
+                    estimators=models, verbose=self.verbose, cv=self.cv_, **kwargs
                 )
         ensemble_name = ensemble_name or ensemble.__class__.__name__
         self.add_estimators(estimators={ensemble_name: ensemble})
@@ -782,7 +792,7 @@ class PoniardBaseEstimator(ABC):
                 final_estimator,
                 X,
                 y,
-                cv=self.cv,
+                cv=self.cv_,
                 verbose=self.verbose,
                 n_jobs=self.n_jobs,
             )
@@ -866,7 +876,7 @@ class PoniardBaseEstimator(ABC):
                 estimator,
                 grid,
                 scoring=scoring,
-                cv=self.cv,
+                cv=self.cv_,
                 verbose=self.verbose,
                 n_jobs=self.n_jobs,
                 random_state=self.random_state,
@@ -879,7 +889,7 @@ class PoniardBaseEstimator(ABC):
                 estimator,
                 grid,
                 scoring=scoring,
-                cv=self.cv,
+                cv=self.cv_,
                 verbose=self.verbose,
                 n_jobs=self.n_jobs,
                 random_state=self.random_state,
@@ -889,7 +899,7 @@ class PoniardBaseEstimator(ABC):
                 estimator,
                 grid,
                 scoring=scoring,
-                cv=self.cv,
+                cv=self.cv_,
                 verbose=self.verbose,
                 n_jobs=self.n_jobs,
             )
@@ -1007,15 +1017,15 @@ class PoniardBaseEstimator(ABC):
 
     def _train_test_split_from_cv(self):
         """Split data in a 80/20 fashion following the cross-validation strategy defined in the constructor."""
-        if isinstance(self.cv, (int, Iterable)):
+        if isinstance(self.cv_, (int, Iterable)):
             cv_params_for_split = {}
         else:
             cv_params_for_split = {
                 k: v
-                for k, v in vars(self.cv).items()
+                for k, v in vars(self.cv_).items()
                 if k in ["shuffle", "random_state"]
             }
-            stratify = self.y if "Stratified" in self.cv.__class__.__name__ else None
+            stratify = self.y if "Stratified" in self.cv_.__class__.__name__ else None
             cv_params_for_split.update({"stratify": stratify})
         return train_test_split(self.X, self.y, test_size=0.2, **cv_params_for_split)
 

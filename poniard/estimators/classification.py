@@ -6,6 +6,8 @@ from sklearn.pipeline import Pipeline
 from sklearn.model_selection import (
     BaseCrossValidator,
     BaseShuffleSplit,
+    KFold,
+    StratifiedKFold,
 )
 from sklearn.linear_model import LogisticRegression
 from sklearn.naive_bayes import GaussianNB
@@ -18,6 +20,7 @@ from sklearn.ensemble import (
 )
 from xgboost import XGBClassifier
 from sklearn.dummy import DummyClassifier
+from sklearn.utils.multiclass import type_of_target
 
 from poniard.estimators.core import PoniardBaseEstimator
 from poniard.plot.plot_factory import PoniardPlotFactory
@@ -61,7 +64,8 @@ class PoniardClassifier(PoniardBaseEstimator):
     verbose :
         Verbosity level. Propagated to every scikit-learn function and estimator.
     random_state :
-        RNG. Propagated to every scikit-learn function and estimator.
+        RNG. Propagated to every scikit-learn function and estimator. The default None sets
+        random_state to 0 so that cross_validate results are comparable.
     n_jobs :
         Controls parallel processing. -1 uses all cores. Propagated to every scikit-learn
         function and estimator.
@@ -79,6 +83,8 @@ class PoniardClassifier(PoniardBaseEstimator):
         Pipeline that preprocesses the data.
     metrics_ :
         Metrics used for scoring estimators during fit and hyperparameter optimization.
+    cv_ :
+        Cross validation strategy.
     """
 
     def __init__(
@@ -168,3 +174,17 @@ class PoniardClassifier(PoniardBaseEstimator):
                 "recall",
                 "f1",
             ]
+
+    def _build_cv(self) -> BaseCrossValidator:
+        cv = self.cv or 5
+        if isinstance(cv, int):
+            if (self.y is not None) and (
+                type_of_target(self.y, input_name="y") in ("binary", "multiclass")
+            ):
+                return StratifiedKFold(
+                    n_splits=cv, shuffle=True, random_state=self.random_state
+                )
+            else:
+                return KFold(n_splits=cv, shuffle=True, random_state=self.random_state)
+        else:
+            return cv
