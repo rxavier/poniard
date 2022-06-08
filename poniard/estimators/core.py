@@ -2,11 +2,13 @@ from __future__ import annotations
 import warnings
 import itertools
 import inspect
+from pathlib import Path
 from abc import ABC, abstractmethod
 from typing import List, Optional, Union, Callable, Dict, Tuple, Any, Sequence, Iterable
 
 import pandas as pd
 import numpy as np
+import joblib
 from tqdm import tqdm
 from sklearn.base import ClassifierMixin, RegressorMixin, TransformerMixin, clone
 from sklearn.model_selection import (
@@ -202,8 +204,12 @@ class PoniardBaseEstimator(ABC):
         for i, (name, estimator) in enumerate(pbar):
             pbar.set_description(f"{name}")
             if self.preprocess:
+                self._memory = joblib.Memory(
+                    Path("transformer_cache"), verbose=self.verbose
+                )
                 final_estimator = Pipeline(
-                    [("preprocessor", self.preprocessor_), (name, estimator)]
+                    [("preprocessor", self.preprocessor_), (name, estimator)],
+                    memory=self._memory,
                 )
             else:
                 final_estimator = Pipeline([(name, estimator)])
@@ -784,7 +790,8 @@ class PoniardBaseEstimator(ABC):
             pbar.set_description(f"{name}")
             if self.preprocess:
                 final_estimator = Pipeline(
-                    [("preprocessor", self.preprocessor_), ("estimator", estimator)]
+                    [("preprocessor", self.preprocessor_), (name, estimator)],
+                    memory=self._memory,
                 )
             else:
                 final_estimator = estimator
