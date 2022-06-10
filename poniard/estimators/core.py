@@ -91,6 +91,8 @@ class PoniardBaseEstimator(ABC):
     plot_options :
         :class:poniard.plot.plot_factory.PoniardPlotFactory instance specifying Plotly format
         options or None, which sets the default factory.
+    cache_transformations :
+        Whether to cache transformations and set the `memory` parameter for Pipelines. This can speed up slow transformations as they are not recalculated for each estimator.
 
     Attributes
     ----------
@@ -127,6 +129,7 @@ class PoniardBaseEstimator(ABC):
         n_jobs: Optional[int] = None,
         plugins: Optional[List[Any]] = None,
         plot_options: Optional[PoniardPlotFactory] = None,
+        cache_transformations: bool = False,
     ):
         # TODO: Ugly check that metrics conforms to expected types. Should improve.
         if metrics and (
@@ -168,6 +171,11 @@ class PoniardBaseEstimator(ABC):
         self.plot = self.plot_options
         self.plot._poniard = self
 
+        if cache_transformations:
+            self._memory = joblib.Memory("transformation_cache", verbose=self.verbose)
+        else:
+            self._memory = None
+
     def fit(
         self,
         X: Union[pd.DataFrame, np.ndarray, List],
@@ -204,9 +212,6 @@ class PoniardBaseEstimator(ABC):
         for i, (name, estimator) in enumerate(pbar):
             pbar.set_description(f"{name}")
             if self.preprocess:
-                self._memory = joblib.Memory(
-                    Path("transformer_cache"), verbose=self.verbose
-                )
                 final_estimator = Pipeline(
                     [("preprocessor", self.preprocessor_), (name, estimator)],
                     memory=self._memory,

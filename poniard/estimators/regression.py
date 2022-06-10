@@ -67,6 +67,9 @@ class PoniardRegressor(PoniardBaseEstimator):
     plot_options :
         :class:poniard.plot.plot_factory.PoniardPlotFactory instance specifying Plotly format
         options or None, which sets the default factory.
+    cache_transformations :
+        Whether to cache transformations and set the `memory` parameter for Pipelines. This can
+        speed up slow transformations as they are not recalculated for each estimator.
 
     Attributes
     ----------
@@ -98,6 +101,7 @@ class PoniardRegressor(PoniardBaseEstimator):
         n_jobs: Optional[int] = None,
         plugins: Optional[List[Any]] = None,
         plot_options: Optional[PoniardPlotFactory] = None,
+        cache_transformations: bool = False,
     ):
         super().__init__(
             estimators=estimators,
@@ -114,6 +118,7 @@ class PoniardRegressor(PoniardBaseEstimator):
             n_jobs=n_jobs,
             plugins=plugins,
             plot_options=plot_options,
+            cache_transformations=cache_transformations,
         )
 
     @property
