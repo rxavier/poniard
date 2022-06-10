@@ -263,3 +263,6 @@ class PoniardPlotFactory:
     discrete_colors={self.discrete_colors}, font_family={self.font_family},
     font_color={self.font_color})
     """
+
+    def __str__(self):
+        return f"""{self.__class__.__name__}()"""

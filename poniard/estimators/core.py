@@ -1081,7 +1081,7 @@ class PoniardBaseEstimator(ABC):
     custom_preprocessor={self.custom_preprocessor}, numeric_threshold={self.numeric_threshold},
     cardinality_threshold={self.cardinality_threshold}, cv={self.cv}, verbose={self.verbose},
     random_state={self.random_state}, n_jobs={self.n_jobs}, plugins={self.plugins},
-    plot_options={self.plot_options})
+    plot_options={str(self.plot_options)})
             """
 
     def __add__(
