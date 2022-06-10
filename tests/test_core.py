@@ -146,3 +146,34 @@ def test_multioutput_fit():
     results = clf.show_results()
     assert results.isna().sum().sum() == 0
     assert results.shape == (3, 10)
+
+
+def test_type_inference():
+    x = pd.DataFrame(
+        {
+            "numeric": [1.0] * 10,
+            "low_cardinality_str": ["a"] * 5 + ["b"] * 5,
+            "low_cardinality_int": [1] * 5 + [2] * 5,
+            "high_cardinality_str": [str(x) for x in range(10)],
+            "high_cardinality_int": [x for x in range(10)],
+        }
+    )
+    y = pd.Series([0, 0, 0, 1, 1, 1, 0, 0, 1, 1])
+    clf = PoniardClassifier(
+        estimators=[LogisticRegression()],
+        cv=3,
+        random_state=0,
+        cardinality_threshold=0.3,
+    )
+    clf.fit(x, y)
+    assert all(
+        x in clf._inferred_dtypes["numeric"]
+        for x in ["numeric", "high_cardinality_int"]
+    )
+    assert all(
+        x in clf._inferred_dtypes["categorical_high"] for x in ["high_cardinality_str"]
+    )
+    assert all(
+        x in clf._inferred_dtypes["categorical_low"]
+        for x in ["low_cardinality_str", "low_cardinality_int"]
+    )
