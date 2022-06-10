@@ -690,7 +690,7 @@ class PoniardBaseEstimator(ABC):
         self,
         method: str = "stacking",
         estimator_names: Optional[List[str]] = None,
-        top_n: int = 3,
+        top_n: Optional[int] = 3,
         sort_by: Optional[str] = None,
         ensemble_name: Optional[str] = None,
         **kwargs,
