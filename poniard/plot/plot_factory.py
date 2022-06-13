@@ -195,12 +195,17 @@ class PoniardPlotFactory:
         """
         if isinstance(estimator_names, str):
             estimator_names = [estimator_names]
-        importances = {
-            estimator: self._poniard._experiment_results[estimator][
-                "permutation_importances"
-            ]["importances"]
-            for estimator in estimator_names
-        }
+        try:
+            importances = {
+                estimator: self._poniard._experiment_results[estimator][
+                    "permutation_importances"
+                ]["importances"]
+                for estimator in estimator_names
+            }
+        except KeyError:
+            raise KeyError(
+                "Permutation importances need to be computed for each estimator."
+            )
         importances_arr = []
         for estimator, importance_values in importances.items():
             aux = pd.DataFrame(importance_values, index=self._poniard.X.columns)
