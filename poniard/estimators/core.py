@@ -254,6 +254,68 @@ class PoniardBaseEstimator(ABC):
         self.fit(self.X, self.y)
         return self
 
+    def _predict(self, method: str):
+        """Helper method for predicting targets or target probabilities with cross validation.
+        Accepts predict, predict_proba, predict_log_proba or decision_function."""
+        if not hasattr(self, "cv_"):
+            raise ValueError("fit` must be called before `predict`.")
+        X, y = self.X, self.y
+        results = {}
+        pbar = tqdm(self.estimators_.items())
+        for i, (name, estimator) in enumerate(pbar):
+            pbar.set_description(f"{name}")
+            if self.preprocess:
+                final_estimator = Pipeline(
+                    [("preprocessor", self.preprocessor_), (name, estimator)],
+                    memory=self._memory,
+                )
+            else:
+                final_estimator = estimator
+            try:
+                result = cross_val_predict(
+                    final_estimator,
+                    X,
+                    y,
+                    cv=self.cv_,
+                    method=method,
+                    verbose=self.verbose,
+                    n_jobs=self.n_jobs,
+                )
+            except AttributeError:
+                warnings.warn(
+                    f"{name} does not support `{method}` method. Filling with nan.",
+                    stacklevel=2,
+                )
+                result = np.empty(self.y.shape)
+                result[:] = np.nan
+            self._experiment_results[name][method] = result
+            results.update({name: result})
+            if i == len(pbar) - 1:
+                pbar.set_description("Completed")
+        return results
+
+    def predict(self):
+        """Get cross validated target predictions where each sample belongs to a single test set.
+
+        Returns
+        -------
+        Dict
+            Dict where keys are estimator names and values are numpy arrays of predictions.
+        """
+        return self._predict(method="predict")
+
+    def predict_proba(self):
+        """Get cross validated target probability predictions where each sample belongs to a
+        single test set.
+
+        Returns
+        -------
+        Dict
+            Dict where keys are estimator names and values are numpy arrays of prediction
+            probabilities.
+        """
+        return self._predict(method="predict_proba")
+
     @property
     @abstractmethod
     def _base_estimators(self) -> List[ClassifierMixin]:
@@ -788,34 +850,14 @@ class PoniardBaseEstimator(ABC):
         """
         if self.y.ndim > 1:
             raise ValueError("y must be a 1-dimensional array.")
-        X, y = self.X, self.y
-        results = {}
-        pbar = tqdm(self.estimators_.items())
-        for i, (name, estimator) in enumerate(pbar):
-            pbar.set_description(f"{name}")
-            if self.preprocess:
-                final_estimator = Pipeline(
-                    [("preprocessor", self.preprocessor_), (name, estimator)],
-                    memory=self._memory,
-                )
-            else:
-                final_estimator = estimator
-            result = cross_val_predict(
-                final_estimator,
-                X,
-                y,
-                cv=self.cv_,
-                verbose=self.verbose,
-                n_jobs=self.n_jobs,
-            )
+        raw_results = self.predict()
+        results = raw_results.copy()
+        for name, result in raw_results.items():
             if on_errors:
                 if self._check_estimator_type() == "regressor":
-                    result = y - result
+                    results[name] = self.y - result
                 else:
-                    result = np.where(result == y, 1, 0)
-            results.update({name: result})
-            if i == len(pbar) - 1:
-                pbar.set_description("Completed")
+                    results[name] = np.where(result == self.y, 1, 0)
         results = pd.DataFrame(results)
         if self._check_estimator_type() == "classifier":
             estimator_names = [x for x in self.estimators_ if x != "DummyClassifier"]
