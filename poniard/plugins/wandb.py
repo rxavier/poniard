@@ -37,7 +37,7 @@ class WandBPlugin(BasePlugin):
         return {
             "estimators": self._poniard.estimators_,
             "metrics": self._poniard.metrics_,
-            "cv": self._poniard.cv,
+            "cv": self._poniard.cv_,
             "preprocess": self._poniard.preprocess,
             "preprocessor": self._poniard.preprocessor_,
             "custom_preprocessor": self._poniard.custom_preprocessor,
