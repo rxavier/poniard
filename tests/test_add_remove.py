@@ -28,7 +28,8 @@ def test_remove_fitted():
     clf = PoniardClassifier()
     y = np.array([0, 0, 0, 1, 1, 1, 0, 0, 1, 1, 0, 1])
     x = pd.DataFrame(np.random.normal(size=(len(y), 5)))
-    clf.fit(x, y)
+    clf.setup(x, y)
+    clf.fit()
     clf.remove_estimators(["RandomForestClassifier"], drop_results=True)
     assert len(clf.estimators_) == len(clf._base_estimators) - 1
     assert clf.show_results().shape[0] == len(clf._base_estimators) - 1
@@ -42,7 +43,8 @@ def test_get(include_preprocessor, output_type):
     clf = PoniardClassifier(estimators=[RandomForestClassifier()])
     y = np.array([0, 0, 0, 1, 1, 1, 0, 0, 1, 1, 0, 1])
     x = pd.DataFrame(np.random.normal(size=(len(y), 5)))
-    clf.fit(x, y)
+    clf.setup(x, y)
+    clf.fit()
     estimator = clf.get_estimator(
         "RandomForestClassifier", include_preprocessor=include_preprocessor
     )

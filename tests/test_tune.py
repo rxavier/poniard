@@ -17,12 +17,13 @@ from poniard import PoniardClassifier
 def test_tune(grid, mode):
     y = np.array([0, 0, 0, 1, 1, 1, 0, 0, 1, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 1, 1])
     x = pd.DataFrame(np.random.normal(size=(len(y), 5)))
-    reg = PoniardClassifier(
+    clf = PoniardClassifier(
         estimators=[LogisticRegression()],
         random_state=True,
     )
-    reg.fit(x, y)
-    reg.tune_estimator("LogisticRegression", grid, mode)
-    reg.fit_new()
-    assert reg.show_results().shape[0] == 3
-    assert reg.show_results().isna().sum().sum() == 0
+    clf.setup(x, y)
+    clf.fit()
+    clf.tune_estimator("LogisticRegression", grid, mode)
+    clf.fit()
+    assert clf.show_results().shape[0] == 3
+    assert clf.show_results().isna().sum().sum() == 0

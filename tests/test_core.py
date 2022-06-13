@@ -13,7 +13,6 @@ from sklearn.metrics import (
     mean_squared_error,
 )
 from sklearn.datasets import (
-    make_classification,
     make_multilabel_classification,
     make_regression,
 )
@@ -56,7 +55,8 @@ def test_classifier_fit(target, metrics, estimators, cv):
     clf = PoniardClassifier(
         estimators=estimators, cv=cv, metrics=metrics, random_state=0
     )
-    clf.fit(features, target)
+    clf.setup(features, target)
+    clf.fit()
     results = clf.show_results()
     if not estimators:
         n_estimators = len(clf._base_estimators)
@@ -104,7 +104,8 @@ def test_regressor_fit(target, metrics, estimators, cv):
     clf = PoniardRegressor(
         estimators=estimators, cv=cv, metrics=metrics, random_state=0
     )
-    clf.fit(features, target)
+    clf.setup(features, target)
+    clf.fit()
     results = clf.show_results()
     if not estimators:
         n_estimators = len(clf._base_estimators)
@@ -127,7 +128,8 @@ def test_multilabel_fit():
         },
         random_state=0,
     )
-    clf.fit(X, y)
+    clf.setup(X, y)
+    clf.fit()
     results = clf.show_results()
     assert results.isna().sum().sum() == 0
     assert results.shape == (3, 10)
@@ -142,7 +144,8 @@ def test_multioutput_fit():
         },
         random_state=0,
     )
-    clf.fit(X, y)
+    clf.setup(X, y)
+    clf.fit()
     results = clf.show_results()
     assert results.isna().sum().sum() == 0
     assert results.shape == (3, 10)
@@ -165,7 +168,8 @@ def test_type_inference():
         random_state=0,
         cardinality_threshold=0.3,
     )
-    clf.fit(x, y)
+    clf.setup(x, y)
+    clf.fit()
     assert all(
         x in clf._inferred_dtypes["numeric"]
         for x in ["numeric", "high_cardinality_int"]

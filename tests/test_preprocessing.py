@@ -83,7 +83,8 @@ def test_preprocessing_classifier(
         random_state=0,
     )
     y = [0, 1, 0, 1, 0]
-    estimator.fit(X, y)
+    estimator.setup(X, y)
+    estimator.fit()
     assert estimator.show_results().isna().sum().sum() == 0
     assert estimator.show_results().shape == (2, 12)
     assert isinstance(

@@ -176,11 +176,7 @@ class PoniardBaseEstimator(ABC):
         else:
             self._memory = None
 
-    def fit(
-        self,
-        X: Union[pd.DataFrame, np.ndarray, List],
-        y: Union[pd.DataFrame, np.ndarray, List],
-    ) -> PoniardBaseEstimator:
+    def fit(self) -> PoniardBaseEstimator:
         """This is the main Poniard method. It uses scikit-learn's `cross_validate` function to
         score all :attr:`metrics_` for every :attr:`preprocessor_` | :attr:`estimators_`, using
         :attr:`cv` for cross validation.
@@ -199,8 +195,9 @@ class PoniardBaseEstimator(ABC):
         PoniardBaseEstimator
             Self.
         """
+        if not hasattr(self, "cv_"):
+            raise ValueError("`setup` must be called before `fit`.")
         self._run_plugin_methods("on_fit_start")
-        self._setup_experiments(X, y)
 
         results = {}
         filtered_estimators = {
@@ -248,17 +245,11 @@ class PoniardBaseEstimator(ABC):
         self._run_plugin_methods("on_fit_end")
         return self
 
-    def fit_new(self) -> PoniardBaseEstimator:
-        """Helper method for fitting new estimators. Doesn't require features or target as those
-        are registered when :meth:`fit` is called for the first time."""
-        self.fit(self.X, self.y)
-        return self
-
     def _predict(self, method: str):
         """Helper method for predicting targets or target probabilities with cross validation.
         Accepts predict, predict_proba, predict_log_proba or decision_function."""
         if not hasattr(self, "cv_"):
-            raise ValueError("fit` must be called before `predict`.")
+            raise ValueError("`setup` must be called before `predict`.")
         X, y = self.X, self.y
         results = {}
         pbar = tqdm(self.estimators_.items())
@@ -288,8 +279,16 @@ class PoniardBaseEstimator(ABC):
                 )
                 result = np.empty(self.y.shape)
                 result[:] = np.nan
-            self._experiment_results[name][method] = result
             results.update({name: result})
+
+            if not hasattr(self, "_experiment_results"):
+                self._experiment_results = {}
+                self._experiment_results.update({name: {method: result}})
+            elif name not in self._experiment_results:
+                self._experiment_results.update({name: {method: result}})
+            else:
+                self._experiment_results[name][method] = result
+
             if i == len(pbar) - 1:
                 pbar.set_description("Completed")
         return results
@@ -367,7 +366,7 @@ class PoniardBaseEstimator(ABC):
         self.estimators_ = initial_estimators
         return
 
-    def _setup_experiments(
+    def setup(
         self,
         X: Union[pd.DataFrame, np.ndarray, List],
         y: Union[pd.DataFrame, np.ndarray, List],
@@ -375,7 +374,7 @@ class PoniardBaseEstimator(ABC):
         """Orchestrator.
 
         Converts inputs to arrays if necessary, sets :attr:`metrics_`,
-        :attr:`preprocessor_` and :attr:`estimators_`.
+        :attr:`preprocessor_`, attr:`cv_` and :attr:`estimators_`.
 
         Parameters
         ----------
