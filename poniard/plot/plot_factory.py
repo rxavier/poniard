@@ -5,6 +5,7 @@ import plotly.io as pio
 import plotly.express as px
 import pandas as pd
 import numpy as np
+from sklearn.metrics import roc_curve, auc
 from plotly.graph_objs._figure import Figure
 
 if TYPE_CHECKING:
@@ -260,6 +261,66 @@ class PoniardPlotFactory:
             fig.update_layout(yaxis={"categoryorder": "total ascending"})
         self._poniard._run_plugin_methods(
             "on_plot", figure=fig, name="permutation_importances_plot"
+        )
+        return fig
+
+    def roc_curve(
+        self, estimator_names: Optional[List[str]] = None, **kwargs
+    ) -> Figure:
+        """Plot ROC curve with cross validated predictions for multiple estimators.
+
+        Parameters
+        ----------
+        estimator_names :
+            Estimators to include. If None, all estimators are used.
+        kwargs :
+            Passed to `sklearn.metrics.roc_curve()`.
+        Returns
+        -------
+        Figure
+            Plotly line plot.
+        """
+        if self._poniard._check_estimator_type() == "regressor":
+            raise ValueError("ROC curve is not available for regressors.")
+        y = self._poniard.y
+        if y.ndim > 1:
+            raise ValueError("ROC curve is only available for binary classification.")
+        results = self._poniard._experiment_results
+        if not estimator_names:
+            estimator_names = list(results.keys())
+        if "DummyClassifier" not in estimator_names:
+            estimator_names.append("DummyClassifier")
+        estimator_metrics = []
+        for name in estimator_names:
+            if name not in results or "predict" not in results[name]:
+                raise KeyError(f"Predictions have not been computed for {name}.")
+            fpr, tpr, _ = roc_curve(y, results[name]["predict"], **kwargs)
+            roc_auc = auc(fpr, tpr)
+            estimator_metrics.append(
+                pd.DataFrame(
+                    {
+                        "Estimator": name,
+                        "False positive rate": fpr,
+                        "True positive rate": tpr,
+                        "AUC": roc_auc,
+                        "Estimator_AUC": f"{name} | AUC: {roc_auc:.2f}",
+                    }
+                )
+            )
+        metrics = pd.concat(estimator_metrics)
+        fig = px.line(
+            metrics,
+            x="False positive rate",
+            y="True positive rate",
+            color="Estimator_AUC",
+            title="ROC curve",
+            hover_data={
+                "Estimator_AUC": False,
+                "Estimator": True,
+                "True positive rate": ":.2f",
+                "False positive rate": ":.2f",
+                "AUC": ":.2f",
+            },
         )
         return fig
 
