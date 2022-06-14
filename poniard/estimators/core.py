@@ -245,7 +245,7 @@ class PoniardBaseEstimator(ABC):
         self._run_plugin_methods("on_fit_end")
         return self
 
-    def _predict(self, method: str):
+    def _predict(self, method: str) -> Dict[str, np.ndarray]:
         """Helper method for predicting targets or target probabilities with cross validation.
         Accepts predict, predict_proba, predict_log_proba or decision_function."""
         if not hasattr(self, "cv_"):
@@ -293,7 +293,7 @@ class PoniardBaseEstimator(ABC):
                 pbar.set_description("Completed")
         return results
 
-    def predict(self):
+    def predict(self) -> Dict[str, np.ndarray]:
         """Get cross validated target predictions where each sample belongs to a single test set.
 
         Returns
@@ -303,7 +303,7 @@ class PoniardBaseEstimator(ABC):
         """
         return self._predict(method="predict")
 
-    def predict_proba(self):
+    def predict_proba(self) -> Dict[str, np.ndarray]:
         """Get cross validated target probability predictions where each sample belongs to a
         single test set.
 
@@ -370,7 +370,7 @@ class PoniardBaseEstimator(ABC):
         self,
         X: Union[pd.DataFrame, np.ndarray, List],
         y: Union[pd.DataFrame, np.ndarray, List],
-    ) -> None:
+    ) -> PoniardBaseEstimator:
         """Orchestrator.
 
         Converts inputs to arrays if necessary, sets :attr:`metrics_`,
@@ -409,7 +409,7 @@ class PoniardBaseEstimator(ABC):
         self.cv_ = self._build_cv()
 
         self._run_plugin_methods("on_setup_end")
-        return
+        return self
 
     def _infer_dtypes(self) -> Tuple[List[str], List[str], List[str]]:
         """Infer feature types (numeric, low-cardinality categorical or high-cardinality
