@@ -315,6 +315,27 @@ class PoniardBaseEstimator(ABC):
         """
         return self._predict(method="predict_proba")
 
+    def decision_function(self) -> Dict[str, np.ndarray]:
+        """Get cross validated decision function predictions where each sample belongs to a
+        single test set.
+
+        Returns
+        -------
+        Dict
+            Dict where keys are estimator names and values are numpy arrays of prediction
+            probabilities.
+        """
+        return self._predict(method="decision_function")
+
+    def predict_all(self) -> Tuple[Dict[str, np.ndarray]]:
+        """Get cross validated target predictions, probabilities and decision functions
+        where each sample belongs to all test sets."""
+        return (
+            self._predict(method="predict"),
+            self._predict(method="predict_proba"),
+            self._predict(method="decision_function"),
+        )
+
     @property
     @abstractmethod
     def _base_estimators(self) -> List[ClassifierMixin]:
