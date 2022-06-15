@@ -245,16 +245,25 @@ class PoniardBaseEstimator(ABC):
         self._run_plugin_methods("on_fit_end")
         return self
 
-    def _predict(self, method: str) -> Dict[str, np.ndarray]:
+    def _predict(
+        self, method: str, estimator_names: Optional[List[str]] = None
+    ) -> Dict[str, np.ndarray]:
         """Helper method for predicting targets or target probabilities with cross validation.
         Accepts predict, predict_proba, predict_log_proba or decision_function."""
         if not hasattr(self, "cv_"):
             raise ValueError("`setup` must be called before `predict`.")
         X, y = self.X, self.y
+        if not estimator_names:
+            estimator_names = [
+                estimator
+                for estimator in self.estimators_.keys()
+                if not "Dummy" in estimator
+            ]
         results = {}
-        pbar = tqdm(self.estimators_.items())
-        for i, (name, estimator) in enumerate(pbar):
+        pbar = tqdm(estimator_names)
+        for i, name in enumerate(pbar):
             pbar.set_description(f"{name}")
+            estimator = self.estimators_[name]
             if self.preprocess:
                 final_estimator = Pipeline(
                     [("preprocessor", self.preprocessor_), (name, estimator)],
@@ -293,17 +302,26 @@ class PoniardBaseEstimator(ABC):
                 pbar.set_description("Completed")
         return results
 
-    def predict(self) -> Dict[str, np.ndarray]:
+    def predict(
+        self, estimator_names: Optional[List[str]] = None
+    ) -> Dict[str, np.ndarray]:
         """Get cross validated target predictions where each sample belongs to a single test set.
+
+        Parameters
+        ----------
+        estimator_names :
+            Estimators to include. If None, predict all estimators.
 
         Returns
         -------
         Dict
             Dict where keys are estimator names and values are numpy arrays of predictions.
         """
-        return self._predict(method="predict")
+        return self._predict(method="predict", estimator_names=estimator_names)
 
-    def predict_proba(self) -> Dict[str, np.ndarray]:
+    def predict_proba(
+        self, estimator_names: Optional[List[str]] = None
+    ) -> Dict[str, np.ndarray]:
         """Get cross validated target probability predictions where each sample belongs to a
         single test set.
 
@@ -313,11 +331,18 @@ class PoniardBaseEstimator(ABC):
             Dict where keys are estimator names and values are numpy arrays of prediction
             probabilities.
         """
-        return self._predict(method="predict_proba")
+        return self._predict(method="predict_proba", estimator_names=estimator_names)
 
-    def decision_function(self) -> Dict[str, np.ndarray]:
+    def decision_function(
+        self, estimator_names: Optional[List[str]] = None
+    ) -> Dict[str, np.ndarray]:
         """Get cross validated decision function predictions where each sample belongs to a
         single test set.
+
+        Parameters
+        ----------
+        estimator_names :
+            Estimators to include. If None, predict all estimators.
 
         Returns
         -------
@@ -325,15 +350,31 @@ class PoniardBaseEstimator(ABC):
             Dict where keys are estimator names and values are numpy arrays of prediction
             probabilities.
         """
-        return self._predict(method="decision_function")
+        return self._predict(
+            method="decision_function", estimator_names=estimator_names
+        )
 
-    def predict_all(self) -> Tuple[Dict[str, np.ndarray]]:
+    def predict_all(
+        self, estimator_names: Optional[List[str]] = None
+    ) -> Tuple[Dict[str, np.ndarray]]:
         """Get cross validated target predictions, probabilities and decision functions
-        where each sample belongs to all test sets."""
+        where each sample belongs to all test sets.
+
+        Parameters
+        ----------
+        estimator_names :
+            Estimators to include. If None, predict all estimators.
+
+        Returns
+        -------
+        Dict
+            Dict where keys are estimator names and values are numpy arrays of prediction
+            probabilities.
+        """
         return (
-            self._predict(method="predict"),
-            self._predict(method="predict_proba"),
-            self._predict(method="decision_function"),
+            self._predict(method="predict", estimator_names=estimator_names),
+            self._predict(method="predict_proba", estimator_names=estimator_names),
+            self._predict(method="decision_function", estimator_names=estimator_names),
         )
 
     @property
