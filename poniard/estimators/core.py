@@ -2,7 +2,6 @@ from __future__ import annotations
 import warnings
 import itertools
 import inspect
-from pathlib import Path
 from abc import ABC, abstractmethod
 from typing import List, Optional, Union, Callable, Dict, Tuple, Any, Sequence, Iterable
 
@@ -1058,8 +1057,10 @@ class PoniardBaseEstimator(ABC):
                 if not "Dummy" in estimator
             ]
         results = {}
-        for estimator_name in estimator_names:
-            estimator = clone(self._experiment_results[estimator_name]["estimator"][0])
+        pbar = tqdm(estimator_names)
+        for i, name in enumerate(pbar):
+            pbar.set_description(f"{name}")
+            estimator = clone(self._experiment_results[name]["estimator"][0])
             estimator.fit(X_train, y_train)
             result = permutation_importance(
                 estimator,
@@ -1071,7 +1072,7 @@ class PoniardBaseEstimator(ABC):
                 n_jobs=self.n_jobs,
                 **kwargs,
             )
-            self._experiment_results[estimator_name]["permutation_importances"] = result
+            self._experiment_results[name]["permutation_importances"] = result
             if isinstance(self.X, pd.DataFrame):
                 new_idx = self.X.columns
             else:
@@ -1083,9 +1084,11 @@ class PoniardBaseEstimator(ABC):
                 stds = pd.DataFrame(result["importances_std"])
                 stds.columns = [f"Permutation importances std. ({n_repeats} repeats)"]
                 stds.index = new_idx
-                results.update({estimator_name: (means, stds)})
+                results.update({name: (means, stds)})
             else:
-                results.update({estimator_name: means})
+                results.update({name: means})
+            if i == len(pbar) - 1:
+                pbar.set_description("Completed")
         return results
 
     def _process_results(self) -> None:
