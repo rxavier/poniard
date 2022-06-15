@@ -362,6 +362,7 @@ class PoniardPlotFactory:
                 "AUC": ":.2f",
             },
         )
+        self._poniard._run_plugin_methods("on_plot", figure=fig, name="roc_plot")
         return fig
 
     def __repr__(self):
