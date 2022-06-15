@@ -984,19 +984,19 @@ class PoniardBaseEstimator(ABC):
 
     def get_permutation_importances(
         self,
-        estimator_name: str,
+        estimator_names: Optional[List[str]] = None,
         n_repeats: int = 10,
         std: bool = False,
         **kwargs,
-    ) -> Union[pd.DataFrame, Tuple[pd.DataFrame, pd.DataFrame]]:
+    ) -> Dict[str, Union[pd.DataFrame, Tuple[pd.DataFrame, pd.DataFrame]]]:
         """Compute permutation importances mean and standard deviations for a single estimator.
 
         Kwargs are passed to the sklearn permutation importance function.
 
         Parameters
         ----------
-        estimator_name :
-            Estimator to tune.
+        estimator_names :
+            Estimators to compute permutation importances for. If None, compute for all.
         n_repeats :
             How many times to repeat random permutations of a single feature. Default 10.
         std : bool, optional
@@ -1007,36 +1007,45 @@ class PoniardBaseEstimator(ABC):
         Union[pd.DataFrame, Tuple[pd.DataFrame, pd.DataFrame]]
             Permutation importances mean, optionally also standard deviations.
         """
-        estimator = clone(self._experiment_results[estimator_name]["estimator"][0])
+        X_train, X_test, y_train, y_test = self._train_test_split_from_cv()
         scoring = self._first_scorer(sklearn_scorer=True)
 
-        X_train, X_test, y_train, y_test = self._train_test_split_from_cv()
-        estimator.fit(X_train, y_train)
-        result = permutation_importance(
-            estimator,
-            X_test,
-            y_test,
-            scoring=scoring,
-            random_state=self.random_state,
-            n_repeats=n_repeats,
-            n_jobs=self.n_jobs,
-            **kwargs,
-        )
-        self._experiment_results[estimator_name]["permutation_importances"] = result
-        if isinstance(self.X, pd.DataFrame):
-            new_idx = self.X.columns
-        else:
-            new_idx = range(self.X.shape[1])
-        means = pd.DataFrame(result["importances_mean"])
-        means.columns = [f"Permutation importances mean ({n_repeats} repeats)"]
-        means.index = new_idx
-        if std:
-            stds = pd.DataFrame(result["importances_std"])
-            stds.columns = [f"Permutation importances std. ({n_repeats} repeats)"]
-            stds.index = new_idx
-            return means, stds
-        else:
-            return means
+        if not estimator_names:
+            estimator_names = [
+                estimator
+                for estimator in self.estimators_.keys()
+                if not "Dummy" in estimator
+            ]
+        results = {}
+        for estimator_name in estimator_names:
+            estimator = clone(self._experiment_results[estimator_name]["estimator"][0])
+            estimator.fit(X_train, y_train)
+            result = permutation_importance(
+                estimator,
+                X_test,
+                y_test,
+                scoring=scoring,
+                random_state=self.random_state,
+                n_repeats=n_repeats,
+                n_jobs=self.n_jobs,
+                **kwargs,
+            )
+            self._experiment_results[estimator_name]["permutation_importances"] = result
+            if isinstance(self.X, pd.DataFrame):
+                new_idx = self.X.columns
+            else:
+                new_idx = range(self.X.shape[1])
+            means = pd.DataFrame(result["importances_mean"])
+            means.columns = [f"Permutation importances mean ({n_repeats} repeats)"]
+            means.index = new_idx
+            if std:
+                stds = pd.DataFrame(result["importances_std"])
+                stds.columns = [f"Permutation importances std. ({n_repeats} repeats)"]
+                stds.index = new_idx
+                results.update({estimator_name: (means, stds)})
+            else:
+                results.update({estimator_name: means})
+        return results
 
     def _process_results(self) -> None:
         """Compute mean and standard deviations of  experiment results."""

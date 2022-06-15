@@ -173,7 +173,7 @@ class PoniardPlotFactory:
 
     def permutation_importances(
         self,
-        estimator_names: Union[str, List[str]],
+        estimator_names: Optional[List[str]] = None,
         kind: str = "bar",
         facet: str = "col",
     ) -> Figure:
@@ -182,7 +182,7 @@ class PoniardPlotFactory:
         Parameters
         ----------
         estimator_names :
-            Estimators to include.
+            Estimators to include. If None, plot all estimators.
         kind :
             Either "bar" or "strip". Default "bar". "strip" plots each permutation repetition
             as well as the mean. Bar plots only the mean.
@@ -194,8 +194,12 @@ class PoniardPlotFactory:
         Figure
             Plotly bar or strip plot.
         """
-        if isinstance(estimator_names, str):
-            estimator_names = [estimator_names]
+        if not estimator_names:
+            estimator_names = [
+                estimator
+                for estimator in self._poniard.estimators_.keys()
+                if not "Dummy" in estimator
+            ]
         try:
             importances = {
                 estimator: self._poniard._experiment_results[estimator][
