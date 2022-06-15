@@ -920,7 +920,7 @@ class PoniardBaseEstimator(ABC):
                     results[name] = np.where(result == self.y, 1, 0)
         results = pd.DataFrame(results)
         if self._check_estimator_type() == "classifier":
-            estimator_names = [x for x in self.estimators_]
+            estimator_names = results.columns.tolist()
             table = pd.DataFrame(
                 data=np.nan, index=estimator_names, columns=estimator_names
             )
