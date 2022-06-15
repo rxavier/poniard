@@ -265,7 +265,10 @@ class PoniardPlotFactory:
         return fig
 
     def roc_curve(
-        self, estimator_names: Optional[List[str]] = None, **kwargs
+        self,
+        estimator_names: Optional[List[str]] = None,
+        response_method: str = "auto",
+        **kwargs,
     ) -> Figure:
         """Plot ROC curve with cross validated predictions for multiple estimators.
 
@@ -273,6 +276,10 @@ class PoniardPlotFactory:
         ----------
         estimator_names :
             Estimators to include. If None, all estimators are used.
+        response_method :
+            Either "auto", "predict_proba" or "decision_function". "auto" will try to use
+            `predict_proba` if all estimators have it, otherwise it will try `decision_function`
+            If there is no common `response_method`, it will raise an error.
         kwargs :
             Passed to `sklearn.metrics.roc_curve()`.
         Returns
@@ -290,11 +297,40 @@ class PoniardPlotFactory:
             estimator_names = list(results.keys())
         if "DummyClassifier" not in estimator_names:
             estimator_names.append("DummyClassifier")
+
+        if response_method == "auto":
+            if all(
+                hasattr(results[estimator]["estimator"][0], "predict_proba")
+                for estimator in estimator_names
+            ):
+                prediction = "predict_proba"
+            elif all(
+                hasattr(results[estimator]["estimator"][0], "decision_function")
+                for estimator in estimator_names
+            ):
+                prediction = "decision_function"
+            else:
+                raise ValueError(
+                    "Selected estimators do not have a common response_method (predict_proba or decision_function)."
+                )
+        else:
+            prediction = response_method
+            if not all(
+                hasattr(results[estimator]["estimator"][0], response_method)
+                for estimator in estimator_names
+            ):
+                raise ValueError(
+                    f"Selected estimators do not have a common response_method ({response_method})."
+                )
+
         estimator_metrics = []
         for name in estimator_names:
-            if name not in results or "predict" not in results[name]:
+            if name not in results or prediction not in results[name]:
                 raise KeyError(f"Predictions have not been computed for {name}.")
-            fpr, tpr, _ = roc_curve(y, results[name]["predict"], **kwargs)
+            y_pred = results[name][prediction]
+            if prediction == "predict_proba":
+                y_pred = y_pred[:, 1]
+            fpr, tpr, _ = roc_curve(y, y_pred, **kwargs)
             roc_auc = auc(fpr, tpr)
             estimator_metrics.append(
                 pd.DataFrame(
