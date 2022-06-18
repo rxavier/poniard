@@ -5,7 +5,7 @@ import plotly.io as pio
 import plotly.express as px
 import pandas as pd
 import numpy as np
-from sklearn.metrics import roc_curve, auc
+from sklearn.metrics import roc_curve, auc, confusion_matrix
 from plotly.graph_objs._figure import Figure
 
 if TYPE_CHECKING:
@@ -286,6 +286,7 @@ class PoniardPlotFactory:
             If there is no common `response_method`, it will raise an error.
         kwargs :
             Passed to `sklearn.metrics.roc_curve()`.
+
         Returns
         -------
         Figure
@@ -353,7 +354,7 @@ class PoniardPlotFactory:
             x="False positive rate",
             y="True positive rate",
             color="Estimator_AUC",
-            title="ROC curve",
+            title="ROC curve with cross-validated predictions",
             hover_data={
                 "Estimator_AUC": False,
                 "Estimator": True,
@@ -363,6 +364,42 @@ class PoniardPlotFactory:
             },
         )
         self._poniard._run_plugin_methods("on_plot", figure=fig, name="roc_plot")
+        return fig
+
+    def confusion_matrix(self, estimator_name: str, **kwargs) -> Figure:
+        """Plot confusion matrix with cross validated predictions for a single estimator.
+
+        Parameters
+        ----------
+        estimator_name :
+            Estimator to include.
+        kwargs :
+            Passed to `sklearn.metrics.confusion_matrix()`.
+
+        Returns
+        -------
+        Figure
+            Plotly image plot.
+        """
+        if self._poniard._check_estimator_type() == "regressor":
+            raise ValueError("Confusion matrix is not available for regressors.")
+        y = self._poniard.y
+        results = self._poniard._experiment_results
+        y_pred = results[estimator_name]["predict"]
+        matrix = confusion_matrix(y, y_pred, **kwargs)
+        fig = px.imshow(
+            matrix,
+            labels={"x": "Predicted", "y": "Ground truth", "color": "Count"},
+            color_continuous_scale="Blues",
+            text_auto=True,
+            title="Confusion matrix with cross-validated predictions",
+        )
+        fig.update_yaxes(nticks=len(np.unique(y)) + 1)
+        fig.update_xaxes(nticks=len(np.unique(y)) + 1)
+        fig.update(layout_coloraxis_showscale=False)
+        self._poniard._run_plugin_methods(
+            "on_plot", figure=fig, name="confusion_matrix"
+        )
         return fig
 
     def __repr__(self):
