@@ -252,11 +252,7 @@ class PoniardBaseEstimator(ABC):
             raise ValueError("`setup` must be called before `predict`.")
         X, y = self.X, self.y
         if not estimator_names:
-            estimator_names = [
-                estimator
-                for estimator in self.estimators_.keys()
-                if not "Dummy" in estimator
-            ]
+            estimator_names = [estimator for estimator in self.estimators_.keys()]
         results = {}
         pbar = tqdm(estimator_names)
         for i, name in enumerate(pbar):
