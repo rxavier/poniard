@@ -156,7 +156,7 @@ def test_type_inference():
         {
             "numeric": [float(i) for i in range(10)],
             "low_cardinality_str": ["a"] * 5 + ["b"] * 5,
-            "low_cardinality_int": [1] * 5 + [2] * 5,
+            "low_cardinality_int": [1] * 10,
             "high_cardinality_str": [str(x) for x in range(10)],
             "high_cardinality_int": [x for x in range(10)],
         }
