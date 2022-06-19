@@ -6,6 +6,7 @@ import plotly.express as px
 import pandas as pd
 import numpy as np
 from sklearn.metrics import roc_curve, auc, confusion_matrix
+from sklearn.inspection import partial_dependence
 from plotly.graph_objs._figure import Figure
 
 if TYPE_CHECKING:
@@ -399,6 +400,63 @@ class PoniardPlotFactory:
         fig.update(layout_coloraxis_showscale=False)
         self._poniard._run_plugin_methods(
             "on_plot", figure=fig, name="confusion_matrix"
+        )
+        return fig
+
+    def partial_dependence(
+        self, estimator_name: str, feature: Union[str, int], **kwargs
+    ) -> Figure:
+        """Plot partial dependence for a single feature of a single estimator.
+
+        Only plots average partial dependence for all samples and not individual samples (ICE).
+
+        Parameters
+        ----------
+        estimator_name :
+            Estimator to include.
+        feature :
+            Feature for which to plot partial dependence. Can be a pandas column name or index.
+        kwargs :
+            Passed to `sklearn.inspection.partial_dependence()`.
+
+        Returns
+        -------
+        Figure
+            Plotly line plot.
+        """
+        y = self._poniard.y
+        X = self._poniard.X
+        results = self._poniard._experiment_results
+        estimator = results[estimator_name]["estimator"][0]
+        estimator.fit(X, y)
+        partial_dep = partial_dependence(
+            estimator, X, features=[feature], kind="average", **kwargs
+        )
+        response = partial_dep["average"].reshape(-1)
+        n_values = len(partial_dep["values"][0])
+        n_repeats = int(len(response) / n_values)
+        values = np.tile(partial_dep["values"][0], n_repeats)
+        data = pd.DataFrame({"Target": response, f"Feature: {feature}": values})
+        hide_legend = False
+        if n_repeats > 1 and self._poniard._check_estimator_type() == "classifier":
+            data["Class"] = np.repeat(estimator.classes_, n_values)
+        elif self._poniard._check_estimator_type() == "classifier":
+            data["Class"] = 1
+        else:
+            data["Class"] = "Target"
+            hide_legend = True
+
+        fig = px.line(
+            data,
+            x=f"Feature: {feature}",
+            y="Target",
+            color="Class",
+            title=f"Average partial dependence between feature '{feature}' and target",
+        )
+        if hide_legend:
+            fig.update_layout(showlegend=False)
+        self._poniard._run_plugin_methods(
+            "on_plot", figure=fig, name=f"{feature}_partial_dependence_plot"
         )
         return fig
 
