@@ -6,7 +6,7 @@ import plotly.express as px
 import pandas as pd
 import numpy as np
 from sklearn.metrics import roc_curve, auc, confusion_matrix
-from sklearn.inspection import partial_dependence
+from sklearn.inspection import partial_dependence, permutation_importance
 from plotly.graph_objs._figure import Figure
 
 if TYPE_CHECKING:
@@ -172,100 +172,84 @@ class PoniardPlotFactory:
         )
         return fig
 
-    def permutation_importances(
+    def permutation_importance(
         self,
-        estimator_names: Optional[List[str]] = None,
+        estimator_name: str,
+        n_repeats: int = 10,
         kind: str = "bar",
-        facet: str = "col",
+        **kwargs,
     ) -> Figure:
-        """Plot permutation importances for a list of estimators.
+        """Plot permutation importances for an estimator.
 
         Parameters
         ----------
-        estimator_names :
-            Estimators to include. If None, plot all estimators.
+        estimator_name :
+            Estimator to include.
+        n_repeats :
+            How many times to repeat random permutations of a single feature. Default 10.
         kind :
             Either "bar" or "strip". Default "bar". "strip" plots each permutation repetition
             as well as the mean. Bar plots only the mean.
-        facet :
-           Either "col" or "row". Default "col".
+        kwargs :
+            Passed to `sklearn.inspection.permutation_importance()`.
 
         Returns
         -------
         Figure
             Plotly bar or strip plot.
         """
-        if not estimator_names:
-            estimator_names = [
-                estimator
-                for estimator in self._poniard.estimators_.keys()
-                if not "Dummy" in estimator
-            ]
-        try:
-            importances = {
-                estimator: self._poniard._experiment_results[estimator][
-                    "permutation_importances"
-                ]["importances"]
-                for estimator in estimator_names
-            }
-        except KeyError:
-            raise KeyError(
-                "Permutation importances need to be computed for each estimator."
-            )
-        importances_arr = []
-        for estimator, importance_values in importances.items():
-            aux = pd.DataFrame(importance_values, index=self._poniard.X.columns)
-            aux.rename_axis("Feature", inplace=True)
-            aux.reset_index(inplace=True)
-            aux.insert(0, "Estimator", estimator)
-            importances_arr.append(aux)
-        importances = pd.concat(importances_arr)
+        X_train, X_test, y_train, y_test = self._poniard._train_test_split_from_cv()
+        scoring = self._poniard._first_scorer(sklearn_scorer=True)
+        estimator = self._poniard._experiment_results[estimator_name]["estimator"][0]
+        estimator.fit(X_train, y_train)
+        raw_importances = permutation_importance(
+            estimator,
+            X_test,
+            y_test,
+            scoring=scoring,
+            random_state=self._poniard.random_state,
+            n_repeats=n_repeats,
+            n_jobs=self._poniard.n_jobs,
+            **kwargs,
+        )
+        if isinstance(X_test, pd.DataFrame):
+            index = X_test.columns
+        else:
+            index = list(range(X_test.shape[1]))
+        importances = pd.DataFrame(raw_importances["importances"], index=index)
+        importances.rename_axis("Feature", inplace=True)
+        importances.reset_index(inplace=True)
+
         importances = importances.melt(
-            id_vars=["Estimator", "Feature"], var_name="Type", value_name="Importance"
+            id_vars="Feature", var_name="Type", value_name="Importance"
         )
         importances["Type"] = "Repetition"
         aggs = (
-            importances.groupby(["Estimator", "Feature"])["Importance"]
+            importances.groupby("Feature")["Importance"]
             .agg(Mean=np.mean, Std=np.std)
             .reset_index()
         )
-        aggs = aggs.melt(
-            id_vars=["Estimator", "Feature"], var_name="Type", value_name="Importance"
-        )
+        aggs = aggs.melt(id_vars="Feature", var_name="Type", value_name="Importance")
         importances = pd.concat([importances, aggs])
 
-        scoring = self._poniard._first_scorer(sklearn_scorer=False)
-        repeats = self._poniard._experiment_results[estimator_names[0]][
-            "permutation_importances"
-        ]["importances"].shape[1]
-        title = f"Permutation importances ({scoring}, {repeats} repeats)"
+        title = f"Permutation importances ({estimator_name}, {scoring}, {n_repeats} repeats)"
         if kind == "strip":
-            if facet == "row":
-                facet_row = "Estimator"
-                facet_col = None
-            else:
-                facet_row = None
-                facet_col = "Estimator"
             importances = importances.loc[importances["Type"] != "Std"]
             fig = px.strip(
                 importances,
                 x="Importance",
                 y="Feature",
                 color="Type",
-                facet_col=facet_col,
-                facet_row=facet_row,
                 title=title,
             )
         else:
             importances = importances.loc[
                 -importances["Type"].isin(["Repetition", "Std"])
             ]
-            fig = px.bar(
-                importances, x="Importance", y="Feature", color="Estimator", title=title
-            )
+            fig = px.bar(importances, x="Importance", y="Feature", title=title)
             fig.update_layout(yaxis={"categoryorder": "total ascending"})
         self._poniard._run_plugin_methods(
-            "on_plot", figure=fig, name="permutation_importances_plot"
+            "on_plot", figure=fig, name=f"{estimator_name}_permutation_importances_plot"
         )
         return fig
 

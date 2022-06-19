@@ -15,7 +15,6 @@ from sklearn.model_selection import (
     BaseShuffleSplit,
     train_test_split,
 )
-from sklearn.inspection import permutation_importance
 from sklearn.preprocessing import (
     StandardScaler,
     MinMaxScaler,
@@ -1007,75 +1006,6 @@ class PoniardBaseEstimator(ABC):
             }
         )
         return self
-
-    def get_permutation_importances(
-        self,
-        estimator_names: Optional[List[str]] = None,
-        n_repeats: int = 10,
-        std: bool = False,
-        **kwargs,
-    ) -> Dict[str, Union[pd.DataFrame, Tuple[pd.DataFrame, pd.DataFrame]]]:
-        """Compute permutation importances mean and standard deviations for a single estimator.
-
-        Kwargs are passed to the sklearn permutation importance function.
-
-        Parameters
-        ----------
-        estimator_names :
-            Estimators to compute permutation importances for. If None, compute for all.
-        n_repeats :
-            How many times to repeat random permutations of a single feature. Default 10.
-        std : bool, optional
-            Whether to return standard deviations. Default True.
-
-        Returns
-        -------
-        Union[pd.DataFrame, Tuple[pd.DataFrame, pd.DataFrame]]
-            Permutation importances mean, optionally also standard deviations.
-        """
-        X_train, X_test, y_train, y_test = self._train_test_split_from_cv()
-        scoring = self._first_scorer(sklearn_scorer=True)
-
-        if not estimator_names:
-            estimator_names = [
-                estimator
-                for estimator in self.estimators_.keys()
-                if not "Dummy" in estimator
-            ]
-        results = {}
-        pbar = tqdm(estimator_names)
-        for i, name in enumerate(pbar):
-            pbar.set_description(f"{name}")
-            estimator = clone(self._experiment_results[name]["estimator"][0])
-            estimator.fit(X_train, y_train)
-            result = permutation_importance(
-                estimator,
-                X_test,
-                y_test,
-                scoring=scoring,
-                random_state=self.random_state,
-                n_repeats=n_repeats,
-                n_jobs=self.n_jobs,
-                **kwargs,
-            )
-            self._experiment_results[name]["permutation_importances"] = result
-            if isinstance(self.X, pd.DataFrame):
-                new_idx = self.X.columns
-            else:
-                new_idx = range(self.X.shape[1])
-            means = pd.DataFrame(result["importances_mean"])
-            means.columns = [f"Permutation importances mean ({n_repeats} repeats)"]
-            means.index = new_idx
-            if std:
-                stds = pd.DataFrame(result["importances_std"])
-                stds.columns = [f"Permutation importances std. ({n_repeats} repeats)"]
-                stds.index = new_idx
-                results.update({name: (means, stds)})
-            else:
-                results.update({name: means})
-            if i == len(pbar) - 1:
-                pbar.set_description("Completed")
-        return results
 
     def _process_results(self) -> None:
         """Compute mean and standard deviations of  experiment results."""
