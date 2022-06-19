@@ -503,15 +503,8 @@ class PoniardBaseEstimator(ABC):
             end="\n\n",
         )
         if isinstance(X, pd.DataFrame):
-            numeric.extend(X.select_dtypes(include="float").columns)
-            ints = X.select_dtypes(include="int").columns
-            if len(ints) > 0:
-                warnings.warn(
-                    "Integer columns found. If they are not categorical, consider casting to float so no assumptions have to be made about their cardinality.",
-                    UserWarning,
-                    stacklevel=2,
-                )
-            for column in ints:
+            numbers = X.select_dtypes(include="number").columns
+            for column in numbers:
                 if X[column].nunique() > self.numeric_threshold_:
                     numeric.append(column)
                 elif X[column].nunique() > self.cardinality_threshold_:
@@ -525,14 +518,7 @@ class PoniardBaseEstimator(ABC):
                 else:
                     categorical_low.append(column)
         else:
-            if np.issubdtype(X.dtype, float):
-                numeric.extend(range(X.shape[1]))
-            elif np.issubdtype(X.dtype, int):
-                warnings.warn(
-                    "Integer columns found. If they are not categorical, consider casting to float so no assumptions have to be made about their cardinality.",
-                    UserWarning,
-                    stacklevel=2,
-                )
+            if np.issubdtype(X.dtype, np.number):
                 for i in range(X.shape[1]):
                     if np.unique(X[:, i]).shape[0] > self.numeric_threshold_:
                         numeric.append(i)
@@ -553,7 +539,7 @@ class PoniardBaseEstimator(ABC):
         }
         print(
             "Inferred feature types:",
-            pd.DataFrame.from_dict(self._inferred_dtypes, orient="index").T,
+            pd.DataFrame.from_dict(self._inferred_dtypes, orient="index").T.fillna(""),
             sep="\n",
         )
         return numeric, categorical_high, categorical_low

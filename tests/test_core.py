@@ -154,7 +154,7 @@ def test_multioutput_fit():
 def test_type_inference():
     x = pd.DataFrame(
         {
-            "numeric": [1.0] * 10,
+            "numeric": [float(i) for i in range(10)],
             "low_cardinality_str": ["a"] * 5 + ["b"] * 5,
             "low_cardinality_int": [1] * 5 + [2] * 5,
             "high_cardinality_str": [str(x) for x in range(10)],

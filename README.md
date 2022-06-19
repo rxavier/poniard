@@ -66,9 +66,9 @@ Alternatively, you can also get a nice plot of your different metrics by using t
 ## Type inference
 Poniard uses some basic heuristics to infer the data types.
 
-Float columns are assumed to be numeric and string/object/categorical columns are assumed to be categorical.
+Float and integer columns are defined as numeric if the number of unique values is greater than indicated by the `categorical_threshold` parameter.
 
-Integer columns are defined as numeric if the number of unique values is greater than indicated by the `categorical_threshold` parameter. If Poniard detects integer columns, it will suggest casting to either float or string to avoid guessing.
+String/object/categorical columns are assumed to be categorical.
 
 For categorical features, high and low cardinality is defined by the `cardinality_threshold` parameter. Only low cardinality categorical features are one-hot encoded.
 
