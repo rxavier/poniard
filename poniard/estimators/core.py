@@ -121,7 +121,7 @@ class PoniardBaseEstimator(ABC):
         numeric_imputer: Optional[Union[str, TransformerMixin]] = None,
         custom_preprocessor: Union[None, Pipeline, TransformerMixin] = None,
         numeric_threshold: Union[int, float] = 0.1,
-        cardinality_threshold: Union[int, float] = 50,
+        cardinality_threshold: Union[int, float] = 20,
         cv: Union[int, BaseCrossValidator, BaseShuffleSplit, Sequence] = None,
         verbose: int = 0,
         random_state: Optional[int] = None,
