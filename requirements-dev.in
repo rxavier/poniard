@@ -7,5 +7,6 @@ recommonmark
 sphinx-bootstrap-theme
 sphinx-toolbox
 jupyter
+notebook >= 6.4.12
 black
 pre-commit
