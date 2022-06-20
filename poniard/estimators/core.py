@@ -1081,14 +1081,14 @@ class PoniardBaseEstimator(ABC):
         else:
             return None
 
-    def _pass_instance_attrs(self, estimator: Union[ClassifierMixin, RegressorMixin]):
-        """Helper method to propagate instance attributes to estimators."""
+    def _pass_instance_attrs(self, obj: Union[ClassifierMixin, RegressorMixin]):
+        """Helper method to propagate instance attributes to objects."""
         for attr, value in zip(
             ["random_state", "verbose", "verbosity"],
             [self.random_state, self.verbose, self.verbose],
         ):
-            if attr in estimator.__dict__:
-                setattr(estimator, attr, value)
+            if hasattr(obj, attr):
+                setattr(obj, attr, value)
         return
 
     def _run_plugin_methods(self, method: str, **kwargs):

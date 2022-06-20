@@ -154,4 +154,5 @@ class PoniardRegressor(PoniardBaseEstimator):
         if isinstance(cv, int):
             return KFold(n_splits=cv, shuffle=True, random_state=self.random_state)
         else:
+            self._pass_instance_attrs(cv)
             return cv

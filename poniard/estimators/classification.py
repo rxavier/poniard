@@ -192,4 +192,5 @@ class PoniardClassifier(PoniardBaseEstimator):
             else:
                 return KFold(n_splits=cv, shuffle=True, random_state=self.random_state)
         else:
+            self._pass_instance_attrs(cv)
             return cv
