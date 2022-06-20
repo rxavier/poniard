@@ -12,7 +12,7 @@ Please note that Poniard is being built in public and in a very alpha stage, whi
 # Installation
 
 ```bash
-pip install poniard # Soon
+pip install poniard
 ```
 
 Or from source.
