@@ -112,7 +112,7 @@ class PoniardRegressor(PoniardBaseEstimator):
             custom_preprocessor=custom_preprocessor,
             numeric_threshold=numeric_threshold,
             cardinality_threshold=cardinality_threshold,
-            cv=cv or KFold(n_splits=5, shuffle=True, random_state=random_state),
+            cv=cv,
             verbose=verbose,
             random_state=random_state,
             n_jobs=n_jobs,
