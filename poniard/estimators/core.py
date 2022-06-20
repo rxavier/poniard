@@ -901,7 +901,7 @@ class PoniardBaseEstimator(ABC):
                     results[name] = np.where(result == self.y, 1, 0)
         results = pd.DataFrame(results)
         if self._check_estimator_type() == "classifier":
-            estimator_names = results.columns.tolist()
+            estimator_names = [x for x in results.columns if x != "DummyClassifier"]
             table = pd.DataFrame(
                 data=np.nan, index=estimator_names, columns=estimator_names
             )
@@ -915,7 +915,7 @@ class PoniardBaseEstimator(ABC):
                     table.loc[row, col] = cramer
                     table.loc[col, row] = cramer
         else:
-            table = results.corr()
+            table = results.drop("DummyRegressor", axis=1).corr()
         return table
 
     def tune_estimator(
