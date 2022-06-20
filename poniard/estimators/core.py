@@ -580,7 +580,7 @@ class PoniardBaseEstimator(ABC):
                 ("categorical_imputer", cat_imputer),
                 (
                     "one-hot_encoder",
-                    OneHotEncoder(drop="first", handle_unknown="ignore"),
+                    OneHotEncoder(drop="if_binary", handle_unknown="ignore"),
                 ),
             ]
         )
