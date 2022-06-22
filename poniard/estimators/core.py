@@ -1007,7 +1007,16 @@ class PoniardBaseEstimator(ABC):
         """Compute mean and standard deviations of  experiment results."""
         # TODO: This processes every result, even those that were processed
         # in previous runs (before add_estimators). Should be made more efficient
-        results = pd.DataFrame(self._experiment_results).T.drop(["estimator"], axis=1)
+        results = pd.DataFrame(self._experiment_results).T
+        results = results.loc[
+            :,
+            [
+                x
+                for x in results.columns
+                if x
+                not in ["estimator", "predict", "predict_proba", "decision_function"]
+            ],
+        ]
         means = results.apply(lambda x: np.mean(x.values.tolist(), axis=1))
         stds = results.apply(lambda x: np.std(x.values.tolist(), axis=1))
         means = means[list(means.columns[2:]) + ["fit_time", "score_time"]]
