@@ -184,7 +184,7 @@ class PoniardClassifier(PoniardBaseEstimator):
         cv = self.cv or 5
         if isinstance(cv, int):
             if (self.y is not None) and (
-                type_of_target(self.y, input_name="y") in ("binary", "multiclass")
+                type_of_target(self.y) in ("binary", "multiclass")
             ):
                 return StratifiedKFold(
                     n_splits=cv, shuffle=True, random_state=self.random_state
