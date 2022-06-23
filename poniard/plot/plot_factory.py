@@ -1,5 +1,5 @@
 from typing import List, Union, Optional
-from typing import Optional, TYPE_CHECKING
+from typing import Optional, TYPE_CHECKING, Sequence
 
 import plotly.io as pio
 import plotly.express as px
@@ -44,7 +44,7 @@ class PoniardPlotFactory:
         self,
         kind: str = "strip",
         facet: str = "col",
-        metrics: Union[str, List[str]] = None,
+        metrics: Union[str, Sequence[str]] = None,
         only_test: bool = True,
         exclude_dummy: bool = True,
         show_means: bool = True,
@@ -255,7 +255,7 @@ class PoniardPlotFactory:
 
     def roc_curve(
         self,
-        estimator_names: Optional[List[str]] = None,
+        estimator_names: Optional[Sequence[str]] = None,
         response_method: str = "auto",
         **kwargs,
     ) -> Figure:

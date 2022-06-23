@@ -86,7 +86,7 @@ class PoniardRegressor(PoniardBaseEstimator):
     def __init__(
         self,
         estimators: Optional[
-            Union[Dict[str, RegressorMixin], List[RegressorMixin]]
+            Union[Dict[str, RegressorMixin], Sequence[RegressorMixin]]
         ] = None,
         metrics: Optional[Union[str, Dict[str, Callable], Sequence[str]]] = None,
         preprocess: bool = True,
@@ -99,7 +99,7 @@ class PoniardRegressor(PoniardBaseEstimator):
         verbose: int = 0,
         random_state: Optional[int] = None,
         n_jobs: Optional[int] = None,
-        plugins: Optional[List[Any]] = None,
+        plugins: Optional[Sequence[Any]] = None,
         plot_options: Optional[PoniardPlotFactory] = None,
         cache_transformations: bool = False,
     ):

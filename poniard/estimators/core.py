@@ -108,13 +108,13 @@ class PoniardBaseEstimator(ABC):
         self,
         estimators: Optional[
             Union[
-                List[ClassifierMixin],
+                Sequence[ClassifierMixin],
                 Dict[str, ClassifierMixin],
-                List[RegressorMixin],
+                Sequence[RegressorMixin],
                 Dict[str, RegressorMixin],
             ]
         ] = None,
-        metrics: Optional[Union[str, Dict[str, Callable], List[str]]] = None,
+        metrics: Optional[Union[str, Dict[str, Callable], Sequence[str]]] = None,
         preprocess: bool = True,
         scaler: Optional[Union[str, TransformerMixin]] = None,
         numeric_imputer: Optional[Union[str, TransformerMixin]] = None,
@@ -125,19 +125,19 @@ class PoniardBaseEstimator(ABC):
         verbose: int = 0,
         random_state: Optional[int] = None,
         n_jobs: Optional[int] = None,
-        plugins: Optional[List[Any]] = None,
+        plugins: Optional[Sequence[Any]] = None,
         plot_options: Optional[PoniardPlotFactory] = None,
         cache_transformations: bool = False,
     ):
         # TODO: Ugly check that metrics conforms to expected types. Should improve.
         if metrics and (
             (
-                isinstance(metrics, (List, Tuple))
+                isinstance(metrics, Sequence)
                 and not all(isinstance(m, str) for m in metrics)
             )
             or (
                 isinstance(metrics, Dict)
-                and not all(isinstance(m, str) for m in metrics.values())
+                and not all(isinstance(m, str) for m in metrics.keys())
                 and not all(isinstance(m, Callable) for m in metrics.values())
             )
         ):
@@ -244,7 +244,7 @@ class PoniardBaseEstimator(ABC):
         return self
 
     def _predict(
-        self, method: str, estimator_names: Optional[List[str]] = None
+        self, method: str, estimator_names: Optional[Sequence[str]] = None
     ) -> Dict[str, np.ndarray]:
         """Helper method for predicting targets or target probabilities with cross validation.
         Accepts predict, predict_proba, predict_log_proba or decision_function."""
@@ -297,7 +297,7 @@ class PoniardBaseEstimator(ABC):
         return results
 
     def predict(
-        self, estimator_names: Optional[List[str]] = None
+        self, estimator_names: Optional[Sequence[str]] = None
     ) -> Dict[str, np.ndarray]:
         """Get cross validated target predictions where each sample belongs to a single test set.
 
@@ -314,7 +314,7 @@ class PoniardBaseEstimator(ABC):
         return self._predict(method="predict", estimator_names=estimator_names)
 
     def predict_proba(
-        self, estimator_names: Optional[List[str]] = None
+        self, estimator_names: Optional[Sequence[str]] = None
     ) -> Dict[str, np.ndarray]:
         """Get cross validated target probability predictions where each sample belongs to a
         single test set.
@@ -328,7 +328,7 @@ class PoniardBaseEstimator(ABC):
         return self._predict(method="predict_proba", estimator_names=estimator_names)
 
     def decision_function(
-        self, estimator_names: Optional[List[str]] = None
+        self, estimator_names: Optional[Sequence[str]] = None
     ) -> Dict[str, np.ndarray]:
         """Get cross validated decision function predictions where each sample belongs to a
         single test set.
@@ -349,7 +349,7 @@ class PoniardBaseEstimator(ABC):
         )
 
     def predict_all(
-        self, estimator_names: Optional[List[str]] = None
+        self, estimator_names: Optional[Sequence[str]] = None
     ) -> Tuple[Dict[str, np.ndarray]]:
         """Get cross validated target predictions, probabilities and decision functions
         where each sample belongs to all test sets.
@@ -694,7 +694,7 @@ class PoniardBaseEstimator(ABC):
         return self.cv
 
     def add_estimators(
-        self, estimators: Union[Dict[str, ClassifierMixin], List[ClassifierMixin]]
+        self, estimators: Union[Dict[str, ClassifierMixin], Sequence[ClassifierMixin]]
     ) -> PoniardBaseEstimator:
         """Include new estimator. This is the recommended way of adding an estimator (as opposed
         to modifying :attr:`estimators_` directly), since it also injects random state, n_jobs
@@ -725,7 +725,7 @@ class PoniardBaseEstimator(ABC):
         return self
 
     def remove_estimators(
-        self, estimator_names: List[str], drop_results: bool = True
+        self, estimator_names: Sequence[str], drop_results: bool = True
     ) -> PoniardBaseEstimator:
         """Remove estimators. This is the recommended way of removing an estimator (as opposed
         to modifying :attr:`estimators_` directly), since it also removes the associated rows from
@@ -797,7 +797,7 @@ class PoniardBaseEstimator(ABC):
     def build_ensemble(
         self,
         method: str = "stacking",
-        estimator_names: Optional[List[str]] = None,
+        estimator_names: Optional[Sequence[str]] = None,
         top_n: Optional[int] = 3,
         sort_by: Optional[str] = None,
         ensemble_name: Optional[str] = None,
@@ -1047,7 +1047,7 @@ class PoniardBaseEstimator(ABC):
 
     def _first_scorer(self, sklearn_scorer: bool) -> Union[str, Callable]:
         """Helper method to get the first scoring function or name."""
-        if isinstance(self.metrics_, (List, Tuple)):
+        if isinstance(self.metrics_, Sequence):
             return self.metrics_[0]
         elif isinstance(self.metrics_, dict):
             if sklearn_scorer:
@@ -1122,7 +1122,7 @@ class PoniardBaseEstimator(ABC):
             """
 
     def __add__(
-        self, estimators: Union[Dict[str, ClassifierMixin], List[ClassifierMixin]]
+        self, estimators: Union[Dict[str, ClassifierMixin], Sequence[ClassifierMixin]]
     ) -> PoniardBaseEstimator:
         """Add estimators to a Poniard Estimator.
 
@@ -1138,7 +1138,7 @@ class PoniardBaseEstimator(ABC):
         """
         return self.add_estimators(estimators)
 
-    def __sub__(self, estimator_names: List[str]) -> PoniardBaseEstimator:
+    def __sub__(self, estimator_names: Sequence[str]) -> PoniardBaseEstimator:
         """Remove an estimator and its results.
 
         Parameters
@@ -1153,7 +1153,7 @@ class PoniardBaseEstimator(ABC):
         """
         return self.remove_estimators(estimator_names, drop_results=True)
 
-    def __getitem__(self, estimators: Union[str, List[str]]) -> pd.DataFrame:
+    def __getitem__(self, estimators: Union[str, Sequence[str]]) -> pd.DataFrame:
         """Get results by indexing with estimator names.
 
         Parameters
