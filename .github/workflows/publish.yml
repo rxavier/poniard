@@ -1,0 +1,26 @@
+name: Publish
+
+on:
+  workflow_call
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout repo
+      uses: actions/checkout@master
+    - name: Set up Python 3.8
+      uses: actions/setup-python@v2.2.2
+      with:
+        python-version: 3.8
+    - name: Install publish dependencies
+      run: |
+        python -m pip install setuptools wheel
+    - name: Build a binary wheel and a source tarball
+      run: |
+        python setup.py sdist bdist_wheel
+    - name: Publish
+      if: startsWith(github.ref, 'refs/tags')
+      uses: pypa/gh-action-pypi-publish@master
+      with:
+        password: ${{ secrets.PYPI_API_TOKEN }}
