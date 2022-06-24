@@ -1,4 +1,4 @@
-name: Build and run tox
+name: Test
 
 on:
   workflow_call
@@ -24,3 +24,6 @@ jobs:
 
     - name: Test with tox
       run: tox
+
+  publish:
+    uses: rxavier/poniard/.github/workflows/publish.yml@main

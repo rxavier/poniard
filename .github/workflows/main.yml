@@ -7,6 +7,3 @@ on:
 jobs:
   test:
     uses: rxavier/poniard/.github/workflows/test.yml@main
-
-  publish:
-    uses: rxavier/poniard/.github/workflows/publish.yml@main
