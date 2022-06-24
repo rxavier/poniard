@@ -84,7 +84,9 @@ entrypoints==0.4
 fastjsonschema==2.15.3
     # via nbformat
 filelock==3.7.0
-    # via virtualenv
+    # via
+    #   tox
+    #   virtualenv
 html5lib==1.1
     # via sphinx-toolbox
 identify==2.5.0
@@ -100,7 +102,9 @@ importlib-metadata==4.11.3
     #   domdf-python-tools
     #   sphinx
 importlib-resources==5.7.1
-    # via jsonschema
+    # via
+    #   jsonschema
+    #   tox-gh-actions
 iniconfig==1.1.1
     # via pytest
 ipykernel==6.13.0
@@ -211,6 +215,7 @@ packaging==21.3
     #   pytest
     #   qtpy
     #   sphinx
+    #   tox
 pandocfilters==1.5.0
     # via nbconvert
 parso==0.8.3
@@ -227,7 +232,9 @@ platformdirs==2.5.2
     #   black
     #   virtualenv
 pluggy==1.0.0
-    # via pytest
+    # via
+    #   pytest
+    #   tox
 pre-commit==2.19.0
     # via -r requirements-dev.in
 prometheus-client==0.14.1
@@ -243,7 +250,9 @@ ptyprocess==0.7.0
     #   pexpect
     #   terminado
 py==1.11.0
-    # via pytest
+    # via
+    #   pytest
+    #   tox
 pycparser==2.21
     # via cffi
 pygments==2.12.0
@@ -300,6 +309,7 @@ six==1.16.0
     #   html5lib
     #   livereload
     #   python-dateutil
+    #   tox
     #   virtualenv
 snowballstemmer==2.2.0
     # via sphinx
@@ -350,7 +360,9 @@ terminado==0.13.3
 tinycss2==1.1.1
     # via nbconvert
 toml==0.10.2
-    # via pre-commit
+    # via
+    #   pre-commit
+    #   tox
 tomli==2.0.1
     # via
     #   black
@@ -362,6 +374,12 @@ tornado==6.1
     #   livereload
     #   notebook
     #   terminado
+tox==3.25.0
+    # via
+    #   -r requirements-dev.in
+    #   tox-gh-actions
+tox-gh-actions==2.9.1
+    # via -r requirements-dev.in
 traitlets==5.1.1
     # via
     #   ipykernel
@@ -383,7 +401,9 @@ typing-extensions==4.2.0
 urllib3==1.26.9
     # via requests
 virtualenv==20.14.1
-    # via pre-commit
+    # via
+    #   pre-commit
+    #   tox
 wcwidth==0.2.5
     # via prompt-toolkit
 webencodings==0.5.1

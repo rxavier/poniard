@@ -1,5 +1,7 @@
 -c requirements.txt
 pytest
+tox
+tox-gh-actions
 sphinx
 sphinx-autobuild
 sphinx-autodoc-typehints
