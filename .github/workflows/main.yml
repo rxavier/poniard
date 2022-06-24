@@ -1,9 +1,0 @@
-name: Orchestrator
-
-on:
-  - push
-  - pull_request
-
-jobs:
-  test:
-    uses: rxavier/poniard/.github/workflows/test.yml@main
