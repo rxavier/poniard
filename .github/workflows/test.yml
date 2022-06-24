@@ -27,4 +27,5 @@ jobs:
       run: tox
 
   publish:
+    needs: build
     uses: rxavier/poniard/.github/workflows/publish.yml@main
