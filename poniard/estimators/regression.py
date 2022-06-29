@@ -45,10 +45,10 @@ class PoniardRegressor(PoniardBaseEstimator):
         Preprocessor used instead of the default preprocessing pipeline. It must be able to be
         included directly in a scikit-learn Pipeline.
     numeric_threshold :
-        Features with unique values above a certain threshold will be treated as numeric. If
+        Number features with unique values above a certain threshold will be treated as numeric. If
         float, the threshold is `numeric_threshold * samples`.
     cardinality_threshold :
-        Non-numeric features with cardinality above a certain threshold will be treated as
+        Non-number features with cardinality above a certain threshold will be treated as
         ordinal encoded instead of one-hot encoded. If float, the threshold is
         `cardinality_threshold * samples`.
     cv :

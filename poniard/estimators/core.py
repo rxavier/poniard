@@ -67,10 +67,10 @@ class PoniardBaseEstimator(ABC):
         Preprocessor used instead of the default preprocessing pipeline. It must be able to be
         included directly in a scikit-learn Pipeline.
     numeric_threshold :
-        Features with unique values above a certain threshold will be treated as numeric. If
+        Number features with unique values above a certain threshold will be treated as numeric. If
         float, the threshold is `numeric_threshold * samples`.
     cardinality_threshold :
-        Non-numeric features with cardinality above a certain threshold will be treated as
+        Non-number features with cardinality above a certain threshold will be treated as
         ordinal encoded instead of one-hot encoded. If float, the threshold is
         `cardinality_threshold * samples`.
     cv :
@@ -489,11 +489,11 @@ class PoniardBaseEstimator(ABC):
         else:
             self.numeric_threshold_ = int(self.numeric_threshold * X.shape[0])
         print(
-            "Minimum unique values to consider an integer feature numeric:",
+            "Minimum unique values to consider a number feature numeric:",
             self.numeric_threshold_,
         )
         print(
-            "Minimum unique values to consider a non-float feature high cardinality:",
+            "Minimum unique values to consider a non-number feature high cardinality:",
             self.cardinality_threshold_,
             end="\n\n",
         )
