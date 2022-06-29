@@ -7,12 +7,13 @@ Poniard is a scikit-learn companion library that streamlines the process of fitt
 
 This is not meant to be end to end solution, and you definitely should keep on working on your models after you are done with Poniard.
 
-Please note that Poniard is being built in public and in a very alpha stage, which means stuff is being moved around, method names are changing, etc.
+The core functionality has been tested to work on Python 3.7 through 3.10 on Linux systems, and from
+3.8 to 3.10 on macOS.
 
 # Installation
 
 ```bash
-pip install poniard # Soon
+pip install poniard
 ```
 
 Or from source.
@@ -43,7 +44,8 @@ Poniard provides sane defaults for 1, 2 and 3, so in most cases you can just do.
 from poniard import PoniardClassifier
 
 pnd = PoniardClassifier(random_state=0)
-pnd.fit(X_train, y_train)
+pnd.setup(X_train, y_train)
+pnd.fit()
 pnd.show_results()
 ```
 
@@ -65,9 +67,9 @@ Alternatively, you can also get a nice plot of your different metrics by using t
 ## Type inference
 Poniard uses some basic heuristics to infer the data types.
 
-Float columns are assumed to be numeric and string/object/categorical columns are assumed to be categorical.
+Float and integer columns are defined as numeric if the number of unique values is greater than indicated by the `categorical_threshold` parameter.
 
-Integer columns are defined as numeric if the number of unique values is greater than indicated by the `categorical_threshold` parameter. If Poniard detects integer columns, it will suggest casting to either float or string to avoid guessing.
+String/object/categorical columns are assumed to be categorical.
 
 For categorical features, high and low cardinality is defined by the `cardinality_threshold` parameter. Only low cardinality categorical features are one-hot encoded.
 
@@ -85,10 +87,11 @@ The `tune_estimator` method can be used to optimize the hyperparameters of a giv
 from poniard import PoniardRegressor
 
 pnd = PoniardRegressor(random_state=0)
-pnd.fit(x, y)
+pnd.setup(x, y)
+pnd.fit()
 pnd.show_results()
 pnd.tune_estimator("RandomForestRegressor", mode="grid", add_to_estimators=True)
-pnd.fit_new() # This will only fit new estimators
+pnd.fit() # This will only fit new estimators
 pnd.show_results()
 ```
 |                               |   test_neg_mean_squared_error |   train_neg_mean_squared_error |   test_neg_mean_absolute_percentage_error |   train_neg_mean_absolute_percentage_error |   test_neg_median_absolute_error |   train_neg_median_absolute_error |    test_r2 |   train_r2 |   fit_time |   score_time |

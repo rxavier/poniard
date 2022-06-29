@@ -7,7 +7,8 @@ Poniard is a scikit-learn companion library that streamlines the process of fitt
 
 This is not meant to be end to end solution, and you definitely should keep on working on your models after you are done with Poniard.
 
-Please note that Poniard is being built in public and in a very alpha stage, which means stuff is being moved around, method names are changing, etc.
+The core functionality has been tested to work on Python 3.7 through 3.10 on Linux systems, and from
+3.8 to 3.10 on macOS.
 
 # Installation
 
