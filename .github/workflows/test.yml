@@ -29,3 +29,5 @@ jobs:
   publish:
     needs: build
     uses: rxavier/poniard/.github/workflows/publish.yml@main
+    secrets:
+      PYPI_API_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
