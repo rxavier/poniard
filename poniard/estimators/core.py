@@ -539,7 +539,45 @@ class PoniardBaseEstimator(ABC):
         )
         return numeric, categorical_high, categorical_low
 
-    def _build_preprocessor(self) -> Pipeline:
+    def reassign_types(
+        self,
+        numeric: Optional[List[Union[str, int]]] = None,
+        categorical_high: Optional[List[Union[str, int]]] = None,
+        categorical_low: Optional[List[Union[str, int]]] = None,
+    ) -> PoniardBaseEstimator:
+        """Reassign feature types.
+
+        Parameters
+        ----------
+        numeric :
+            List of column names or indices. Default None.
+        categorical_high :
+            List of column names or indices. Default None.
+        categorical_low :
+            List of column names or indices. Default None.
+
+        Returns
+        -------
+        PoniardBaseEstimator
+            self.
+        """
+        assigned_types = {
+            "numeric": numeric or [],
+            "categorical_high": categorical_high or [],
+            "categorical_low": categorical_low or [],
+        }
+        self._inferred_dtypes = assigned_types
+        print(
+            "Assigned feature types:",
+            pd.DataFrame.from_dict(self._inferred_dtypes, orient="index").T.fillna(""),
+            sep="\n",
+        )
+        self.preprocessor_ = self._build_preprocessor(assigned_types=assigned_types)
+        return self
+
+    def _build_preprocessor(
+        self, assigned_types: Optional[Dict[str, List[Union[str, int]]]] = None
+    ) -> Pipeline:
         """Build default preprocessor.
 
         The preprocessor imputes missing values, scales numeric features and encodes categorical
@@ -547,9 +585,14 @@ class PoniardBaseEstimator(ABC):
 
         """
         X = self.X
-        if hasattr(self, "preprocessor_"):
+        if hasattr(self, "preprocessor_") and not assigned_types:
             return self.preprocessor_
-        numeric, categorical_high, categorical_low = self._infer_dtypes()
+        if assigned_types:
+            numeric = assigned_types["numeric"]
+            categorical_high = assigned_types["categorical_high"]
+            categorical_low = assigned_types["categorical_low"]
+        else:
+            numeric, categorical_high, categorical_low = self._infer_dtypes()
 
         if isinstance(self.scaler, TransformerMixin):
             scaler = self.scaler
