@@ -285,8 +285,6 @@ class PoniardPlotFactory:
         results = self._poniard._experiment_results
         if not estimator_names:
             estimator_names = list(results.keys())
-        if "DummyClassifier" not in estimator_names:
-            estimator_names.append("DummyClassifier")
 
         if response_method == "auto":
             if all(
@@ -347,6 +345,20 @@ class PoniardPlotFactory:
                 "False positive rate": ":.2f",
                 "AUC": ":.2f",
             },
+        )
+        fig.update_layout(
+            shapes=[
+                {
+                    "type": "line",
+                    "yref": "y",
+                    "xref": "x",
+                    "y0": 0,
+                    "y1": 1,
+                    "x0": 0,
+                    "x1": 1,
+                    "line": {"dash": "dash"},
+                }
+            ]
         )
         self._poniard._run_plugin_methods("on_plot", figure=fig, name="roc_plot")
         return fig
