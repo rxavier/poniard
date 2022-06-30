@@ -134,7 +134,9 @@ class PoniardPlotFactory:
         self._poniard._run_plugin_methods("on_plot", figure=fig, name="scores_plot")
         return fig
 
-    def overfitness(self, metric: Optional[str] = None) -> Figure:
+    def overfitness(
+        self, metric: Optional[str] = None, exclude_dummy: bool = True
+    ) -> Figure:
         """Plot the ratio of test scores to train scores for every estimator.
 
         Parameters
@@ -143,6 +145,8 @@ class PoniardPlotFactory:
             String representing a metric. This must follow the names passed to the
             Poniard constructor. For example, if during init a dict of metrics was passed, one of
             its keys can be passed here. Default None, which plots the first metric.
+        exclude_dummy :
+            Whether to exclude dummy estimators. Default True.
 
         Returns
         -------
@@ -155,6 +159,8 @@ class PoniardPlotFactory:
         results = results.loc[
             (results["Type"] == "Mean") & (results["Metric"].str.contains(metric))
         ]
+        if exclude_dummy:
+            results = results.loc[~results["Model"].str.contains("Dummy")]
         results = results.pivot(columns="Metric", index="Model", values="Score")
         results = results.loc[:, results.columns.str.contains("train")].div(
             results.loc[:, results.columns.str.contains("test")].squeeze(), axis=0
