@@ -134,3 +134,5 @@ Scripts
 pyvenv.cfg
 .DS_Store
 transformation_cache
+docs/source/*.ipynb
+docs/source/README.md

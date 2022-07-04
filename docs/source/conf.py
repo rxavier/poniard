@@ -12,15 +12,22 @@
 #
 import os
 import sys
+import shutil
+from pathlib import Path
+
 import sphinx_bootstrap_theme
 import sphinx_autodoc_typehints
-from shutil import copyfile
+
 
 sys.path.insert(0, os.path.abspath("../../"))
 from poniard._version import __version__
 
-copyfile("../../README.md", "README.md")
-
+notebooks = Path("../../examples").glob("*.ipynb")
+for file in [
+    "../../README.md",
+] + list(notebooks):
+    file = Path(file)
+    shutil.copy(file, f"{file.name}")
 
 # -- Project information -----------------------------------------------------
 
@@ -43,6 +50,7 @@ extensions = [
     "sphinx.ext.viewcode",
     "recommonmark",
     "sphinx_toolbox.more_autodoc.typehints",
+    "nbsphinx",
 ]
 
 # Add any paths that contain templates here, relative to this directory.

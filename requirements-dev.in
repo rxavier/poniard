@@ -8,6 +8,7 @@ sphinx-autodoc-typehints
 recommonmark
 sphinx-bootstrap-theme
 sphinx-toolbox
+nbsphinx
 jupyter
 notebook >= 6.4.12
 black

@@ -16,6 +16,7 @@ Brief introduction.
    :maxdepth: 1
 
    README.md
+   examples.rst
 
 API documentation
 -----------------
