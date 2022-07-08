@@ -10,11 +10,8 @@ import numpy as np
 import joblib
 from tqdm import tqdm
 from sklearn.base import ClassifierMixin, RegressorMixin, TransformerMixin, clone
-from sklearn.model_selection import (
-    BaseCrossValidator,
-    BaseShuffleSplit,
-    train_test_split,
-)
+from sklearn.model_selection._split import BaseCrossValidator, BaseShuffleSplit
+from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import (
     StandardScaler,
     MinMaxScaler,
