@@ -1,4 +1,4 @@
-name: Test conda
+name: Conda tests
 
 on:
   - push
