@@ -82,7 +82,10 @@ class DatetimeEncoder(BaseEstimator, TransformerMixin):
         all_encoded = []
         for col, levels in self.valid_features_.items():
             for level in levels:
-                encoded = getattr(pd.DatetimeIndex(X[:, col]), level.value)
+                dates = pd.DatetimeIndex(X[:, col])
+                if dates.tz:
+                    dates = dates.tz_convert(None)
+                encoded = getattr(dates, level.value)
                 all_encoded.append(encoded)
         output = np.stack(all_encoded, axis=1)
         return output
