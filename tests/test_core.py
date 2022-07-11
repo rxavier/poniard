@@ -164,7 +164,9 @@ def test_type_inference():
             "high_cardinality_str": [str(x) for x in range(10)],
             "high_cardinality_int": [x for x in range(10)],
             "datetime_H": pd.date_range("2020-01-01", freq="H", periods=10),
-            "datetime_D": pd.date_range("2020-01-01", freq="D", periods=10),
+            "datetime_D": pd.date_range(
+                "2020-01-01", freq="D", periods=10, tz="Europe/Moscow"
+            ),
         }
     )
     # Add random nan to 10% per column: https://stackoverflow.com/a/61018279

@@ -500,7 +500,9 @@ class PoniardBaseEstimator(ABC):
             end="\n\n",
         )
         if isinstance(X, pd.DataFrame):
-            datetime = X.select_dtypes(include="datetime").columns.tolist()
+            datetime = X.select_dtypes(
+                include=["datetime64[ns]", "datetimetz"]
+            ).columns.tolist()
             numbers = X.select_dtypes(include="number").columns
             for column in numbers:
                 if X[column].nunique() > self.numeric_threshold_:
