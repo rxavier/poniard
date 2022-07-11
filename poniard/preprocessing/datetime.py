@@ -43,7 +43,7 @@ class DatetimeEncoder(BaseEstimator, TransformerMixin):
             elif X.dtypes[0] in (object, str):
                 X = X.apply(pd.to_datetime, format=self.fmt)
             self.colnames_ = X.columns
-        X = self._validate_data(X=X, y=None, dtype="datetime64[ns]")
+        X = self._validate_data(X=X, y=None, force_all_finite="allow-nan")
 
         self.valid_features_ = {}
         if self.levels:
@@ -77,7 +77,7 @@ class DatetimeEncoder(BaseEstimator, TransformerMixin):
                 )
             elif X.dtypes[0] in (object, str):
                 X = X.apply(pd.to_datetime, format=self.fmt)
-        X = self._validate_data(X=X, y=None, dtype="datetime64[ns]")
+        X = self._validate_data(X=X, y=None, force_all_finite="allow-nan")
 
         all_encoded = []
         for col, levels in self.valid_features_.items():
