@@ -52,6 +52,8 @@ from poniard import PoniardClassifier, PoniardRegressor
 )
 def test_classifier_fit(target, metrics, estimators, cv):
     features = pd.DataFrame(np.random.normal(size=(len(target), 5)))
+    features["strings"] = np.random.choice(["a", "b", "c"], size=len(target))
+    features["dates"] = pd.date_range("2020-01-01", periods=len(target))
     clf = PoniardClassifier(
         estimators=estimators, cv=cv, metrics=metrics, random_state=0
     )
@@ -101,6 +103,8 @@ def test_classifier_fit(target, metrics, estimators, cv):
 )
 def test_regressor_fit(target, metrics, estimators, cv):
     features = pd.DataFrame(np.random.normal(size=(20, 5)))
+    features["strings"] = np.random.choice(["a", "b", "c"], size=len(target))
+    features["dates"] = pd.date_range("2020-01-01", periods=len(target))
     clf = PoniardRegressor(
         estimators=estimators, cv=cv, metrics=metrics, random_state=0
     )
@@ -159,8 +163,13 @@ def test_type_inference():
             "low_cardinality_int": [1] * 10,
             "high_cardinality_str": [str(x) for x in range(10)],
             "high_cardinality_int": [x for x in range(10)],
+            "datetime_H": pd.date_range("2020-01-01", freq="H", periods=10),
+            "datetime_D": pd.date_range("2020-01-01", freq="D", periods=10),
         }
     )
+    # Add random nan to 10% per column: https://stackoverflow.com/a/61018279
+    for col in x.columns:
+        x.loc[x.sample(frac=0.1).index, col] = np.nan
     y = pd.Series([0, 0, 0, 1, 1, 1, 0, 0, 1, 1])
     clf = PoniardClassifier(
         estimators=[LogisticRegression()],
@@ -180,4 +189,7 @@ def test_type_inference():
     assert all(
         x in clf._inferred_dtypes["categorical_low"]
         for x in ["low_cardinality_str", "low_cardinality_int"]
+    )
+    assert all(
+        x in clf._inferred_dtypes["datetime"] for x in ["datetime_H", "datetime_D"]
     )
