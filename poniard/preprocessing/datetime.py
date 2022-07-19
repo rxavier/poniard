@@ -35,6 +35,7 @@ class DatetimeEncoder(BaseEstimator, TransformerMixin):
         return {
             "X_types": ["2darray", "string"],
             "preserves_dtype": [],
+            "allow_nan": True,
         }
 
     def fit(self, X: Union[pd.DataFrame, np.ndarray, List], y=None) -> DatetimeEncoder:
