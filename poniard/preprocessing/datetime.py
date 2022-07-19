@@ -25,9 +25,28 @@ class DateLevel(Enum):
 
 
 class DatetimeEncoder(BaseEstimator, TransformerMixin):
+    """An encoder for datetime columns that outputs integer features"""
+
     def __init__(
         self, levels: Optional[Sequence[DateLevel]] = None, fmt: Optional[str] = None
     ):
+        """DatetimeEncoder constructor.
+
+        `levels` is a list of :class:`DateLevel`s that define which date features to extract, i.e,
+        [`DateLevel.HOUR`, `DateLevel.MINUTE`] will extract hours and minutes. If left to the
+        default `None`, all available features will be extracted initially, but zero variance
+        features will be dropped (for example, because the dates don't have seconds).
+
+        `fmt` is the format of the datetime string, used to parse from strings to date if inputs
+        are note datetime-like objects. For example, '%Y-%m-%d %H:%M:%S'.
+
+        Parameters
+        ----------
+        levels :
+            Date features to extract.
+        fmt :
+            Date format for string conversion. Follows standard Pandas/stdlib formatting.
+        """
         self.levels = levels
         self.fmt = fmt
 
@@ -39,6 +58,11 @@ class DatetimeEncoder(BaseEstimator, TransformerMixin):
         }
 
     def fit(self, X: Union[pd.DataFrame, np.ndarray, List], y=None) -> DatetimeEncoder:
+        """Fit the DatetimeEncoder.
+
+        While this transformer is generally stateless, during meth:`fit` it checks whether any of
+        the extracted features have zero variance (only one unique value) and sets those levels to be
+        ignored, even during meth:`transform`."""
         if isinstance(X, pd.DataFrame):
             if X.dtypes.nunique() > 1 and not all(
                 pd.api.types.is_datetime64_any_dtype(dt) for dt in X.dtypes
@@ -74,6 +98,7 @@ class DatetimeEncoder(BaseEstimator, TransformerMixin):
         return self
 
     def transform(self, X: Union[pd.DataFrame, np.ndarray, List]) -> np.ndarray:
+        """Apply transformation. Will ignore zero variance features seen during meth:`fit`."""
         if isinstance(X, pd.DataFrame):
             if X.dtypes.nunique() > 1 and not all(
                 pd.api.types.is_datetime64_any_dtype(dt) for dt in X.dtypes
@@ -97,6 +122,7 @@ class DatetimeEncoder(BaseEstimator, TransformerMixin):
         return output
 
     def get_feature_names_out(self, input_features=None) -> List[str]:
+
         feature_names = []
         colnames_ = getattr(self, "colnames_", None)
         for i in self.valid_features_.keys():
