@@ -564,7 +564,7 @@ class PoniardBaseEstimator(ABC):
             List of column names or indices. Default None.
         categorical_low :
             List of column names or indices. Default None.
-        categorical_low :
+        datetime :
             List of column names or indices. Default None.
 
         Returns
