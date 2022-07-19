@@ -37,6 +37,7 @@ from sklearn.model_selection import (
 from sklearn.impute import SimpleImputer
 from sklearn.exceptions import UndefinedMetricWarning
 
+from poniard.preprocessing import DatetimeEncoder
 from poniard.utils import cramers_v
 from poniard.utils import GRID
 from poniard.plot import PoniardPlotFactory
@@ -477,6 +478,7 @@ class PoniardBaseEstimator(ABC):
         numeric = []
         categorical_high = []
         categorical_low = []
+        datetime = []
         if isinstance(self.cardinality_threshold, int):
             self.cardinality_threshold_ = self.cardinality_threshold
         else:
@@ -495,6 +497,9 @@ class PoniardBaseEstimator(ABC):
             end="\n\n",
         )
         if isinstance(X, pd.DataFrame):
+            datetime = X.select_dtypes(
+                include=["datetime64[ns]", "datetimetz"]
+            ).columns.tolist()
             numbers = X.select_dtypes(include="number").columns
             for column in numbers:
                 if X[column].nunique() > self.numeric_threshold_:
@@ -503,13 +508,15 @@ class PoniardBaseEstimator(ABC):
                     categorical_high.append(column)
                 else:
                     categorical_low.append(column)
-            strings = X.select_dtypes(exclude="number").columns
+            strings = X.select_dtypes(exclude=["number", "datetime"]).columns
             for column in strings:
                 if X[column].nunique() > self.cardinality_threshold_:
                     categorical_high.append(column)
                 else:
                     categorical_low.append(column)
         else:
+            if np.issubdtype(X.dtype, np.datetime64):
+                datetime.extend(range(X.shape[1]))
             if np.issubdtype(X.dtype, np.number):
                 for i in range(X.shape[1]):
                     if np.unique(X[:, i]).shape[0] > self.numeric_threshold_:
@@ -528,19 +535,21 @@ class PoniardBaseEstimator(ABC):
             "numeric": numeric,
             "categorical_high": categorical_high,
             "categorical_low": categorical_low,
+            "datetime": datetime,
         }
         print(
             "Inferred feature types:",
             pd.DataFrame.from_dict(self._inferred_dtypes, orient="index").T.fillna(""),
             sep="\n",
         )
-        return numeric, categorical_high, categorical_low
+        return numeric, categorical_high, categorical_low, datetime
 
     def reassign_types(
         self,
         numeric: Optional[List[Union[str, int]]] = None,
         categorical_high: Optional[List[Union[str, int]]] = None,
         categorical_low: Optional[List[Union[str, int]]] = None,
+        datetime: Optional[List[Union[str, int]]] = None,
     ) -> PoniardBaseEstimator:
         """Reassign feature types.
 
@@ -552,6 +561,8 @@ class PoniardBaseEstimator(ABC):
             List of column names or indices. Default None.
         categorical_low :
             List of column names or indices. Default None.
+        datetime :
+            List of column names or indices. Default None.
 
         Returns
         -------
@@ -562,6 +573,7 @@ class PoniardBaseEstimator(ABC):
             "numeric": numeric or [],
             "categorical_high": categorical_high or [],
             "categorical_low": categorical_low or [],
+            "datetime": datetime or [],
         }
         self._inferred_dtypes = assigned_types
         print(
@@ -588,8 +600,9 @@ class PoniardBaseEstimator(ABC):
             numeric = assigned_types["numeric"]
             categorical_high = assigned_types["categorical_high"]
             categorical_low = assigned_types["categorical_low"]
+            datetime = assigned_types["datetime"]
         else:
-            numeric, categorical_high, categorical_low = self._infer_dtypes()
+            numeric, categorical_high, categorical_low, datetime = self._infer_dtypes()
 
         if isinstance(self.scaler, TransformerMixin):
             scaler = self.scaler
@@ -600,7 +613,7 @@ class PoniardBaseEstimator(ABC):
         else:
             scaler = RobustScaler()
 
-        cat_imputer = SimpleImputer(strategy="most_frequent")
+        cat_date_imputer = SimpleImputer(strategy="most_frequent")
 
         if isinstance(self.numeric_imputer, TransformerMixin):
             num_imputer = self.numeric_imputer
@@ -617,23 +630,31 @@ class PoniardBaseEstimator(ABC):
         )
         cat_low_preprocessor = Pipeline(
             [
-                ("categorical_imputer", cat_imputer),
+                ("categorical_imputer", cat_date_imputer),
                 (
                     "one-hot_encoder",
                     OneHotEncoder(drop="if_binary", handle_unknown="ignore"),
                 ),
             ]
         )
-
         cat_high_preprocessor = Pipeline(
             [
-                ("categorical_imputer", cat_imputer),
+                ("categorical_imputer", cat_date_imputer),
                 (
                     "ordinal_encoder",
                     OrdinalEncoder(
                         handle_unknown="use_encoded_value", unknown_value=99999
                     ),
                 ),
+            ],
+        )
+        datetime_preprocessor = Pipeline(
+            [
+                (
+                    "datetime_encoder",
+                    DatetimeEncoder(),
+                ),
+                ("datetime_imputer", cat_date_imputer),
             ],
         )
         if isinstance(X, pd.DataFrame):
@@ -650,13 +671,14 @@ class PoniardBaseEstimator(ABC):
                         cat_high_preprocessor,
                         categorical_high,
                     ),
+                    ("datetime_preprocessor", datetime_preprocessor, datetime),
                 ],
                 n_jobs=self.n_jobs,
             )
         else:
-            if np.issubdtype(X.dtype, float):
-                preprocessor = numeric_preprocessor
-            elif np.issubdtype(X.dtype, int):
+            if np.issubdtype(X.dtype, np.datetime64):
+                preprocessor = datetime_preprocessor
+            elif np.issubdtype(X.dtype, np.number):
                 preprocessor = ColumnTransformer(
                     [
                         ("numeric_preprocessor", numeric_preprocessor, numeric),

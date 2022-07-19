@@ -71,6 +71,8 @@ Float and integer columns are defined as numeric if the number of unique values 
 
 String/object/categorical columns are assumed to be categorical.
 
+Datetime features are processed separately with a custom encoder.
+
 For categorical features, high and low cardinality is defined by the `cardinality_threshold` parameter. Only low cardinality categorical features are one-hot encoded.
 
 ## Ensembles

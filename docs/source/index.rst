@@ -27,4 +27,5 @@ Or read the API documentation (automatically generated from source code) for the
    estimators.rst
    plot.rst
    plugins.rst
+   custom_preprocessors.rst
    utils.rst
