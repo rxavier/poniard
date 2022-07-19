@@ -603,6 +603,7 @@ class PoniardBaseEstimator(ABC):
             numeric = assigned_types["numeric"]
             categorical_high = assigned_types["categorical_high"]
             categorical_low = assigned_types["categorical_low"]
+            datetime = assigned_types["datetime"]
         else:
             numeric, categorical_high, categorical_low, datetime = self._infer_dtypes()
 
