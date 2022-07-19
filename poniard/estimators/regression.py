@@ -2,8 +2,8 @@ from typing import List, Optional, Union, Callable, Dict, Any, Sequence
 
 from sklearn.base import RegressorMixin, TransformerMixin
 from sklearn.pipeline import Pipeline
-from sklearn.model_selection import BaseCrossValidator, BaseShuffleSplit, KFold
-
+from sklearn.model_selection._split import BaseCrossValidator, BaseShuffleSplit
+from sklearn.model_selection import KFold
 from sklearn.linear_model import LinearRegression, ElasticNet
 from sklearn.svm import LinearSVR
 from sklearn.neighbors import KNeighborsRegressor

@@ -3,12 +3,8 @@ from typing import List, Optional, Union, Callable, Dict, Any, Sequence
 import numpy as np
 from sklearn.base import ClassifierMixin, TransformerMixin
 from sklearn.pipeline import Pipeline
-from sklearn.model_selection import (
-    BaseCrossValidator,
-    BaseShuffleSplit,
-    KFold,
-    StratifiedKFold,
-)
+from sklearn.model_selection._split import BaseCrossValidator, BaseShuffleSplit
+from sklearn.model_selection import KFold, StratifiedKFold
 from sklearn.linear_model import LogisticRegression
 from sklearn.naive_bayes import GaussianNB
 from sklearn.svm import LinearSVC
