@@ -8,15 +8,20 @@ from sklearn.base import BaseEstimator, TransformerMixin
 
 
 class DateLevel(Enum):
+    """An enum representing different date levels."""
+
     YEAR = "year"
+    QUARTER = "quarter"
     MONTH = "month"
     DAY = "day"
-    WEEKDAY = "weekday"
     HOUR = "hour"
     MINUTE = "minute"
     SECOND = "second"
     MICROSECOND = "microsecond"
     NANOSECOND = "nanosecond"
+    WEEKDAY = "weekday"
+    DAYOFYEAR = "dayofyear"
+    DAYSINMONTH = "daysinmonth"
 
 
 class DatetimeEncoder(BaseEstimator, TransformerMixin):
