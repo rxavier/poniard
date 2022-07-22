@@ -1,6 +1,6 @@
 # This implementation of TargetEncoder is 95% taken from Dirty Cat
 # https://github.com/dirty-cat/dirty_cat/blob/master/dirty_cat/target_encoder.py
-
+from __future__ import annotations
 import collections
 from typing import Union, List
 
@@ -29,45 +29,45 @@ def check_input(X):
 
 
 class TargetEncoder(BaseEstimator, TransformerMixin):
-    """Encode categorical features as a numeric array given a target vector."""
+    """Encode categorical features as a numeric array given a target vector.
+
+    Each category is encoded given the effect that it has in the
+    target variable y. The method considers that categorical
+    variables can present rare categories. It represents each category by the
+    probability of y conditional on this category.
+    In addition it takes an empirical Bayes approach to shrink the estimate.
+
+    Parameters
+    ----------
+    task :
+        The type of classification/regression problem.
+    handle_unknown :
+        Whether to raise an error or ignore if a unknown categorical feature is
+        present during transform (default is to raise). When this parameter
+        is set to 'ignore' and an unknown category is encountered during
+        transform, the resulting one-hot encoded columns for this feature
+        will be all zeros.
+    handle_missing :
+        Whether to raise an error or impute with blank string '' if missing
+        values (NaN) are present during fit (default is to impute).
+        When this parameter is set to '', and a missing value is encountered
+        during fit_transform, the resulting encoded columns for this feature
+        will be all zeros.
+
+    Attributes
+    ----------
+    categories_ :
+        The categories of each feature determined during fitting
+        (in order corresponding with output of :meth:`transform`).
+
+    References
+    -----------
+    For more details, see Micci-Barreca, 2001: A preprocessing scheme for
+    high-cardinality categorical attributes in classification and prediction
+    problems.
+    """
 
     def __init__(self, task: str, handle_unknown="error", handle_missing=""):
-        """
-        Each category is encoded given the effect that it has in the
-        target variable y. The method considers that categorical
-        variables can present rare categories. It represents each category by the
-        probability of y conditional on this category.
-        In addition it takes an empirical Bayes approach to shrink the estimate.
-
-        Parameters
-        ----------
-        task :
-            The type of classification/regression problem.
-        handle_unknown :
-            Whether to raise an error or ignore if a unknown categorical feature is
-            present during transform (default is to raise). When this parameter
-            is set to 'ignore' and an unknown category is encountered during
-            transform, the resulting one-hot encoded columns for this feature
-            will be all zeros.
-        handle_missing :
-            Whether to raise an error or impute with blank string '' if missing
-            values (NaN) are present during fit (default is to impute).
-            When this parameter is set to '', and a missing value is encountered
-            during fit_transform, the resulting encoded columns for this feature
-            will be all zeros.
-
-        Attributes
-        ----------
-        categories_ :
-            The categories of each feature determined during fitting
-            (in order corresponding with output of ``transform``).
-
-        References
-        -----------
-        For more details, see Micci-Barreca, 2001: A preprocessing scheme for
-        high-cardinality categorical attributes in classification and prediction
-        problems.
-        """
         self.task = task
         self.handle_unknown = handle_unknown
         self.handle_missing = handle_missing
@@ -82,19 +82,20 @@ class TargetEncoder(BaseEstimator, TransformerMixin):
         self,
         X: Union[pd.DataFrame, np.ndarray, List],
         y: Union[pd.DataFrame, np.ndarray, List],
-    ):
+    ) -> TargetEncoder:
         """Fit the TargetEncoder to X.
 
         Parameters
         ----------
-        X : array-like, shape [n_samples, n_features]
+        X :
             The data to determine the categories of each feature.
-        y : array
+        y :
             The associated target vector.
 
         Returns
         -------
-        self
+        TargetEncoder
+            Fitted TargetEncoder.
         """
         type_of_target_ = type_of_target(y)
         # sklearn's type_of_target incorrectly assumes that int-like float arrays are always
@@ -189,7 +190,7 @@ class TargetEncoder(BaseEstimator, TransformerMixin):
             The data to encode.
         Returns
         -------
-        X_new :
+        X :
             Transformed input.
         """
         check_is_fitted(self, attributes=["n_features_in_"])
@@ -292,6 +293,7 @@ class TargetEncoder(BaseEstimator, TransformerMixin):
         return out
 
     def get_feature_names_out(self, input_features=None) -> List[str]:
+        """Get feature names for output."""
         colnames_ = getattr(self, "colnames_", None)
         if colnames_ is not None:
             if self.type_of_target_ in ["continuous", "binary"]:

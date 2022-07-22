@@ -71,6 +71,8 @@ Float and integer columns are defined as numeric if the number of unique values 
 
 String/object/categorical columns are assumed to be categorical.
 
+Datetime features are processed separately with a custom encoder.
+
 For categorical features, high and low cardinality is defined by the `cardinality_threshold` parameter. Only low cardinality categorical features are one-hot encoded.
 
 ## Ensembles
@@ -152,7 +154,7 @@ Everything in Poniard is run with cross validation by default, and in fact no re
 A dummy estimator is always included in model comparisons so you can gauge whether your model is better than a dumb strategy.
 
 ## Fast TTFM (time to first model)
-Preprocessing tries to ensure that your models run successfully without significant data munging. By default, Poniard imputes missing data and one-hot encodes (or ordinal encodes) inferred categorical variables, which in most cases is enough for scikit-learn algorithms to fit without complaints.
+Preprocessing tries to ensure that your models run successfully without significant data munging. By default, Poniard imputes missing data and one-hot encodes or target encodes (depending on cardinality) inferred categorical variables, which in most cases is enough for scikit-learn algorithms to fit without complaints.
 
 # Similar projects
 Poniard is not a groundbreaking idea, and a number of libraries follow a similar approach.

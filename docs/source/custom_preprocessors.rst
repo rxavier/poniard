@@ -7,3 +7,11 @@ Datetime
    :members:
    :undoc-members:
    :show-inheritance:
+
+Categorical
+-----------
+.. automodule:: poniard.preprocessing.categorical
+   :members:
+   :undoc-members:
+   :show-inheritance:
+   :exclude-members: check_input
