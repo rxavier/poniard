@@ -37,7 +37,7 @@ from sklearn.model_selection import (
 from sklearn.impute import SimpleImputer
 from sklearn.exceptions import UndefinedMetricWarning
 
-from poniard.preprocessing import DatetimeEncoder
+from poniard.preprocessing import DatetimeEncoder, TargetEncoder
 from poniard.utils import cramers_v
 from poniard.utils import GRID
 from poniard.plot import PoniardPlotFactory
@@ -59,6 +59,9 @@ class PoniardBaseEstimator(ABC):
         encode categorical data.
     scaler :
         Numeric scaler method. Either "standard", "minmax", "robust" or scikit-learn Transformer.
+    high_cardinality_encoder :
+        Encoder for categorical features with high cardinality. Either "target" or "ordinal",
+        or scikit-learn Transformer.
     numeric_imputer :
         Imputation method. Either "simple", "iterative" or scikit-learn Transformer.
     custom_preprocessor :
@@ -115,6 +118,7 @@ class PoniardBaseEstimator(ABC):
         metrics: Optional[Union[str, Dict[str, Callable], Sequence[str]]] = None,
         preprocess: bool = True,
         scaler: Optional[Union[str, TransformerMixin]] = None,
+        high_cardinality_encoder: Optional[Union[str, TransformerMixin]] = None,
         numeric_imputer: Optional[Union[str, TransformerMixin]] = None,
         custom_preprocessor: Union[None, Pipeline, TransformerMixin] = None,
         numeric_threshold: Union[int, float] = 0.1,
@@ -146,6 +150,7 @@ class PoniardBaseEstimator(ABC):
         self.metrics = metrics
         self.preprocess = preprocess
         self.scaler = scaler or "standard"
+        self.high_cardinality_encoder = high_cardinality_encoder or "target"
         self.numeric_imputer = numeric_imputer or "simple"
         self.numeric_threshold = numeric_threshold
         self.custom_preprocessor = custom_preprocessor
@@ -613,6 +618,19 @@ class PoniardBaseEstimator(ABC):
         else:
             scaler = RobustScaler()
 
+        if isinstance(self.high_cardinality_encoder, TransformerMixin):
+            high_cardinality_encoder = self.high_cardinality_encoder
+        elif self.high_cardinality_encoder == "target":
+            if self._check_estimator_type() == "classifier":
+                task = "classification"
+            else:
+                task = "regression"
+            high_cardinality_encoder = TargetEncoder(task=task)
+        else:
+            high_cardinality_encoder = OrdinalEncoder(
+                handle_unknown="use_encoded_value", unknown_value=99999
+            )
+
         cat_date_imputer = SimpleImputer(strategy="most_frequent")
 
         if isinstance(self.numeric_imputer, TransformerMixin):
@@ -641,10 +659,8 @@ class PoniardBaseEstimator(ABC):
             [
                 ("categorical_imputer", cat_date_imputer),
                 (
-                    "ordinal_encoder",
-                    OrdinalEncoder(
-                        handle_unknown="use_encoded_value", unknown_value=99999
-                    ),
+                    "high_cardinality_encoder",
+                    high_cardinality_encoder,
                 ),
             ],
         )

@@ -42,6 +42,9 @@ class PoniardClassifier(PoniardBaseEstimator):
         encode categorical data.
     scaler :
         Numeric scaler method. Either "standard", "minmax", "robust" or scikit-learn Transformer.
+    high_cardinality_encoder :
+        Encoder for categorical features with high cardinality. Either "target" or "ordinal",
+        or scikit-learn Transformer.
     numeric_imputer :
         Imputation method. Either "simple", "iterative" or scikit-learn Transformer.
     custom_preprocessor :
@@ -94,6 +97,7 @@ class PoniardClassifier(PoniardBaseEstimator):
         metrics: Optional[Union[str, Dict[str, Callable], Sequence[str]]] = None,
         preprocess: bool = True,
         scaler: Optional[Union[str, TransformerMixin]] = None,
+        high_cardinality_encoder: Optional[Union[str, TransformerMixin]] = None,
         numeric_imputer: Optional[Union[str, TransformerMixin]] = None,
         custom_preprocessor: Union[None, Pipeline, TransformerMixin] = None,
         numeric_threshold: Union[int, float] = 0.1,
@@ -111,6 +115,7 @@ class PoniardClassifier(PoniardBaseEstimator):
             metrics=metrics,
             preprocess=preprocess,
             scaler=scaler,
+            high_cardinality_encoder=high_cardinality_encoder,
             numeric_imputer=numeric_imputer,
             numeric_threshold=numeric_threshold,
             custom_preprocessor=custom_preprocessor,
