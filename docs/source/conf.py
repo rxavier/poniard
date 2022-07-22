@@ -74,7 +74,7 @@ html_logo = "_static/logo.png"
 html_theme_options = {
     "navbar_title": "Poniard",
     "navbar_site_name": "Sections",
-    "bootswatch_theme": "lumen",
+    "bootswatch_theme": "united",
 }
 
 
