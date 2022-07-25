@@ -586,6 +586,10 @@ class PoniardBaseEstimator(ABC):
             pd.DataFrame.from_dict(self._inferred_dtypes, orient="index").T.fillna(""),
             sep="\n",
         )
+        # Don't build the preprocessor if no preprocessing should be done or a
+        # custom preprocessor was set.
+        if not self.preprocess or self.custom_preprocessor is not None:
+            return self
         self.preprocessor_ = self._build_preprocessor(assigned_types=assigned_types)
         return self
 
@@ -727,6 +731,9 @@ class PoniardBaseEstimator(ABC):
                     ],
                     n_jobs=self.n_jobs,
                 )
+        # If preprocessor is a pipeline with a single transformer, use the transformer directly.
+        if isinstance(preprocessor, Pipeline) and len(preprocessor.named_steps) == 1:
+            preprocessor = list(preprocessor.named_steps.values())[0]
         return preprocessor
 
     @abstractmethod
