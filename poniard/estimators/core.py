@@ -679,7 +679,7 @@ class PoniardBaseEstimator(ABC):
             ],
         )
         if isinstance(X, pd.DataFrame):
-            preprocessor = ColumnTransformer(
+            type_preprocessor = ColumnTransformer(
                 [
                     ("numeric_preprocessor", numeric_preprocessor, numeric),
                     (
@@ -698,9 +698,9 @@ class PoniardBaseEstimator(ABC):
             )
         else:
             if np.issubdtype(X.dtype, np.datetime64):
-                preprocessor = datetime_preprocessor
+                type_preprocessor = datetime_preprocessor
             elif np.issubdtype(X.dtype, np.number):
-                preprocessor = ColumnTransformer(
+                type_preprocessor = ColumnTransformer(
                     [
                         ("numeric_preprocessor", numeric_preprocessor, numeric),
                         (
@@ -717,7 +717,7 @@ class PoniardBaseEstimator(ABC):
                     n_jobs=self.n_jobs,
                 )
             else:
-                preprocessor = ColumnTransformer(
+                type_preprocessor = ColumnTransformer(
                     [
                         (
                             "categorical_low_preprocessor",
@@ -732,13 +732,22 @@ class PoniardBaseEstimator(ABC):
                     ],
                     n_jobs=self.n_jobs,
                 )
+        # Some transformers might not be applied to any features, so we remove them.
+        non_empty_transformers = [
+            x for x in type_preprocessor.transformers if x[2] != []
+        ]
+        type_preprocessor.transformers = non_empty_transformers
+        # If type_preprocessor has a single transformer, use the transformer directly.
+        # This transformer generally is a Pipeline.
+        if len(type_preprocessor.transformers) == 1:
+            type_preprocessor = type_preprocessor.transformers[0][1]
         preprocessor = Pipeline(
-            [("preprocessor", preprocessor), ("remove_invariant", VarianceThreshold())],
+            [
+                ("type_preprocessor", type_preprocessor),
+                ("remove_invariant", VarianceThreshold()),
+            ],
             memory=self._memory,
         )
-        # If preprocessor is a pipeline with a single transformer, use the transformer directly.
-        if isinstance(preprocessor, Pipeline) and len(preprocessor.named_steps) == 1:
-            preprocessor = list(preprocessor.named_steps.values())[0]
         return preprocessor
 
     @abstractmethod
