@@ -19,6 +19,7 @@ from sklearn.preprocessing import (
     OneHotEncoder,
     OrdinalEncoder,
 )
+from sklearn.feature_selection import VarianceThreshold
 from sklearn.ensemble import (
     VotingClassifier,
     VotingRegressor,
@@ -731,6 +732,10 @@ class PoniardBaseEstimator(ABC):
                     ],
                     n_jobs=self.n_jobs,
                 )
+        preprocessor = Pipeline(
+            [("preprocessor", preprocessor), ("remove_invariant", VarianceThreshold())],
+            memory=self._memory,
+        )
         # If preprocessor is a pipeline with a single transformer, use the transformer directly.
         if isinstance(preprocessor, Pipeline) and len(preprocessor.named_steps) == 1:
             preprocessor = list(preprocessor.named_steps.values())[0]
