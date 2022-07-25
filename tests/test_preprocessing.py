@@ -8,7 +8,7 @@ from poniard import PoniardClassifier
 
 
 @pytest.mark.parametrize(
-    "X,preprocess,scaler,numeric_imputer,include_preprocessor",
+    "X,preprocess,scaler,numeric_imputer,high_cardinality_encoder,include_preprocessor",
     [
         (
             pd.DataFrame(
@@ -16,11 +16,13 @@ from poniard import PoniardClassifier
                     "A": [4, 3, 1, -1, np.nan],
                     "B": [-2, np.nan, 3, 7, 1],
                     "C": list("abcde"),
+                    "D": pd.date_range("2020-01-01", freq="M", periods=5),
                 }
             ),
             True,
             None,
             None,
+            "target",
             True,
         ),
         (
@@ -29,11 +31,13 @@ from poniard import PoniardClassifier
                     "A": [4, 200, 1, -1, np.nan],
                     "B": [-2, np.nan, 3, 7, 1],
                     "C": list("abcde"),
+                    "D": pd.date_range("2020-01-01", freq="H", periods=5),
                 }
             ),
             True,
             "standard",
             "iterative",
+            "ordinal",
             True,
         ),
         (
@@ -42,11 +46,13 @@ from poniard import PoniardClassifier
                     "A": [4, 200, 1, -1, np.nan],
                     "B": [-2, np.nan, 3, 7, 1],
                     "C": list("abcde"),
+                    "D": pd.date_range("2020-01-01", freq="Y", periods=5),
                 }
             ),
             True,
             "robust",
             "simple",
+            None,
             True,
         ),
         (
@@ -55,11 +61,13 @@ from poniard import PoniardClassifier
                     "A": [4, 200, 1, -1, np.nan],
                     "B": [-2, np.nan, 3, 7, 1],
                     "C": list("abcde"),
+                    "D": pd.date_range("2020-01-01", freq="MS", periods=5),
                 }
             ),
             True,
             "minmax",
             None,
+            "target",
             True,
         ),
         (
@@ -67,18 +75,25 @@ from poniard import PoniardClassifier
             False,
             None,
             None,
+            "ordinal",
             False,
         ),
     ],
 )
 def test_preprocessing_classifier(
-    X, preprocess, scaler, numeric_imputer, include_preprocessor
+    X,
+    preprocess,
+    scaler,
+    numeric_imputer,
+    high_cardinality_encoder,
+    include_preprocessor,
 ):
     estimator = PoniardClassifier(
         estimators=[LogisticRegression()],
         preprocess=preprocess,
         scaler=scaler,
         numeric_imputer=numeric_imputer,
+        high_cardinality_encoder=high_cardinality_encoder,
         cv=2,
         random_state=0,
     )
