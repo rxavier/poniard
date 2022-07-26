@@ -1,4 +1,5 @@
 from __future__ import annotations
+from multiprocessing.sharedctypes import Value
 import warnings
 import itertools
 import inspect
@@ -749,6 +750,61 @@ class PoniardBaseEstimator(ABC):
             memory=self._memory,
         )
         return preprocessor
+
+    def add_preprocessing_step(
+        self,
+        step: Union[
+            Union[Pipeline, TransformerMixin, ColumnTransformer],
+            Tuple[str, Union[Pipeline, TransformerMixin, ColumnTransformer]],
+        ],
+        position: Union[str, int] = "end",
+    ) -> Pipeline:
+        """Add a preprocessing step to :attr:`preprocessor_`.
+
+        Parameters
+        ----------
+        step :
+            A tuple of (str, transformer) or a scikit-learn transformer. Note that
+            the transformer can also be a Pipeline or ColumnTransformer.
+        position :
+            Either an integer denoting before which step in the existing preprocessing pipeline
+            the new step should be added, or 'start' or 'end'.
+
+        Returns
+        -------
+        PoniardBaseEstimator
+            self
+        """
+        if not isinstance(position, int) and position not in ["start", "end"]:
+            raise ValueError("`position` can only be int, 'start' or 'end'.")
+        existing_preprocessor = self.preprocessor_
+        if not isinstance(step, Tuple):
+            step = (f"step_{step.__class__.__name__.lower()}", step)
+        if isinstance(position, str) and isinstance(existing_preprocessor, Pipeline):
+            if position == "start":
+                position = 0
+            elif position == "end":
+                position = len(existing_preprocessor.steps)
+        if isinstance(existing_preprocessor, Pipeline):
+            existing_preprocessor.steps.insert(position, step)
+            return self
+        else:
+            if isinstance(position, int):
+                raise ValueError(
+                    "If the existing preprocessor is not a Pipeline, only 'start' and "
+                    "'end' are accepted as `position`."
+                )
+            if position == "start":
+                self.preprocessor_ = Pipeline(
+                    [step, ("initial_preprocessor", self.preprocessor_)],
+                    memory=self._memory,
+                )
+            else:
+                self.preprocessor_ = Pipeline(
+                    [("initial_preprocessor", self.preprocessor_), step],
+                    memory=self._memory,
+                )
+            return self
 
     @abstractmethod
     def _build_metrics(self) -> Union[Dict[str, Callable], List[str]]:
