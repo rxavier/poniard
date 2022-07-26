@@ -3,8 +3,12 @@ import pandas as pd
 import pytest
 from sklearn.linear_model import LogisticRegression
 from sklearn.base import BaseEstimator
+from sklearn.preprocessing import StandardScaler
+from sklearn.impute import SimpleImputer
+from sklearn.pipeline import make_pipeline, Pipeline
+from sklearn.feature_selection import SelectKBest, f_regression
 
-from poniard import PoniardClassifier
+from poniard import PoniardClassifier, PoniardRegressor
 
 
 @pytest.mark.parametrize(
@@ -108,3 +112,34 @@ def test_preprocessing_classifier(
         ),
         BaseEstimator,
     )
+
+
+@pytest.mark.parametrize(
+    "new_step,position,existing_step",
+    [
+        (SelectKBest(f_regression, k=2), 0, None),
+        (
+            make_pipeline(SimpleImputer(), SelectKBest(f_regression, k=2)),
+            "start",
+            StandardScaler(),
+        ),
+        (
+            make_pipeline(SimpleImputer(), SelectKBest(f_regression, k=2)),
+            "end",
+            make_pipeline(SimpleImputer(), StandardScaler()),
+        ),
+    ],
+)
+def test_add_step(new_step, position, existing_step):
+    X = pd.DataFrame(
+        {
+            "A": [4, 3, 1, -1, np.nan],
+            "B": [-2, np.nan, 3, 7, 1],
+            "C": list("abcde"),
+            "D": pd.date_range("2020-01-01", freq="M", periods=5),
+        }
+    )
+    y = np.random.uniform(0, 1, size=5)
+    reg = PoniardRegressor(custom_preprocessor=existing_step).setup(X, y)
+    reg.add_preprocessing_step(new_step, position)
+    assert isinstance(reg.preprocessor_, Pipeline)
