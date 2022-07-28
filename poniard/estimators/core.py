@@ -38,6 +38,7 @@ from sklearn.model_selection import (
 )
 from sklearn.impute import SimpleImputer
 from sklearn.exceptions import UndefinedMetricWarning
+from sklearn.utils.multiclass import type_of_target
 
 from poniard.preprocessing import DatetimeEncoder, TargetEncoder
 from poniard.utils import cramers_v
@@ -624,14 +625,25 @@ class PoniardBaseEstimator(ABC):
         else:
             scaler = RobustScaler()
 
+        target_is_multilabel = type_of_target(self.y) == "multilabel-indicator"
         if isinstance(self.high_cardinality_encoder, TransformerMixin):
             high_cardinality_encoder = self.high_cardinality_encoder
         elif self.high_cardinality_encoder == "target":
-            if self._check_estimator_type() == "classifier":
-                task = "classification"
+            if target_is_multilabel:
+                warnings.warn(
+                    "TargetEncoder is not supported for multilabel targets. "
+                    "Switching to OrdinalEncoder.",
+                    stacklevel=2,
+                )
+                high_cardinality_encoder = OrdinalEncoder(
+                    handle_unknown="use_encoded_value", unknown_value=99999
+                )
             else:
-                task = "regression"
-            high_cardinality_encoder = TargetEncoder(task=task)
+                if self._check_estimator_type() == "classifier":
+                    task = "classification"
+                else:
+                    task = "regression"
+                high_cardinality_encoder = TargetEncoder(task=task)
         else:
             high_cardinality_encoder = OrdinalEncoder(
                 handle_unknown="use_encoded_value", unknown_value=99999
