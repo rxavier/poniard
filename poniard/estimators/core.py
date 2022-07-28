@@ -594,6 +594,10 @@ class PoniardBaseEstimator(ABC):
         if not self.preprocess or self.custom_preprocessor is not None:
             return self
         self.preprocessor_ = self._build_preprocessor(assigned_types=assigned_types)
+        # TODO: Clearing the `_fitted_estimator_ids` attr is a hacky way of ensuring that doing
+        # [fit -> add_preprocessing_step -> fit] actually fits models. Ideally, build the
+        # preprocessor + estimator pipeline during setup and save those IDs when calling fit.
+        self._fitted_estimator_ids = []
         self._run_plugin_methods("on_setup_end")
         return self
 
@@ -806,7 +810,6 @@ class PoniardBaseEstimator(ABC):
                 position = len(existing_preprocessor.steps)
         if isinstance(existing_preprocessor, Pipeline):
             existing_preprocessor.steps.insert(position, step)
-            return self
         else:
             if isinstance(position, int):
                 raise ValueError(
@@ -823,8 +826,12 @@ class PoniardBaseEstimator(ABC):
                     [("initial_preprocessor", self.preprocessor_), step],
                     memory=self._memory,
                 )
-            self._run_plugin_methods("on_setup_end")
-            return self
+        # TODO: Clearing the `_fitted_estimator_ids` attr is a hacky way of ensuring that doing
+        # [fit -> add_preprocessing_step -> fit] actually fits models. Ideally, build the
+        # preprocessor + estimator pipeline during setup and save those IDs when calling fit.
+        self._fitted_estimator_ids = []
+        self._run_plugin_methods("on_setup_end")
+        return self
 
     @abstractmethod
     def _build_metrics(self) -> Union[Dict[str, Callable], List[str]]:
