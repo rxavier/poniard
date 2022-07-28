@@ -629,6 +629,7 @@ class PoniardBaseEstimator(ABC):
         target_is_multilabel = type_of_target(self.y) in [
             "multilabel-indicator",
             "multiclass-multioutput",
+            "continuous-multioutput",
         ]
         if isinstance(self.high_cardinality_encoder, TransformerMixin):
             high_cardinality_encoder = self.high_cardinality_encoder
