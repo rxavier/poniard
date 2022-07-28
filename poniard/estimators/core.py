@@ -648,7 +648,9 @@ class PoniardBaseEstimator(ABC):
                     task = "classification"
                 else:
                     task = "regression"
-                high_cardinality_encoder = TargetEncoder(task=task)
+                high_cardinality_encoder = TargetEncoder(
+                    task=task, handle_unknown="ignore"
+                )
         else:
             high_cardinality_encoder = OrdinalEncoder(
                 handle_unknown="use_encoded_value", unknown_value=99999
