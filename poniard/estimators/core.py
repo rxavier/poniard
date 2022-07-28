@@ -595,7 +595,7 @@ class PoniardBaseEstimator(ABC):
             return self
         self.preprocessor_ = self._build_preprocessor(assigned_types=assigned_types)
         # TODO: Clearing the `_fitted_estimator_ids` attr is a hacky way of ensuring that doing
-        # [fit -> add_preprocessing_step -> fit] actually fits models. Ideally, build the
+        # [fit -> reassign_types -> fit] actually fits models. Ideally, build the
         # preprocessor + estimator pipeline during setup and save those IDs when calling fit.
         self._fitted_estimator_ids = []
         self._run_plugin_methods("on_setup_end")
