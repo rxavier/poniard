@@ -594,6 +594,7 @@ class PoniardBaseEstimator(ABC):
         if not self.preprocess or self.custom_preprocessor is not None:
             return self
         self.preprocessor_ = self._build_preprocessor(assigned_types=assigned_types)
+        self._run_plugin_methods("on_setup_end")
         return self
 
     def _build_preprocessor(
@@ -819,6 +820,7 @@ class PoniardBaseEstimator(ABC):
                     [("initial_preprocessor", self.preprocessor_), step],
                     memory=self._memory,
                 )
+            self._run_plugin_methods("on_setup_end")
             return self
 
     @abstractmethod
