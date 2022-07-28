@@ -625,13 +625,16 @@ class PoniardBaseEstimator(ABC):
         else:
             scaler = RobustScaler()
 
-        target_is_multilabel = type_of_target(self.y) == "multilabel-indicator"
+        target_is_multilabel = type_of_target(self.y) in [
+            "multilabel-indicator",
+            "multiclass-multioutput",
+        ]
         if isinstance(self.high_cardinality_encoder, TransformerMixin):
             high_cardinality_encoder = self.high_cardinality_encoder
         elif self.high_cardinality_encoder == "target":
             if target_is_multilabel:
                 warnings.warn(
-                    "TargetEncoder is not supported for multilabel targets. "
+                    "TargetEncoder is not supported for multilabel or multioutput targets. "
                     "Switching to OrdinalEncoder.",
                     stacklevel=2,
                 )
