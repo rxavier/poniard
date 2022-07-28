@@ -1,5 +1,6 @@
 # This implementation of TargetEncoder is 95% taken from Dirty Cat
 # https://github.com/dirty-cat/dirty_cat/blob/master/dirty_cat/target_encoder.py
+
 from __future__ import annotations
 import collections
 from typing import Union, List
@@ -31,24 +32,27 @@ def check_input(X):
 class TargetEncoder(BaseEstimator, TransformerMixin):
     """Encode categorical features as a numeric array given a target vector.
 
-    Each category is encoded given the effect that it has in the
-    target variable y. The method considers that categorical
-    variables can present rare categories. It represents each category by the
-    probability of y conditional on this category.
-    In addition it takes an empirical Bayes approach to shrink the estimate.
+    Each category in a feature is encoded considering the effect that it has in the
+    target variable. In general, it takes the ratio between the mean of the target
+    for a given category and the mean of the target. In addition, it takes an empirical Bayes
+    approach to shrink the estimate.
+
+    In the case of a multilabel target, the encodings are computed separately for each label,
+    meaning that each feature will be expanded to as many unique levels in the target.
+
+    Note that implementation and docstrings are largely taken from Dirty Cat.
 
     Parameters
     ----------
     task :
-        The type of classification/regression problem.
+        The type of problem. Either "classification" or "regression".
     handle_unknown :
-        Whether to raise an error or ignore if a unknown categorical feature is
-        present during transform (default is to raise). When this parameter
+        Either 'error' or 'ignore'. Whether to raise an error or ignore if a unknown
+        categorical feature is present during transform (default is to raise). When this parameter
         is set to 'ignore' and an unknown category is encountered during
-        transform, the resulting one-hot encoded columns for this feature
-        will be all zeros.
+        transform, it well be set to the mean of the target.
     handle_missing :
-        Whether to raise an error or impute with blank string '' if missing
+        Either 'error' or ''. Whether to raise an error or impute with blank string '' if missing
         values (NaN) are present during fit (default is to impute).
         When this parameter is set to '', and a missing value is encountered
         during fit_transform, the resulting encoded columns for this feature
@@ -57,7 +61,7 @@ class TargetEncoder(BaseEstimator, TransformerMixin):
     Attributes
     ----------
     categories_ :
-        The categories of each feature determined during fitting
+        The categories of each feature determined during fit
         (in order corresponding with output of :meth:`transform`).
 
     References
@@ -109,6 +113,7 @@ class TargetEncoder(BaseEstimator, TransformerMixin):
             self.colnames_ = X.columns
         X = check_input(X)
         self.n_features_in_ = X.shape[1]
+        X = X.astype(str)
         if self.handle_missing not in ["error", ""]:
             template = "handle_missing should be either 'error' or " "'', got %s"
             raise ValueError(template % self.handle_missing)
@@ -119,34 +124,32 @@ class TargetEncoder(BaseEstimator, TransformerMixin):
                     "handle_missing='' to encode with missing values"
                 )
                 raise ValueError(msg)
-            if self.handle_missing != "error":
+            else:
                 X = X.fillna(self.handle_missing)
         elif not hasattr(X, "dtype") and isinstance(X, list):
             X = np.asarray(X, dtype=object)
-
         if hasattr(X, "dtype"):
             mask = _object_dtype_isnan(X)
-            if X.dtype.kind == "O" and mask.any():
+            if mask.any():
                 if self.handle_missing == "error":
                     msg = (
                         "Found missing values in input data; set "
                         "handle_missing='' to encode with missing values"
                     )
                     raise ValueError(msg)
-                if self.handle_missing != "error":
+                else:
                     X[mask] = self.handle_missing
 
         if self.handle_unknown not in ["error", "ignore"]:
             template = "handle_unknown should be either 'error' or " "'ignore', got %s"
             raise ValueError(template % self.handle_unknown)
-
         X_temp = check_array(X, dtype=None)
         if not hasattr(X, "dtype") and np.issubdtype(X_temp.dtype, np.str_):
             X = check_array(X, dtype=np.object)
         else:
             X = X_temp
 
-        n_samples, n_features = X.shape
+        n_features = X.shape[1]
 
         self._label_encoders_ = [LabelEncoder() for _ in range(n_features)]
 
@@ -200,6 +203,7 @@ class TargetEncoder(BaseEstimator, TransformerMixin):
                 f"Number of features in the input data ({X.shape[1]}) does not match the number of features "
                 f"seen during fit ({self.n_features_in_})."
             )
+        X = X.astype(str)
         if hasattr(X, "iloc") and X.isna().values.any():
             if self.handle_missing == "error":
                 msg = (
@@ -207,21 +211,20 @@ class TargetEncoder(BaseEstimator, TransformerMixin):
                     "handle_missing='' to encode with missing values"
                 )
                 raise ValueError(msg)
-            if self.handle_missing != "error":
+            else:
                 X = X.fillna(self.handle_missing)
         elif not hasattr(X, "dtype") and isinstance(X, list):
             X = np.asarray(X, dtype=object)
-
         if hasattr(X, "dtype"):
             mask = _object_dtype_isnan(X)
-            if X.dtype.kind == "O" and mask.any():
+            if mask.any():
                 if self.handle_missing == "error":
                     msg = (
                         "Found missing values in input data; set "
                         "handle_missing='' to encode with missing values"
                     )
                     raise ValueError(msg)
-                if self.handle_missing != "error":
+                else:
                     X[mask] = self.handle_missing
 
         X_temp = check_array(X, dtype=None)
@@ -230,7 +233,7 @@ class TargetEncoder(BaseEstimator, TransformerMixin):
         else:
             X = X_temp
 
-        n_samples, n_features = X.shape
+        n_features = X.shape[1]
         X_int = np.zeros_like(X, dtype=int)
         X_mask = np.ones_like(X, dtype=bool)
 

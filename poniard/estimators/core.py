@@ -1,4 +1,5 @@
 from __future__ import annotations
+from multiprocessing.sharedctypes import Value
 import warnings
 import itertools
 import inspect
@@ -19,6 +20,7 @@ from sklearn.preprocessing import (
     OneHotEncoder,
     OrdinalEncoder,
 )
+from sklearn.feature_selection import VarianceThreshold
 from sklearn.ensemble import (
     VotingClassifier,
     VotingRegressor,
@@ -36,6 +38,7 @@ from sklearn.model_selection import (
 )
 from sklearn.impute import SimpleImputer
 from sklearn.exceptions import UndefinedMetricWarning
+from sklearn.utils.multiclass import type_of_target
 
 from poniard.preprocessing import DatetimeEncoder, TargetEncoder
 from poniard.utils import cramers_v
@@ -586,7 +589,16 @@ class PoniardBaseEstimator(ABC):
             pd.DataFrame.from_dict(self._inferred_dtypes, orient="index").T.fillna(""),
             sep="\n",
         )
+        # Don't build the preprocessor if no preprocessing should be done or a
+        # custom preprocessor was set.
+        if not self.preprocess or self.custom_preprocessor is not None:
+            return self
         self.preprocessor_ = self._build_preprocessor(assigned_types=assigned_types)
+        # TODO: Clearing the `_fitted_estimator_ids` attr is a hacky way of ensuring that doing
+        # [fit -> reassign_types -> fit] actually fits models. Ideally, build the
+        # preprocessor + estimator pipeline during setup and save those IDs when calling fit.
+        self._fitted_estimator_ids = []
+        self._run_plugin_methods("on_setup_end")
         return self
 
     def _build_preprocessor(
@@ -618,14 +630,31 @@ class PoniardBaseEstimator(ABC):
         else:
             scaler = RobustScaler()
 
+        target_is_multilabel = type_of_target(self.y) in [
+            "multilabel-indicator",
+            "multiclass-multioutput",
+            "continuous-multioutput",
+        ]
         if isinstance(self.high_cardinality_encoder, TransformerMixin):
             high_cardinality_encoder = self.high_cardinality_encoder
         elif self.high_cardinality_encoder == "target":
-            if self._check_estimator_type() == "classifier":
-                task = "classification"
+            if target_is_multilabel:
+                warnings.warn(
+                    "TargetEncoder is not supported for multilabel or multioutput targets. "
+                    "Switching to OrdinalEncoder.",
+                    stacklevel=2,
+                )
+                high_cardinality_encoder = OrdinalEncoder(
+                    handle_unknown="use_encoded_value", unknown_value=99999
+                )
             else:
-                task = "regression"
-            high_cardinality_encoder = TargetEncoder(task=task)
+                if self._check_estimator_type() == "classifier":
+                    task = "classification"
+                else:
+                    task = "regression"
+                high_cardinality_encoder = TargetEncoder(
+                    task=task, handle_unknown="ignore"
+                )
         else:
             high_cardinality_encoder = OrdinalEncoder(
                 handle_unknown="use_encoded_value", unknown_value=99999
@@ -674,7 +703,7 @@ class PoniardBaseEstimator(ABC):
             ],
         )
         if isinstance(X, pd.DataFrame):
-            preprocessor = ColumnTransformer(
+            type_preprocessor = ColumnTransformer(
                 [
                     ("numeric_preprocessor", numeric_preprocessor, numeric),
                     (
@@ -693,9 +722,9 @@ class PoniardBaseEstimator(ABC):
             )
         else:
             if np.issubdtype(X.dtype, np.datetime64):
-                preprocessor = datetime_preprocessor
+                type_preprocessor = datetime_preprocessor
             elif np.issubdtype(X.dtype, np.number):
-                preprocessor = ColumnTransformer(
+                type_preprocessor = ColumnTransformer(
                     [
                         ("numeric_preprocessor", numeric_preprocessor, numeric),
                         (
@@ -712,7 +741,7 @@ class PoniardBaseEstimator(ABC):
                     n_jobs=self.n_jobs,
                 )
             else:
-                preprocessor = ColumnTransformer(
+                type_preprocessor = ColumnTransformer(
                     [
                         (
                             "categorical_low_preprocessor",
@@ -727,7 +756,82 @@ class PoniardBaseEstimator(ABC):
                     ],
                     n_jobs=self.n_jobs,
                 )
+        # Some transformers might not be applied to any features, so we remove them.
+        non_empty_transformers = [
+            x for x in type_preprocessor.transformers if x[2] != []
+        ]
+        type_preprocessor.transformers = non_empty_transformers
+        # If type_preprocessor has a single transformer, use the transformer directly.
+        # This transformer generally is a Pipeline.
+        if len(type_preprocessor.transformers) == 1:
+            type_preprocessor = type_preprocessor.transformers[0][1]
+        preprocessor = Pipeline(
+            [
+                ("type_preprocessor", type_preprocessor),
+                ("remove_invariant", VarianceThreshold()),
+            ],
+            memory=self._memory,
+        )
         return preprocessor
+
+    def add_preprocessing_step(
+        self,
+        step: Union[
+            Union[Pipeline, TransformerMixin, ColumnTransformer],
+            Tuple[str, Union[Pipeline, TransformerMixin, ColumnTransformer]],
+        ],
+        position: Union[str, int] = "end",
+    ) -> Pipeline:
+        """Add a preprocessing step to :attr:`preprocessor_`.
+
+        Parameters
+        ----------
+        step :
+            A tuple of (str, transformer) or a scikit-learn transformer. Note that
+            the transformer can also be a Pipeline or ColumnTransformer.
+        position :
+            Either an integer denoting before which step in the existing preprocessing pipeline
+            the new step should be added, or 'start' or 'end'.
+
+        Returns
+        -------
+        PoniardBaseEstimator
+            self
+        """
+        if not isinstance(position, int) and position not in ["start", "end"]:
+            raise ValueError("`position` can only be int, 'start' or 'end'.")
+        existing_preprocessor = self.preprocessor_
+        if not isinstance(step, Tuple):
+            step = (f"step_{step.__class__.__name__.lower()}", step)
+        if isinstance(position, str) and isinstance(existing_preprocessor, Pipeline):
+            if position == "start":
+                position = 0
+            elif position == "end":
+                position = len(existing_preprocessor.steps)
+        if isinstance(existing_preprocessor, Pipeline):
+            existing_preprocessor.steps.insert(position, step)
+        else:
+            if isinstance(position, int):
+                raise ValueError(
+                    "If the existing preprocessor is not a Pipeline, only 'start' and "
+                    "'end' are accepted as `position`."
+                )
+            if position == "start":
+                self.preprocessor_ = Pipeline(
+                    [step, ("initial_preprocessor", self.preprocessor_)],
+                    memory=self._memory,
+                )
+            else:
+                self.preprocessor_ = Pipeline(
+                    [("initial_preprocessor", self.preprocessor_), step],
+                    memory=self._memory,
+                )
+        # TODO: Clearing the `_fitted_estimator_ids` attr is a hacky way of ensuring that doing
+        # [fit -> add_preprocessing_step -> fit] actually fits models. Ideally, build the
+        # preprocessor + estimator pipeline during setup and save those IDs when calling fit.
+        self._fitted_estimator_ids = []
+        self._run_plugin_methods("on_setup_end")
+        return self
 
     @abstractmethod
     def _build_metrics(self) -> Union[Dict[str, Callable], List[str]]:

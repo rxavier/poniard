@@ -64,6 +64,8 @@ pnd.show_results()
 | DummyClassifier                |          0.5   |         0.5     |            0.5  |           0.5    |         0        |          0        |          0    |           0    |  0        |   0        | 0.00288043 |    0.0212384 |
 
 Alternatively, you can also get a nice plot of your different metrics by using the `estimator.plot.metrics()` method.
+
+You may be wondering why does `setup()` exist and need to be called before `fit()` (which in turn doesn't take any arguments, unlike what you're used to in sklearn). Basically, because Poniard performs type inference to build the preprocessor, separating `fit()` allows the user to check whether the preprocessor is correct and to change it if necessary.
 ## Type inference
 Poniard uses some basic heuristics to infer the data types.
 
@@ -83,7 +85,7 @@ Poniard also reports how similar the predictions of the estimators are, so ensem
 By default, it computes this similarity of prediction errors instead of the actual predictions; this helps in building ensembles with good scoring estimators and uncorrelated errors, which in principle and hopefully should lead to a "wisdom of crowds" kind of situation.
 
 ## Hyperparameter optimization
-The `tune_estimator` method can be used to optimize the hyperparameters of a given estimator, either by passing a grid of parameters or using the inbuilt ones available for default estimators. Optionally, the tuned estimator can be added to the list of estimators and scored, which will add it to results tables.
+The `tune_estimator` method can be used to optimize the hyperparameters of a given estimator, either by passing a grid of parameters or using the inbuilt ones available for default estimators. The tuned estimator will be added to the list of estimators and will be scored the next time `fit()` is called.
 
 ```python
 from poniard import PoniardRegressor
@@ -92,7 +94,7 @@ pnd = PoniardRegressor(random_state=0)
 pnd.setup(x, y)
 pnd.fit()
 pnd.show_results()
-pnd.tune_estimator("RandomForestRegressor", mode="grid", add_to_estimators=True)
+pnd.tune_estimator("RandomForestRegressor", mode="grid")
 pnd.fit() # This will only fit new estimators
 pnd.show_results()
 ```
@@ -154,11 +156,11 @@ Everything in Poniard is run with cross validation by default, and in fact no re
 A dummy estimator is always included in model comparisons so you can gauge whether your model is better than a dumb strategy.
 
 ## Fast TTFM (time to first model)
-Preprocessing tries to ensure that your models run successfully without significant data munging. By default, Poniard imputes missing data and one-hot encodes or target encodes (depending on cardinality) inferred categorical variables, which in most cases is enough for scikit-learn algorithms to fit without complaints.
+Preprocessing tries to ensure that your models run successfully without significant data munging. By default, Poniard imputes missing data and one-hot encodes or target encodes (depending on cardinality) inferred categorical variables, which in most cases is enough for scikit-learn algorithms to fit without complaints. Additionally, it scales numeric data and drops features with a single unique value.
 
 # Similar projects
 Poniard is not a groundbreaking idea, and a number of libraries follow a similar approach.
 
 **[LazyPredict](https://github.com/shankarpandala/lazypredict)** is similar in that it runs multiple estimators and provides results for various metrics. Unlike Poniard, by default it tries most scikit-learn estimators, and is not based on cross validation.
 
-**[PyCaret](https://github.com/pycaret/pycaret)** is a whole other beast that includes model explainability, deployment, plotting, NLP, anomaly detection, etc., which leads to a list of dependencies several times larger than Poniard's.
+**[PyCaret](https://github.com/pycaret/pycaret)** is a whole other beast that includes model explainability, deployment, plotting, NLP, anomaly detection, etc., which leads to a list of dependencies several times larger than Poniard's, and a more complicated API.
