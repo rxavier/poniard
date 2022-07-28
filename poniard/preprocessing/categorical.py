@@ -113,6 +113,7 @@ class TargetEncoder(BaseEstimator, TransformerMixin):
             self.colnames_ = X.columns
         X = check_input(X)
         self.n_features_in_ = X.shape[1]
+        X = X.astype(str)
         if self.handle_missing not in ["error", ""]:
             template = "handle_missing should be either 'error' or " "'', got %s"
             raise ValueError(template % self.handle_missing)
@@ -123,34 +124,32 @@ class TargetEncoder(BaseEstimator, TransformerMixin):
                     "handle_missing='' to encode with missing values"
                 )
                 raise ValueError(msg)
-            if self.handle_missing != "error":
+            else:
                 X = X.fillna(self.handle_missing)
         elif not hasattr(X, "dtype") and isinstance(X, list):
             X = np.asarray(X, dtype=object)
-
         if hasattr(X, "dtype"):
             mask = _object_dtype_isnan(X)
-            if X.dtype.kind == "O" and mask.any():
+            if mask.any():
                 if self.handle_missing == "error":
                     msg = (
                         "Found missing values in input data; set "
                         "handle_missing='' to encode with missing values"
                     )
                     raise ValueError(msg)
-                if self.handle_missing != "error":
+                else:
                     X[mask] = self.handle_missing
 
         if self.handle_unknown not in ["error", "ignore"]:
             template = "handle_unknown should be either 'error' or " "'ignore', got %s"
             raise ValueError(template % self.handle_unknown)
-
         X_temp = check_array(X, dtype=None)
         if not hasattr(X, "dtype") and np.issubdtype(X_temp.dtype, np.str_):
             X = check_array(X, dtype=np.object)
         else:
             X = X_temp
 
-        n_samples, n_features = X.shape
+        n_features = X.shape[1]
 
         self._label_encoders_ = [LabelEncoder() for _ in range(n_features)]
 
@@ -204,6 +203,7 @@ class TargetEncoder(BaseEstimator, TransformerMixin):
                 f"Number of features in the input data ({X.shape[1]}) does not match the number of features "
                 f"seen during fit ({self.n_features_in_})."
             )
+        X = X.astype(str)
         if hasattr(X, "iloc") and X.isna().values.any():
             if self.handle_missing == "error":
                 msg = (
@@ -211,21 +211,20 @@ class TargetEncoder(BaseEstimator, TransformerMixin):
                     "handle_missing='' to encode with missing values"
                 )
                 raise ValueError(msg)
-            if self.handle_missing != "error":
+            else:
                 X = X.fillna(self.handle_missing)
         elif not hasattr(X, "dtype") and isinstance(X, list):
             X = np.asarray(X, dtype=object)
-
         if hasattr(X, "dtype"):
             mask = _object_dtype_isnan(X)
-            if X.dtype.kind == "O" and mask.any():
+            if mask.any():
                 if self.handle_missing == "error":
                     msg = (
                         "Found missing values in input data; set "
                         "handle_missing='' to encode with missing values"
                     )
                     raise ValueError(msg)
-                if self.handle_missing != "error":
+                else:
                     X[mask] = self.handle_missing
 
         X_temp = check_array(X, dtype=None)
@@ -234,7 +233,7 @@ class TargetEncoder(BaseEstimator, TransformerMixin):
         else:
             X = X_temp
 
-        n_samples, n_features = X.shape
+        n_features = X.shape[1]
         X_int = np.zeros_like(X, dtype=int)
         X_mask = np.ones_like(X, dtype=bool)
 
