@@ -1,5 +1,6 @@
 # This implementation of TargetEncoder is 95% taken from Dirty Cat
 # https://github.com/dirty-cat/dirty_cat/blob/master/dirty_cat/target_encoder.py
+
 from __future__ import annotations
 import collections
 from typing import Union, List
@@ -31,24 +32,27 @@ def check_input(X):
 class TargetEncoder(BaseEstimator, TransformerMixin):
     """Encode categorical features as a numeric array given a target vector.
 
-    Each category is encoded given the effect that it has in the
-    target variable y. The method considers that categorical
-    variables can present rare categories. It represents each category by the
-    probability of y conditional on this category.
-    In addition it takes an empirical Bayes approach to shrink the estimate.
+    Each category in a feature is encoded considering the effect that it has in the
+    target variable. In general, it takes the ratio between the mean of the target
+    for a given category and the mean of the target. In addition, it takes an empirical Bayes
+    approach to shrink the estimate.
+
+    In the case of a multilabel target, the encodings are computed separately for each label,
+    meaning that each feature will be expanded to as many unique levels in the target.
+
+    Note that implementation and docstrings are largely taken from Dirty Cat.
 
     Parameters
     ----------
     task :
-        The type of classification/regression problem.
+        The type of problem. Either "classification" or "regression".
     handle_unknown :
-        Whether to raise an error or ignore if a unknown categorical feature is
-        present during transform (default is to raise). When this parameter
+        Either 'error' or 'ignore'. Whether to raise an error or ignore if a unknown
+        categorical feature is present during transform (default is to raise). When this parameter
         is set to 'ignore' and an unknown category is encountered during
-        transform, the resulting one-hot encoded columns for this feature
-        will be all zeros.
+        transform, it well be set to the mean of the target.
     handle_missing :
-        Whether to raise an error or impute with blank string '' if missing
+        Either 'error' or ''. Whether to raise an error or impute with blank string '' if missing
         values (NaN) are present during fit (default is to impute).
         When this parameter is set to '', and a missing value is encountered
         during fit_transform, the resulting encoded columns for this feature
@@ -57,7 +61,7 @@ class TargetEncoder(BaseEstimator, TransformerMixin):
     Attributes
     ----------
     categories_ :
-        The categories of each feature determined during fitting
+        The categories of each feature determined during fit
         (in order corresponding with output of :meth:`transform`).
 
     References
