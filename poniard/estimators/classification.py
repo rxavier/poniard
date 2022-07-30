@@ -155,14 +155,15 @@ class PoniardClassifier(PoniardBaseEstimator):
 
     def _build_metrics(self) -> Union[Dict[str, Callable], List[str], Callable]:
         y = self.y
-        if y.ndim > 1:
+        if self.target_info["type_"] == "multilabel-indicator":
             return [
+                "roc_auc",
                 "accuracy",
                 "precision_macro",
                 "recall_macro",
                 "f1_macro",
             ]
-        elif y.ndim == 1 and len(np.unique(y)) > 2:
+        elif self.target_info["type_"] == "multiclass":
             return [
                 "roc_auc_ovr",
                 "accuracy",
