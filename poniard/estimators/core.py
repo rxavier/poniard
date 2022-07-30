@@ -179,8 +179,6 @@ class PoniardBaseEstimator(ABC):
         if self.plugins:
             [setattr(plugin, "_poniard", self) for plugin in self.plugins]
 
-        self._build_initial_estimators()
-
     @property
     def poniard_type(self) -> Optional[str]:
         """Check whether self is a Poniard regressor or classifier.
@@ -230,6 +228,8 @@ class PoniardBaseEstimator(ABC):
                 "multiclass-multioutput targets are not supported as "
                 "no sklearn metrics support them."
             )
+
+        self.estimators_ = self._build_initial_estimators()
 
         if self.metrics:
             self.metrics_ = (
@@ -505,10 +505,7 @@ class PoniardBaseEstimator(ABC):
     @property
     @abstractmethod
     def _base_estimators(self) -> List[ClassifierMixin]:
-        return [
-            DummyRegressor(),
-            DummyClassifier(),
-        ]
+        return []
 
     def _build_initial_estimators(
         self,
@@ -550,8 +547,7 @@ class PoniardBaseEstimator(ABC):
 
         for estimator in initial_estimators.values():
             self._pass_instance_attrs(estimator)
-        self.estimators_ = initial_estimators
-        return
+        return initial_estimators
 
     @abstractmethod
     def _build_metrics(self) -> Union[Dict[str, Callable], List[str]]:

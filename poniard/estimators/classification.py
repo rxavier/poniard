@@ -150,7 +150,6 @@ class PoniardClassifier(PoniardBaseEstimator):
                 random_state=self.random_state,
                 use_label_encoder=False,
             ),
-            DummyClassifier(strategy="prior"),
         ]
 
     def _build_metrics(self) -> Union[Dict[str, Callable], List[str], Callable]:

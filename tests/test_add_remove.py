@@ -9,19 +9,25 @@ from poniard import PoniardClassifier
 
 
 def test_add():
-    clf = PoniardClassifier()
+    y = np.array([0, 0, 0, 1, 1, 1, 0, 0, 1, 1, 0, 1])
+    x = pd.DataFrame(np.random.normal(size=(len(y), 5)))
+    clf = PoniardClassifier().setup(x, y)
     clf.add_estimators([ExtraTreesClassifier()])
     clf + {"rf2": RandomForestClassifier()}
-    assert len(clf.estimators_) == len(clf._base_estimators) + 2
+    # Dummy is also added
+    assert len(clf.estimators_) == len(clf._base_estimators) + 3
     assert "rf2" in clf.estimators_
     assert "ExtraTreesClassifier" in clf.estimators_
 
 
 def test_remove():
-    clf = PoniardClassifier()
+    y = np.array([0, 0, 0, 1, 1, 1, 0, 0, 1, 1, 0, 1])
+    x = pd.DataFrame(np.random.normal(size=(len(y), 5)))
+    clf = PoniardClassifier().setup(x, y)
     clf.remove_estimators(["RandomForestClassifier"])
     clf - ["LogisticRegression"]
-    assert len(clf.estimators_) == len(clf._base_estimators) - 2
+    # Same amount of estimators because the dummy is added
+    assert len(clf.estimators_) == len(clf._base_estimators) - 1
 
 
 def test_remove_fitted():
@@ -31,8 +37,9 @@ def test_remove_fitted():
     clf.setup(x, y)
     clf.fit()
     clf.remove_estimators(["RandomForestClassifier"], drop_results=True)
-    assert len(clf.estimators_) == len(clf._base_estimators) - 1
-    assert clf.show_results().shape[0] == len(clf._base_estimators) - 1
+    # Same amount of estimators because the dummy is added
+    assert len(clf.estimators_) == len(clf._base_estimators)
+    assert clf.show_results().shape[0] == len(clf._base_estimators)
     assert "RandomForestClassifier" not in clf.show_results().index
 
 

@@ -70,7 +70,7 @@ def test_classifier_fit(target, metrics, estimators, cv):
     else:
         n_metrics = len(clf.metrics_)
     assert results.isna().sum().sum() == 0
-    assert results.shape == (n_estimators, n_metrics * 2 + 2)
+    assert results.shape == (n_estimators + 1, n_metrics * 2 + 2)
 
 
 @pytest.mark.parametrize(
@@ -121,7 +121,7 @@ def test_regressor_fit(target, metrics, estimators, cv):
     else:
         n_metrics = len(clf.metrics_)
     assert results.isna().sum().sum() == 0
-    assert results.shape == (n_estimators, n_metrics * 2 + 2)
+    assert results.shape == (n_estimators + 1, n_metrics * 2 + 2)
 
 
 def test_multilabel_fit():
