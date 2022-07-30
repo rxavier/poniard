@@ -163,22 +163,23 @@ class PoniardBaseEstimator(ABC):
         self.random_state = random_state or 0
         self.estimators = estimators
         self.n_jobs = n_jobs
-        self.plugins = (
-            plugins if isinstance(plugins, Sequence) or plugins is None else [plugins]
-        )
-        self.plot_options = plot_options or PoniardPlotFactory()
-
-        self._fitted_estimator_ids = []
-        self._build_initial_estimators()
-        if self.plugins:
-            [setattr(plugin, "_poniard", self) for plugin in self.plugins]
-        self.plot = self.plot_options
-        self.plot._poniard = self
-
         if cache_transformations:
             self._memory = joblib.Memory("transformation_cache", verbose=self.verbose)
         else:
             self._memory = None
+        self._fitted_estimator_ids = []
+
+        self.plot_options = plot_options or PoniardPlotFactory()
+        self.plot = self.plot_options
+        self.plot._poniard = self
+
+        self.plugins = (
+            plugins if isinstance(plugins, Sequence) or plugins is None else [plugins]
+        )
+        if self.plugins:
+            [setattr(plugin, "_poniard", self) for plugin in self.plugins]
+
+        self._build_initial_estimators()
 
     def fit(self) -> PoniardBaseEstimator:
         """This is the main Poniard method. It uses scikit-learn's `cross_validate` function to
