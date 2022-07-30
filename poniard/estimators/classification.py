@@ -16,7 +16,6 @@ from sklearn.ensemble import (
 )
 from xgboost import XGBClassifier
 from sklearn.dummy import DummyClassifier
-from sklearn.utils.multiclass import type_of_target
 
 from poniard.estimators.core import PoniardBaseEstimator
 from poniard.plot.plot_factory import PoniardPlotFactory
@@ -185,7 +184,7 @@ class PoniardClassifier(PoniardBaseEstimator):
         cv = self.cv or 5
         if isinstance(cv, int):
             if (self.y is not None) and (
-                type_of_target(self.y) in ("binary", "multiclass")
+                self.target_info["type_"] in ("binary", "multiclass")
             ):
                 return StratifiedKFold(
                     n_splits=cv, shuffle=True, random_state=self.random_state

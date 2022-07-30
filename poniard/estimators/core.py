@@ -38,11 +38,11 @@ from sklearn.model_selection import (
 )
 from sklearn.impute import SimpleImputer
 from sklearn.exceptions import UndefinedMetricWarning
-from sklearn.utils.multiclass import type_of_target
 
 from poniard.preprocessing import DatetimeEncoder, TargetEncoder
-from poniard.utils import cramers_v
-from poniard.utils import GRID
+from poniard.utils.stats import cramers_v
+from poniard.utils.hyperparameters import GRID
+from poniard.utils.estimate import get_target_info
 from poniard.plot import PoniardPlotFactory
 
 
@@ -454,6 +454,12 @@ class PoniardBaseEstimator(ABC):
             y = np.array(y)
         self.X = X
         self.y = y
+        self.target_info = get_target_info(self.y, self.poniard_type)
+        if self.target_info["type_"] == "multiclass-multioutput":
+            raise NotImplementedError(
+                "multiclass-multioutput targets are not supported as "
+                "no sklearn metrics support them."
+            )
 
         if self.metrics:
             self.metrics_ = (
@@ -631,7 +637,7 @@ class PoniardBaseEstimator(ABC):
         else:
             scaler = RobustScaler()
 
-        target_is_multilabel = type_of_target(self.y) in [
+        target_is_multilabel = self.target_info["type_"] in [
             "multilabel-indicator",
             "multiclass-multioutput",
             "continuous-multioutput",
@@ -1078,7 +1084,7 @@ class PoniardBaseEstimator(ABC):
         results = raw_results.copy()
         for name, result in raw_results.items():
             if on_errors:
-                if self._check_estimator_type() == "regressor":
+                if self.poniard_type == "regressor":
                     results[name] = self.y - result
                 else:
                     results[name] = np.where(result == self.y, 1, 0)
