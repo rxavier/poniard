@@ -410,14 +410,14 @@ class PoniardBaseEstimator(ABC):
                 for estimator in self._base_estimators
             }
         if (
-            self._check_estimator_type() == "classifier"
+            self.poniard_type == "classifier"
             and "DummyClassifier" not in initial_estimators.keys()
         ):
             initial_estimators.update(
                 {"DummyClassifier": DummyClassifier(strategy="prior")}
             )
         elif (
-            self._check_estimator_type() == "regressor"
+            self.poniard_type == "regressor"
             and "DummyRegressor" not in initial_estimators.keys()
         ):
             initial_estimators.update(
@@ -649,7 +649,7 @@ class PoniardBaseEstimator(ABC):
                     handle_unknown="use_encoded_value", unknown_value=99999
                 )
             else:
-                if self._check_estimator_type() == "classifier":
+                if self.poniard_type == "classifier":
                     task = "classification"
                 else:
                     task = "regression"
@@ -1032,7 +1032,7 @@ class PoniardBaseEstimator(ABC):
                 ]
             ]
         if method == "voting":
-            if self._check_estimator_type() == "classifier":
+            if self.poniard_type == "classifier":
                 ensemble = VotingClassifier(
                     estimators=models, verbose=self.verbose, **kwargs
                 )
@@ -1041,7 +1041,7 @@ class PoniardBaseEstimator(ABC):
                     estimators=models, verbose=self.verbose, **kwargs
                 )
         else:
-            if self._check_estimator_type() == "classifier":
+            if self.poniard_type == "classifier":
                 ensemble = StackingClassifier(
                     estimators=models, verbose=self.verbose, cv=self.cv_, **kwargs
                 )
@@ -1083,7 +1083,7 @@ class PoniardBaseEstimator(ABC):
                 else:
                     results[name] = np.where(result == self.y, 1, 0)
         results = pd.DataFrame(results)
-        if self._check_estimator_type() == "classifier":
+        if self.poniard_type == "classifier":
             estimator_names = [x for x in results.columns if x != "DummyClassifier"]
             table = pd.DataFrame(
                 data=np.nan, index=estimator_names, columns=estimator_names
@@ -1139,7 +1139,7 @@ class PoniardBaseEstimator(ABC):
                 grid = GRID[estimator_name]
                 grid = {f"{estimator_name}__{k}": v for k, v in grid.items()}
             except KeyError:
-                raise KeyError(
+                raise NotImplementedError(
                     f"Estimator {estimator_name} has no predefined hyperparameter grid, so it has to be supplied."
                 )
         self._pass_instance_attrs(estimator)
@@ -1256,8 +1256,9 @@ class PoniardBaseEstimator(ABC):
             cv_params_for_split.update({"stratify": stratify})
         return train_test_split(self.X, self.y, test_size=0.2, **cv_params_for_split)
 
-    def _check_estimator_type(self) -> Optional[str]:
-        """Utility to check whether self is a Poniard regressor or classifier.
+    @property
+    def poniard_type(self) -> Optional[str]:
+        """Check whether self is a Poniard regressor or classifier.
 
         Returns
         -------
