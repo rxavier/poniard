@@ -15,7 +15,6 @@ from sklearn.ensemble import (
     HistGradientBoostingClassifier,
 )
 from xgboost import XGBClassifier
-from sklearn.dummy import DummyClassifier
 
 from poniard.estimators.core import PoniardBaseEstimator
 from poniard.plot.plot_factory import PoniardPlotFactory

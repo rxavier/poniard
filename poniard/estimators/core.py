@@ -1,5 +1,4 @@
 from __future__ import annotations
-from multiprocessing.sharedctypes import Value
 import warnings
 import itertools
 import inspect
@@ -222,7 +221,15 @@ class PoniardBaseEstimator(ABC):
             y = np.array(y)
         self.X = X
         self.y = y
-        self.target_info = get_target_info(self.y, self.poniard_type)
+        self.target_info = get_target_info(self.y, self.poniard_task)
+        print("Target info", "-----------", sep="\n")
+        print(
+            f"Type: {self.target_info['type_']}",
+            f"Shape: {self.target_info['shape']}",
+            f"Unique values: {self.target_info['nunique']}",
+            sep="\n",
+            end="\n\n",
+        )
         if self.target_info["type_"] == "multiclass-multioutput":
             raise NotImplementedError(
                 "multiclass-multioutput targets are not supported as "
@@ -237,7 +244,13 @@ class PoniardBaseEstimator(ABC):
             )
         else:
             self.metrics_ = self._build_metrics()
-        print(f"Main metric: {self._first_scorer(sklearn_scorer=False)}")
+        print(
+            "Main metric",
+            "-----------",
+            self._first_scorer(sklearn_scorer=False),
+            sep="\n",
+            end="\n\n",
+        )
 
         if self.preprocess:
             if self.custom_preprocessor:
@@ -273,12 +286,11 @@ class PoniardBaseEstimator(ABC):
         else:
             self.numeric_threshold_ = int(self.numeric_threshold * X.shape[0])
         print(
-            "Minimum unique values to consider a number feature numeric:",
-            self.numeric_threshold_,
-        )
-        print(
-            "Minimum unique values to consider a non-number feature high cardinality:",
-            self.cardinality_threshold_,
+            "Thresholds",
+            "----------",
+            f"Minimum unique values to consider a feature numeric: {self.numeric_threshold_}",
+            f"Minimum unique values to consider a categorical high cardinality: {self.cardinality_threshold}",
+            sep="\n",
             end="\n\n",
         )
         if isinstance(X, pd.DataFrame):
@@ -322,11 +334,18 @@ class PoniardBaseEstimator(ABC):
             "categorical_low": categorical_low,
             "datetime": datetime,
         }
-        print(
-            "Inferred feature types:",
-            pd.DataFrame.from_dict(self._inferred_dtypes, orient="index").T.fillna(""),
-            sep="\n",
-        )
+        print("Inferred feature types", "----------------------", sep="\n")
+        inferred_types_df = pd.DataFrame.from_dict(
+            self._inferred_dtypes, orient="index"
+        ).T.fillna("")
+        try:
+            # Try to print the table nicely
+            from IPython.display import display, HTML
+
+            display(HTML(inferred_types_df.to_html()))
+            print("\n")
+        except ImportError:
+            print(inferred_types_df)
         return numeric, categorical_high, categorical_low, datetime
 
     def _build_preprocessor(
@@ -783,11 +802,18 @@ class PoniardBaseEstimator(ABC):
             "datetime": datetime or [],
         }
         self._inferred_dtypes = assigned_types
-        print(
-            "Assigned feature types:",
-            pd.DataFrame.from_dict(self._inferred_dtypes, orient="index").T.fillna(""),
-            sep="\n",
-        )
+        print("Assigned feature types", "----------------------", sep="\n")
+        assigned_types_df = pd.DataFrame.from_dict(
+            self._inferred_dtypes, orient="index"
+        ).T.fillna("")
+        try:
+            # Try to print the table nicely
+            from IPython.display import display, HTML
+
+            display(HTML(assigned_types_df.to_html()))
+            print("\n")
+        except ImportError:
+            print(assigned_types_df)
         # Don't build the preprocessor if no preprocessing should be done or a
         # custom preprocessor was set.
         if not self.preprocess or self.custom_preprocessor is not None:
