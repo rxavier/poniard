@@ -161,6 +161,8 @@ Preprocessing tries to ensure that your models run successfully without signific
 # Similar projects
 Poniard is not a groundbreaking idea, and a number of libraries follow a similar approach.
 
+**[ATOM](https://github.com/tvdboom/ATOM)** is perhaps the most similar library to Poniard, albeit with a different approach to the API.
+
 **[LazyPredict](https://github.com/shankarpandala/lazypredict)** is similar in that it runs multiple estimators and provides results for various metrics. Unlike Poniard, by default it tries most scikit-learn estimators, and is not based on cross validation.
 
 **[PyCaret](https://github.com/pycaret/pycaret)** is a whole other beast that includes model explainability, deployment, plotting, NLP, anomaly detection, etc., which leads to a list of dependencies several times larger than Poniard's, and a more complicated API.
