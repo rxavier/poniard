@@ -180,20 +180,20 @@ class PoniardBaseEstimator(ABC):
             [setattr(plugin, "_poniard", self) for plugin in self.plugins]
 
     @property
-    def poniard_type(self) -> Optional[str]:
+    def poniard_task(self) -> Optional[str]:
         """Check whether self is a Poniard regressor or classifier.
 
         Returns
         -------
         Optional[str]
-            "classifier", "regressor" or None
+            "regression", "classification" or None
         """
         from poniard import PoniardRegressor, PoniardClassifier
 
         if isinstance(self, PoniardRegressor):
-            return "regressor"
+            return "regression"
         elif isinstance(self, PoniardClassifier):
-            return "classifier"
+            return "classification"
         else:
             return None
 
@@ -376,12 +376,8 @@ class PoniardBaseEstimator(ABC):
                     handle_unknown="use_encoded_value", unknown_value=99999
                 )
             else:
-                if self.poniard_type == "classifier":
-                    task = "classification"
-                else:
-                    task = "regression"
                 high_cardinality_encoder = TargetEncoder(
-                    task=task, handle_unknown="ignore"
+                    task=self.poniard_task, handle_unknown="ignore"
                 )
         else:
             high_cardinality_encoder = OrdinalEncoder(
@@ -531,14 +527,14 @@ class PoniardBaseEstimator(ABC):
                 for estimator in self._base_estimators
             }
         if (
-            self.poniard_type == "classifier"
+            self.poniard_task == "classification"
             and "DummyClassifier" not in initial_estimators.keys()
         ):
             initial_estimators.update(
                 {"DummyClassifier": DummyClassifier(strategy="prior")}
             )
         elif (
-            self.poniard_type == "regressor"
+            self.poniard_task == "regression"
             and "DummyRegressor" not in initial_estimators.keys()
         ):
             initial_estimators.update(
@@ -1052,7 +1048,7 @@ class PoniardBaseEstimator(ABC):
                 ]
             ]
         if method == "voting":
-            if self.poniard_type == "classifier":
+            if self.poniard_task == "classification":
                 ensemble = VotingClassifier(
                     estimators=models, verbose=self.verbose, **kwargs
                 )
@@ -1061,7 +1057,7 @@ class PoniardBaseEstimator(ABC):
                     estimators=models, verbose=self.verbose, **kwargs
                 )
         else:
-            if self.poniard_type == "classifier":
+            if self.poniard_task == "classification":
                 ensemble = StackingClassifier(
                     estimators=models, verbose=self.verbose, cv=self.cv_, **kwargs
                 )
@@ -1098,12 +1094,12 @@ class PoniardBaseEstimator(ABC):
         results = raw_results.copy()
         for name, result in raw_results.items():
             if on_errors:
-                if self.poniard_type == "regressor":
+                if self.poniard_task == "regression":
                     results[name] = self.y - result
                 else:
                     results[name] = np.where(result == self.y, 1, 0)
         results = pd.DataFrame(results)
-        if self.poniard_type == "classifier":
+        if self.poniard_task == "classification":
             estimator_names = [x for x in results.columns if x != "DummyClassifier"]
             table = pd.DataFrame(
                 data=np.nan, index=estimator_names, columns=estimator_names

@@ -103,8 +103,8 @@ class WandBPlugin(BasePlugin):
         ) = self._poniard._train_test_split_from_cv()
         estimator.fit(X_train, y_train)
         y_pred = estimator.predict(X_test)
-        estimator_type = self._poniard.poniard_type
-        if estimator_type == "classifier":
+        estimator_type = self._poniard.poniard_task
+        if estimator_type == "classification":
             labels = y_test.unique()
             wandb.sklearn.plot_confusion_matrix(y_test, y_pred, labels)
             if hasattr(estimator, "predict_proba"):
