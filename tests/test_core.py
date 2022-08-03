@@ -64,7 +64,7 @@ def test_classifier_fit(target, metrics, estimators, cv):
     if not estimators:
         n_estimators = len(clf._base_estimators)
     else:
-        n_estimators = len(estimators) + 1
+        n_estimators = len(estimators)
     if isinstance(metrics, str):
         n_metrics = 1
     else:
@@ -115,7 +115,7 @@ def test_regressor_fit(target, metrics, estimators, cv):
     if not estimators:
         n_estimators = len(clf._base_estimators)
     else:
-        n_estimators = len(estimators) + 1
+        n_estimators = len(estimators)
     if isinstance(metrics, str):
         n_metrics = 1
     else:
