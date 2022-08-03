@@ -125,7 +125,7 @@ def test_regressor_fit(target, metrics, estimators, cv):
 
 
 def test_multilabel_fit():
-    X, y = make_multilabel_classification(n_classes=3, n_labels=3)
+    X, y = make_multilabel_classification(n_samples=1000, n_classes=3, n_labels=3)
     clf = PoniardClassifier(
         estimators={
             "RF": OneVsRestClassifier(RandomForestClassifier()),
