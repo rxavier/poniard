@@ -283,7 +283,7 @@ class PoniardPlotFactory:
         Figure
             Plotly line plot.
         """
-        if self._poniard._check_estimator_type() == "regressor":
+        if self._poniard.poniard_task == "regression":
             raise ValueError("ROC curve is not available for regressors.")
         y = self._poniard.y
         if y.ndim > 1:
@@ -384,7 +384,7 @@ class PoniardPlotFactory:
         Figure
             Plotly image plot.
         """
-        if self._poniard._check_estimator_type() == "regressor":
+        if self._poniard.poniard_task == "regression":
             raise ValueError("Confusion matrix is not available for regressors.")
         y = self._poniard.y
         results = self._poniard._experiment_results
@@ -440,9 +440,9 @@ class PoniardPlotFactory:
         values = np.tile(partial_dep["values"][0], n_repeats)
         data = pd.DataFrame({"Target": response, f"Feature: {feature}": values})
         hide_legend = False
-        if n_repeats > 1 and self._poniard._check_estimator_type() == "classifier":
+        if n_repeats > 1 and self._poniard.poniard_task == "classification":
             data["Class"] = np.repeat(estimator.classes_, n_values)
-        elif self._poniard._check_estimator_type() == "classifier":
+        elif self._poniard.poniard_task == "classification":
             data["Class"] = 1
         else:
             data["Class"] = "Target"

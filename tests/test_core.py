@@ -3,7 +3,8 @@ import pandas as pd
 import numpy as np
 from sklearn.linear_model import LogisticRegression, LinearRegression
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
-from sklearn.multioutput import MultiOutputClassifier, MultiOutputRegressor
+from sklearn.multiclass import OneVsRestClassifier
+from sklearn.multioutput import MultiOutputRegressor
 from sklearn.model_selection import StratifiedKFold, KFold
 from sklearn.metrics import (
     make_scorer,
@@ -63,13 +64,13 @@ def test_classifier_fit(target, metrics, estimators, cv):
     if not estimators:
         n_estimators = len(clf._base_estimators)
     else:
-        n_estimators = len(estimators) + 1
+        n_estimators = len(estimators)
     if isinstance(metrics, str):
         n_metrics = 1
     else:
         n_metrics = len(clf.metrics_)
     assert results.isna().sum().sum() == 0
-    assert results.shape == (n_estimators, n_metrics * 2 + 2)
+    assert results.shape == (n_estimators + 1, n_metrics * 2 + 2)
 
 
 @pytest.mark.parametrize(
@@ -114,21 +115,21 @@ def test_regressor_fit(target, metrics, estimators, cv):
     if not estimators:
         n_estimators = len(clf._base_estimators)
     else:
-        n_estimators = len(estimators) + 1
+        n_estimators = len(estimators)
     if isinstance(metrics, str):
         n_metrics = 1
     else:
         n_metrics = len(clf.metrics_)
     assert results.isna().sum().sum() == 0
-    assert results.shape == (n_estimators, n_metrics * 2 + 2)
+    assert results.shape == (n_estimators + 1, n_metrics * 2 + 2)
 
 
 def test_multilabel_fit():
     X, y = make_multilabel_classification(n_classes=3, n_labels=3)
     clf = PoniardClassifier(
         estimators={
-            "RF": MultiOutputClassifier(RandomForestClassifier()),
-            "LR": MultiOutputClassifier(LogisticRegression()),
+            "RF": OneVsRestClassifier(RandomForestClassifier()),
+            "LR": OneVsRestClassifier(LogisticRegression()),
         },
         random_state=0,
     )
@@ -136,7 +137,7 @@ def test_multilabel_fit():
     clf.fit()
     results = clf.show_results()
     assert results.isna().sum().sum() == 0
-    assert results.shape == (3, 10)
+    assert results.shape == (3, 12)
 
 
 def test_multioutput_fit():

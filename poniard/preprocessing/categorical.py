@@ -12,7 +12,8 @@ from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.utils import check_array
 from sklearn.utils.fixes import _object_dtype_isnan
 from sklearn.utils.validation import check_is_fitted
-from sklearn.utils.multiclass import type_of_target
+
+from poniard.utils.estimate import get_target_info
 
 
 def check_input(X):
@@ -101,14 +102,7 @@ class TargetEncoder(BaseEstimator, TransformerMixin):
         TargetEncoder
             Fitted TargetEncoder.
         """
-        type_of_target_ = type_of_target(y)
-        # sklearn's type_of_target incorrectly assumes that int-like float arrays are always
-        # multiclass. This doesn't make sense in general, and for example, the diabetes
-        # dataset is 'multiclass' according to this function when it should be 'continuous'.
-        if type_of_target_ == "multiclass" and self.task == "regression":
-            self.type_of_target_ = "continuous"
-        else:
-            self.type_of_target_ = type_of_target_
+        self.type_of_target_ = get_target_info(y, self.task)["type_"]
         if isinstance(X, pd.DataFrame):
             self.colnames_ = X.columns
         X = check_input(X)

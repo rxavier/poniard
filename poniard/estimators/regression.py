@@ -143,7 +143,6 @@ class PoniardRegressor(PoniardBaseEstimator):
                 random_state=self.random_state, verbose=self.verbose
             ),
             XGBRegressor(random_state=self.random_state),
-            DummyRegressor(strategy="mean"),
         ]
 
     def _build_metrics(self) -> Union[Dict[str, Callable], List[str], Callable]:

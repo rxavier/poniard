@@ -1,5 +1,4 @@
 from __future__ import annotations
-from multiprocessing.sharedctypes import Value
 import warnings
 import itertools
 import inspect
@@ -38,11 +37,11 @@ from sklearn.model_selection import (
 )
 from sklearn.impute import SimpleImputer
 from sklearn.exceptions import UndefinedMetricWarning
-from sklearn.utils.multiclass import type_of_target
 
 from poniard.preprocessing import DatetimeEncoder, TargetEncoder
-from poniard.utils import cramers_v
-from poniard.utils import GRID
+from poniard.utils.stats import cramers_v
+from poniard.utils.hyperparameters import GRID
+from poniard.utils.estimate import get_target_info
 from poniard.plot import PoniardPlotFactory
 
 
@@ -163,22 +162,416 @@ class PoniardBaseEstimator(ABC):
         self.random_state = random_state or 0
         self.estimators = estimators
         self.n_jobs = n_jobs
-        self.plugins = (
-            plugins if isinstance(plugins, Sequence) or plugins is None else [plugins]
-        )
-        self.plot_options = plot_options or PoniardPlotFactory()
-
-        self._fitted_estimator_ids = []
-        self._build_initial_estimators()
-        if self.plugins:
-            [setattr(plugin, "_poniard", self) for plugin in self.plugins]
-        self.plot = self.plot_options
-        self.plot._poniard = self
-
         if cache_transformations:
             self._memory = joblib.Memory("transformation_cache", verbose=self.verbose)
         else:
             self._memory = None
+        self._fitted_estimator_ids = []
+
+        self.plot_options = plot_options or PoniardPlotFactory()
+        self.plot = self.plot_options
+        self.plot._poniard = self
+
+        self.plugins = (
+            plugins if isinstance(plugins, Sequence) or plugins is None else [plugins]
+        )
+        if self.plugins:
+            [setattr(plugin, "_poniard", self) for plugin in self.plugins]
+
+    @property
+    def poniard_task(self) -> Optional[str]:
+        """Check whether self is a Poniard regressor or classifier.
+
+        Returns
+        -------
+        Optional[str]
+            "regression", "classification" or None
+        """
+        from poniard import PoniardRegressor, PoniardClassifier
+
+        if isinstance(self, PoniardRegressor):
+            return "regression"
+        elif isinstance(self, PoniardClassifier):
+            return "classification"
+        else:
+            return None
+
+    def setup(
+        self,
+        X: Union[pd.DataFrame, np.ndarray, List],
+        y: Union[pd.DataFrame, np.ndarray, List],
+    ) -> PoniardBaseEstimator:
+        """Orchestrator.
+
+        Converts inputs to arrays if necessary, sets :attr:`metrics_`,
+        :attr:`preprocessor_`, attr:`cv_` and :attr:`estimators_`.
+
+        Parameters
+        ----------
+        X :
+            Features.
+        y :
+            Target
+
+        """
+        self._run_plugin_methods("on_setup_start")
+        if not isinstance(X, (pd.DataFrame, pd.Series, np.ndarray)):
+            X = np.array(X)
+        if not isinstance(y, (pd.DataFrame, pd.Series, np.ndarray)):
+            y = np.array(y)
+        self.X = X
+        self.y = y
+        self.target_info = get_target_info(self.y, self.poniard_task)
+        print("Target info", "-----------", sep="\n")
+        print(
+            f"Type: {self.target_info['type_']}",
+            f"Shape: {self.target_info['shape']}",
+            f"Unique values: {self.target_info['nunique']}",
+            sep="\n",
+            end="\n\n",
+        )
+        if self.target_info["type_"] == "multiclass-multioutput":
+            raise NotImplementedError(
+                "multiclass-multioutput targets are not supported as "
+                "no sklearn metrics support them."
+            )
+
+        self.estimators_ = self._build_initial_estimators()
+
+        if self.metrics:
+            self.metrics_ = (
+                self.metrics if not isinstance(self.metrics, str) else [self.metrics]
+            )
+        else:
+            self.metrics_ = self._build_metrics()
+        print(
+            "Main metric",
+            "-----------",
+            self._first_scorer(sklearn_scorer=False),
+            sep="\n",
+            end="\n\n",
+        )
+
+        if self.preprocess:
+            if self.custom_preprocessor:
+                self.preprocessor_ = self.custom_preprocessor
+            else:
+                self.preprocessor_ = self._build_preprocessor()
+
+        self.cv_ = self._build_cv()
+
+        self._run_plugin_methods("on_setup_end")
+        return self
+
+    def _infer_dtypes(self) -> Tuple[List[str], List[str], List[str]]:
+        """Infer feature types (numeric, low-cardinality categorical or high-cardinality
+        categorical).
+
+        Returns
+        -------
+        List[str], List[str], List[str]
+            Three lists with column names or indices.
+        """
+        X = self.X
+        numeric = []
+        categorical_high = []
+        categorical_low = []
+        datetime = []
+        if isinstance(self.cardinality_threshold, int):
+            self.cardinality_threshold_ = self.cardinality_threshold
+        else:
+            self.cardinality_threshold_ = int(self.cardinality_threshold * X.shape[0])
+        if isinstance(self.numeric_threshold, int):
+            self.numeric_threshold_ = self.numeric_threshold
+        else:
+            self.numeric_threshold_ = int(self.numeric_threshold * X.shape[0])
+        print(
+            "Thresholds",
+            "----------",
+            f"Minimum unique values to consider a feature numeric: {self.numeric_threshold_}",
+            f"Minimum unique values to consider a categorical high cardinality: {self.cardinality_threshold}",
+            sep="\n",
+            end="\n\n",
+        )
+        if isinstance(X, pd.DataFrame):
+            datetime = X.select_dtypes(
+                include=["datetime64[ns]", "datetimetz"]
+            ).columns.tolist()
+            numbers = X.select_dtypes(include="number").columns
+            for column in numbers:
+                if X[column].nunique() > self.numeric_threshold_:
+                    numeric.append(column)
+                elif X[column].nunique() > self.cardinality_threshold_:
+                    categorical_high.append(column)
+                else:
+                    categorical_low.append(column)
+            strings = X.select_dtypes(exclude=["number", "datetime"]).columns
+            for column in strings:
+                if X[column].nunique() > self.cardinality_threshold_:
+                    categorical_high.append(column)
+                else:
+                    categorical_low.append(column)
+        else:
+            if np.issubdtype(X.dtype, np.datetime64):
+                datetime.extend(range(X.shape[1]))
+            if np.issubdtype(X.dtype, np.number):
+                for i in range(X.shape[1]):
+                    if np.unique(X[:, i]).shape[0] > self.numeric_threshold_:
+                        numeric.append(i)
+                    elif np.unique(X[:, i]).shape[0] > self.cardinality_threshold_:
+                        categorical_high.append(i)
+                    else:
+                        categorical_low.append(i)
+            else:
+                for i in range(X.shape[1]):
+                    if np.unique(X[:, i]).shape[0] > self.cardinality_threshold_:
+                        categorical_high.append(i)
+                    else:
+                        categorical_low.append(i)
+        self._inferred_dtypes = {
+            "numeric": numeric,
+            "categorical_high": categorical_high,
+            "categorical_low": categorical_low,
+            "datetime": datetime,
+        }
+        print("Inferred feature types", "----------------------", sep="\n")
+        inferred_types_df = pd.DataFrame.from_dict(
+            self._inferred_dtypes, orient="index"
+        ).T.fillna("")
+        try:
+            # Try to print the table nicely
+            from IPython.display import display, HTML
+
+            display(HTML(inferred_types_df.to_html()))
+            print("\n")
+        except ImportError:
+            print(inferred_types_df)
+        return numeric, categorical_high, categorical_low, datetime
+
+    def _build_preprocessor(
+        self, assigned_types: Optional[Dict[str, List[Union[str, int]]]] = None
+    ) -> Pipeline:
+        """Build default preprocessor.
+
+        The preprocessor imputes missing values, scales numeric features and encodes categorical
+        features according to inferred types.
+
+        """
+        X = self.X
+        if hasattr(self, "preprocessor_") and not assigned_types:
+            return self.preprocessor_
+        if assigned_types:
+            numeric = assigned_types["numeric"]
+            categorical_high = assigned_types["categorical_high"]
+            categorical_low = assigned_types["categorical_low"]
+            datetime = assigned_types["datetime"]
+        else:
+            numeric, categorical_high, categorical_low, datetime = self._infer_dtypes()
+
+        if isinstance(self.scaler, TransformerMixin):
+            scaler = self.scaler
+        elif self.scaler == "standard":
+            scaler = StandardScaler()
+        elif self.scaler == "minmax":
+            scaler = MinMaxScaler()
+        else:
+            scaler = RobustScaler()
+
+        target_is_multilabel = self.target_info["type_"] in [
+            "multilabel-indicator",
+            "multiclass-multioutput",
+            "continuous-multioutput",
+        ]
+        if isinstance(self.high_cardinality_encoder, TransformerMixin):
+            high_cardinality_encoder = self.high_cardinality_encoder
+        elif self.high_cardinality_encoder == "target":
+            if target_is_multilabel:
+                warnings.warn(
+                    "TargetEncoder is not supported for multilabel or multioutput targets. "
+                    "Switching to OrdinalEncoder.",
+                    stacklevel=2,
+                )
+                high_cardinality_encoder = OrdinalEncoder(
+                    handle_unknown="use_encoded_value", unknown_value=99999
+                )
+            else:
+                high_cardinality_encoder = TargetEncoder(
+                    task=self.poniard_task, handle_unknown="ignore"
+                )
+        else:
+            high_cardinality_encoder = OrdinalEncoder(
+                handle_unknown="use_encoded_value", unknown_value=99999
+            )
+
+        cat_date_imputer = SimpleImputer(strategy="most_frequent")
+
+        if isinstance(self.numeric_imputer, TransformerMixin):
+            num_imputer = self.numeric_imputer
+        elif self.numeric_imputer == "iterative":
+            from sklearn.experimental import enable_iterative_imputer
+            from sklearn.impute import IterativeImputer
+
+            num_imputer = IterativeImputer(random_state=self.random_state)
+        else:
+            num_imputer = SimpleImputer(strategy="mean")
+
+        numeric_preprocessor = Pipeline(
+            [("numeric_imputer", num_imputer), ("scaler", scaler)]
+        )
+        cat_low_preprocessor = Pipeline(
+            [
+                ("categorical_imputer", cat_date_imputer),
+                (
+                    "one-hot_encoder",
+                    OneHotEncoder(drop="if_binary", handle_unknown="ignore"),
+                ),
+            ]
+        )
+        cat_high_preprocessor = Pipeline(
+            [
+                ("categorical_imputer", cat_date_imputer),
+                (
+                    "high_cardinality_encoder",
+                    high_cardinality_encoder,
+                ),
+            ],
+        )
+        datetime_preprocessor = Pipeline(
+            [
+                (
+                    "datetime_encoder",
+                    DatetimeEncoder(),
+                ),
+                ("datetime_imputer", cat_date_imputer),
+            ],
+        )
+        if isinstance(X, pd.DataFrame):
+            type_preprocessor = ColumnTransformer(
+                [
+                    ("numeric_preprocessor", numeric_preprocessor, numeric),
+                    (
+                        "categorical_low_preprocessor",
+                        cat_low_preprocessor,
+                        categorical_low,
+                    ),
+                    (
+                        "categorical_high_preprocessor",
+                        cat_high_preprocessor,
+                        categorical_high,
+                    ),
+                    ("datetime_preprocessor", datetime_preprocessor, datetime),
+                ],
+                n_jobs=self.n_jobs,
+            )
+        else:
+            if np.issubdtype(X.dtype, np.datetime64):
+                type_preprocessor = datetime_preprocessor
+            elif np.issubdtype(X.dtype, np.number):
+                type_preprocessor = ColumnTransformer(
+                    [
+                        ("numeric_preprocessor", numeric_preprocessor, numeric),
+                        (
+                            "categorical_low_preprocessor",
+                            cat_low_preprocessor,
+                            categorical_low,
+                        ),
+                        (
+                            "categorical_high_preprocessor",
+                            cat_high_preprocessor,
+                            categorical_high,
+                        ),
+                    ],
+                    n_jobs=self.n_jobs,
+                )
+            else:
+                type_preprocessor = ColumnTransformer(
+                    [
+                        (
+                            "categorical_low_preprocessor",
+                            cat_low_preprocessor,
+                            categorical_low,
+                        ),
+                        (
+                            "categorical_high_preprocessor",
+                            cat_high_preprocessor,
+                            categorical_high,
+                        ),
+                    ],
+                    n_jobs=self.n_jobs,
+                )
+        # Some transformers might not be applied to any features, so we remove them.
+        non_empty_transformers = [
+            x for x in type_preprocessor.transformers if x[2] != []
+        ]
+        type_preprocessor.transformers = non_empty_transformers
+        # If type_preprocessor has a single transformer, use the transformer directly.
+        # This transformer generally is a Pipeline.
+        if len(type_preprocessor.transformers) == 1:
+            type_preprocessor = type_preprocessor.transformers[0][1]
+        preprocessor = Pipeline(
+            [
+                ("type_preprocessor", type_preprocessor),
+                ("remove_invariant", VarianceThreshold()),
+            ],
+            memory=self._memory,
+        )
+        return preprocessor
+
+    @property
+    @abstractmethod
+    def _base_estimators(self) -> List[ClassifierMixin]:
+        return []
+
+    def _build_initial_estimators(
+        self,
+    ) -> Dict[str, Union[ClassifierMixin, RegressorMixin]]:
+        """Build :attr:`estimators_` dict where keys are the estimator class names.
+
+        Adds dummy estimators if not included during construction. Does nothing if
+        :attr:`estimators_` exists.
+
+        """
+        if hasattr(self, "estimators_"):
+            return
+
+        if isinstance(self.estimators, dict):
+            initial_estimators = self.estimators.copy()
+        elif self.estimators:
+            initial_estimators = {
+                estimator.__class__.__name__: estimator for estimator in self.estimators
+            }
+        else:
+            initial_estimators = {
+                estimator.__class__.__name__: estimator
+                for estimator in self._base_estimators
+            }
+        if (
+            self.poniard_task == "classification"
+            and "DummyClassifier" not in initial_estimators.keys()
+        ):
+            initial_estimators.update(
+                {"DummyClassifier": DummyClassifier(strategy="prior")}
+            )
+        elif (
+            self.poniard_task == "regression"
+            and "DummyRegressor" not in initial_estimators.keys()
+        ):
+            initial_estimators.update(
+                {"DummyRegressor": DummyRegressor(strategy="mean")}
+            )
+
+        for estimator in initial_estimators.values():
+            self._pass_instance_attrs(estimator)
+        return initial_estimators
+
+    @abstractmethod
+    def _build_metrics(self) -> Union[Dict[str, Callable], List[str]]:
+        """Build metrics."""
+        return ["accuracy"]
+
+    @abstractmethod
+    def _build_cv(self):
+        return self.cv
 
     def fit(self) -> PoniardBaseEstimator:
         """This is the main Poniard method. It uses scikit-learn's `cross_validate` function to
@@ -377,181 +770,6 @@ class PoniardBaseEstimator(ABC):
             self._predict(method="decision_function", estimator_names=estimator_names),
         )
 
-    @property
-    @abstractmethod
-    def _base_estimators(self) -> List[ClassifierMixin]:
-        return [
-            DummyRegressor(),
-            DummyClassifier(),
-        ]
-
-    def _build_initial_estimators(
-        self,
-    ) -> Dict[str, Union[ClassifierMixin, RegressorMixin]]:
-        """Build :attr:`estimators_` dict where keys are the estimator class names.
-
-        Adds dummy estimators if not included during construction. Does nothing if
-        :attr:`estimators_` exists.
-
-        """
-        if hasattr(self, "estimators_"):
-            return
-
-        if isinstance(self.estimators, dict):
-            initial_estimators = self.estimators.copy()
-        elif self.estimators:
-            initial_estimators = {
-                estimator.__class__.__name__: estimator for estimator in self.estimators
-            }
-        else:
-            initial_estimators = {
-                estimator.__class__.__name__: estimator
-                for estimator in self._base_estimators
-            }
-        if (
-            self._check_estimator_type() == "classifier"
-            and "DummyClassifier" not in initial_estimators.keys()
-        ):
-            initial_estimators.update(
-                {"DummyClassifier": DummyClassifier(strategy="prior")}
-            )
-        elif (
-            self._check_estimator_type() == "regressor"
-            and "DummyRegressor" not in initial_estimators.keys()
-        ):
-            initial_estimators.update(
-                {"DummyRegressor": DummyRegressor(strategy="mean")}
-            )
-
-        for estimator in initial_estimators.values():
-            self._pass_instance_attrs(estimator)
-        self.estimators_ = initial_estimators
-        return
-
-    def setup(
-        self,
-        X: Union[pd.DataFrame, np.ndarray, List],
-        y: Union[pd.DataFrame, np.ndarray, List],
-    ) -> PoniardBaseEstimator:
-        """Orchestrator.
-
-        Converts inputs to arrays if necessary, sets :attr:`metrics_`,
-        :attr:`preprocessor_`, attr:`cv_` and :attr:`estimators_`.
-
-        Parameters
-        ----------
-        X :
-            Features.
-        y :
-            Target
-
-        """
-        self._run_plugin_methods("on_setup_start")
-        if not isinstance(X, (pd.DataFrame, pd.Series, np.ndarray)):
-            X = np.array(X)
-        if not isinstance(y, (pd.DataFrame, pd.Series, np.ndarray)):
-            y = np.array(y)
-        self.X = X
-        self.y = y
-
-        if self.metrics:
-            self.metrics_ = (
-                self.metrics if not isinstance(self.metrics, str) else [self.metrics]
-            )
-        else:
-            self.metrics_ = self._build_metrics()
-        print(f"Main metric: {self._first_scorer(sklearn_scorer=False)}")
-
-        if self.preprocess:
-            if self.custom_preprocessor:
-                self.preprocessor_ = self.custom_preprocessor
-            else:
-                self.preprocessor_ = self._build_preprocessor()
-
-        self.cv_ = self._build_cv()
-
-        self._run_plugin_methods("on_setup_end")
-        return self
-
-    def _infer_dtypes(self) -> Tuple[List[str], List[str], List[str]]:
-        """Infer feature types (numeric, low-cardinality categorical or high-cardinality
-        categorical).
-
-        Returns
-        -------
-        List[str], List[str], List[str]
-            Three lists with column names or indices.
-        """
-        X = self.X
-        numeric = []
-        categorical_high = []
-        categorical_low = []
-        datetime = []
-        if isinstance(self.cardinality_threshold, int):
-            self.cardinality_threshold_ = self.cardinality_threshold
-        else:
-            self.cardinality_threshold_ = int(self.cardinality_threshold * X.shape[0])
-        if isinstance(self.numeric_threshold, int):
-            self.numeric_threshold_ = self.numeric_threshold
-        else:
-            self.numeric_threshold_ = int(self.numeric_threshold * X.shape[0])
-        print(
-            "Minimum unique values to consider a number feature numeric:",
-            self.numeric_threshold_,
-        )
-        print(
-            "Minimum unique values to consider a non-number feature high cardinality:",
-            self.cardinality_threshold_,
-            end="\n\n",
-        )
-        if isinstance(X, pd.DataFrame):
-            datetime = X.select_dtypes(
-                include=["datetime64[ns]", "datetimetz"]
-            ).columns.tolist()
-            numbers = X.select_dtypes(include="number").columns
-            for column in numbers:
-                if X[column].nunique() > self.numeric_threshold_:
-                    numeric.append(column)
-                elif X[column].nunique() > self.cardinality_threshold_:
-                    categorical_high.append(column)
-                else:
-                    categorical_low.append(column)
-            strings = X.select_dtypes(exclude=["number", "datetime"]).columns
-            for column in strings:
-                if X[column].nunique() > self.cardinality_threshold_:
-                    categorical_high.append(column)
-                else:
-                    categorical_low.append(column)
-        else:
-            if np.issubdtype(X.dtype, np.datetime64):
-                datetime.extend(range(X.shape[1]))
-            if np.issubdtype(X.dtype, np.number):
-                for i in range(X.shape[1]):
-                    if np.unique(X[:, i]).shape[0] > self.numeric_threshold_:
-                        numeric.append(i)
-                    elif np.unique(X[:, i]).shape[0] > self.cardinality_threshold_:
-                        categorical_high.append(i)
-                    else:
-                        categorical_low.append(i)
-            else:
-                for i in range(X.shape[1]):
-                    if np.unique(X[:, i]).shape[0] > self.cardinality_threshold_:
-                        categorical_high.append(i)
-                    else:
-                        categorical_low.append(i)
-        self._inferred_dtypes = {
-            "numeric": numeric,
-            "categorical_high": categorical_high,
-            "categorical_low": categorical_low,
-            "datetime": datetime,
-        }
-        print(
-            "Inferred feature types:",
-            pd.DataFrame.from_dict(self._inferred_dtypes, orient="index").T.fillna(""),
-            sep="\n",
-        )
-        return numeric, categorical_high, categorical_low, datetime
-
     def reassign_types(
         self,
         numeric: Optional[List[Union[str, int]]] = None,
@@ -584,11 +802,18 @@ class PoniardBaseEstimator(ABC):
             "datetime": datetime or [],
         }
         self._inferred_dtypes = assigned_types
-        print(
-            "Assigned feature types:",
-            pd.DataFrame.from_dict(self._inferred_dtypes, orient="index").T.fillna(""),
-            sep="\n",
-        )
+        print("Assigned feature types", "----------------------", sep="\n")
+        assigned_types_df = pd.DataFrame.from_dict(
+            self._inferred_dtypes, orient="index"
+        ).T.fillna("")
+        try:
+            # Try to print the table nicely
+            from IPython.display import display, HTML
+
+            display(HTML(assigned_types_df.to_html()))
+            print("\n")
+        except ImportError:
+            print(assigned_types_df)
         # Don't build the preprocessor if no preprocessing should be done or a
         # custom preprocessor was set.
         if not self.preprocess or self.custom_preprocessor is not None:
@@ -600,179 +825,6 @@ class PoniardBaseEstimator(ABC):
         self._fitted_estimator_ids = []
         self._run_plugin_methods("on_setup_end")
         return self
-
-    def _build_preprocessor(
-        self, assigned_types: Optional[Dict[str, List[Union[str, int]]]] = None
-    ) -> Pipeline:
-        """Build default preprocessor.
-
-        The preprocessor imputes missing values, scales numeric features and encodes categorical
-        features according to inferred types.
-
-        """
-        X = self.X
-        if hasattr(self, "preprocessor_") and not assigned_types:
-            return self.preprocessor_
-        if assigned_types:
-            numeric = assigned_types["numeric"]
-            categorical_high = assigned_types["categorical_high"]
-            categorical_low = assigned_types["categorical_low"]
-            datetime = assigned_types["datetime"]
-        else:
-            numeric, categorical_high, categorical_low, datetime = self._infer_dtypes()
-
-        if isinstance(self.scaler, TransformerMixin):
-            scaler = self.scaler
-        elif self.scaler == "standard":
-            scaler = StandardScaler()
-        elif self.scaler == "minmax":
-            scaler = MinMaxScaler()
-        else:
-            scaler = RobustScaler()
-
-        target_is_multilabel = type_of_target(self.y) in [
-            "multilabel-indicator",
-            "multiclass-multioutput",
-            "continuous-multioutput",
-        ]
-        if isinstance(self.high_cardinality_encoder, TransformerMixin):
-            high_cardinality_encoder = self.high_cardinality_encoder
-        elif self.high_cardinality_encoder == "target":
-            if target_is_multilabel:
-                warnings.warn(
-                    "TargetEncoder is not supported for multilabel or multioutput targets. "
-                    "Switching to OrdinalEncoder.",
-                    stacklevel=2,
-                )
-                high_cardinality_encoder = OrdinalEncoder(
-                    handle_unknown="use_encoded_value", unknown_value=99999
-                )
-            else:
-                if self._check_estimator_type() == "classifier":
-                    task = "classification"
-                else:
-                    task = "regression"
-                high_cardinality_encoder = TargetEncoder(
-                    task=task, handle_unknown="ignore"
-                )
-        else:
-            high_cardinality_encoder = OrdinalEncoder(
-                handle_unknown="use_encoded_value", unknown_value=99999
-            )
-
-        cat_date_imputer = SimpleImputer(strategy="most_frequent")
-
-        if isinstance(self.numeric_imputer, TransformerMixin):
-            num_imputer = self.numeric_imputer
-        elif self.numeric_imputer == "iterative":
-            from sklearn.experimental import enable_iterative_imputer
-            from sklearn.impute import IterativeImputer
-
-            num_imputer = IterativeImputer(random_state=self.random_state)
-        else:
-            num_imputer = SimpleImputer(strategy="mean")
-
-        numeric_preprocessor = Pipeline(
-            [("numeric_imputer", num_imputer), ("scaler", scaler)]
-        )
-        cat_low_preprocessor = Pipeline(
-            [
-                ("categorical_imputer", cat_date_imputer),
-                (
-                    "one-hot_encoder",
-                    OneHotEncoder(drop="if_binary", handle_unknown="ignore"),
-                ),
-            ]
-        )
-        cat_high_preprocessor = Pipeline(
-            [
-                ("categorical_imputer", cat_date_imputer),
-                (
-                    "high_cardinality_encoder",
-                    high_cardinality_encoder,
-                ),
-            ],
-        )
-        datetime_preprocessor = Pipeline(
-            [
-                (
-                    "datetime_encoder",
-                    DatetimeEncoder(),
-                ),
-                ("datetime_imputer", cat_date_imputer),
-            ],
-        )
-        if isinstance(X, pd.DataFrame):
-            type_preprocessor = ColumnTransformer(
-                [
-                    ("numeric_preprocessor", numeric_preprocessor, numeric),
-                    (
-                        "categorical_low_preprocessor",
-                        cat_low_preprocessor,
-                        categorical_low,
-                    ),
-                    (
-                        "categorical_high_preprocessor",
-                        cat_high_preprocessor,
-                        categorical_high,
-                    ),
-                    ("datetime_preprocessor", datetime_preprocessor, datetime),
-                ],
-                n_jobs=self.n_jobs,
-            )
-        else:
-            if np.issubdtype(X.dtype, np.datetime64):
-                type_preprocessor = datetime_preprocessor
-            elif np.issubdtype(X.dtype, np.number):
-                type_preprocessor = ColumnTransformer(
-                    [
-                        ("numeric_preprocessor", numeric_preprocessor, numeric),
-                        (
-                            "categorical_low_preprocessor",
-                            cat_low_preprocessor,
-                            categorical_low,
-                        ),
-                        (
-                            "categorical_high_preprocessor",
-                            cat_high_preprocessor,
-                            categorical_high,
-                        ),
-                    ],
-                    n_jobs=self.n_jobs,
-                )
-            else:
-                type_preprocessor = ColumnTransformer(
-                    [
-                        (
-                            "categorical_low_preprocessor",
-                            cat_low_preprocessor,
-                            categorical_low,
-                        ),
-                        (
-                            "categorical_high_preprocessor",
-                            cat_high_preprocessor,
-                            categorical_high,
-                        ),
-                    ],
-                    n_jobs=self.n_jobs,
-                )
-        # Some transformers might not be applied to any features, so we remove them.
-        non_empty_transformers = [
-            x for x in type_preprocessor.transformers if x[2] != []
-        ]
-        type_preprocessor.transformers = non_empty_transformers
-        # If type_preprocessor has a single transformer, use the transformer directly.
-        # This transformer generally is a Pipeline.
-        if len(type_preprocessor.transformers) == 1:
-            type_preprocessor = type_preprocessor.transformers[0][1]
-        preprocessor = Pipeline(
-            [
-                ("type_preprocessor", type_preprocessor),
-                ("remove_invariant", VarianceThreshold()),
-            ],
-            memory=self._memory,
-        )
-        return preprocessor
 
     def add_preprocessing_step(
         self,
@@ -833,11 +885,6 @@ class PoniardBaseEstimator(ABC):
         self._run_plugin_methods("on_setup_end")
         return self
 
-    @abstractmethod
-    def _build_metrics(self) -> Union[Dict[str, Callable], List[str]]:
-        """Build metrics."""
-        return ["accuracy"]
-
     def show_results(
         self,
         std: bool = False,
@@ -870,10 +917,6 @@ class PoniardBaseEstimator(ABC):
             return means, stds
         else:
             return means
-
-    @abstractmethod
-    def _build_cv(self):
-        return self.cv
 
     def add_estimators(
         self, estimators: Union[Dict[str, ClassifierMixin], Sequence[ClassifierMixin]]
@@ -1031,7 +1074,7 @@ class PoniardBaseEstimator(ABC):
                 ]
             ]
         if method == "voting":
-            if self._check_estimator_type() == "classifier":
+            if self.poniard_task == "classification":
                 ensemble = VotingClassifier(
                     estimators=models, verbose=self.verbose, **kwargs
                 )
@@ -1040,7 +1083,7 @@ class PoniardBaseEstimator(ABC):
                     estimators=models, verbose=self.verbose, **kwargs
                 )
         else:
-            if self._check_estimator_type() == "classifier":
+            if self.poniard_task == "classification":
                 ensemble = StackingClassifier(
                     estimators=models, verbose=self.verbose, cv=self.cv_, **kwargs
                 )
@@ -1077,12 +1120,12 @@ class PoniardBaseEstimator(ABC):
         results = raw_results.copy()
         for name, result in raw_results.items():
             if on_errors:
-                if self._check_estimator_type() == "regressor":
+                if self.poniard_task == "regression":
                     results[name] = self.y - result
                 else:
                     results[name] = np.where(result == self.y, 1, 0)
         results = pd.DataFrame(results)
-        if self._check_estimator_type() == "classifier":
+        if self.poniard_task == "classification":
             estimator_names = [x for x in results.columns if x != "DummyClassifier"]
             table = pd.DataFrame(
                 data=np.nan, index=estimator_names, columns=estimator_names
@@ -1138,7 +1181,7 @@ class PoniardBaseEstimator(ABC):
                 grid = GRID[estimator_name]
                 grid = {f"{estimator_name}__{k}": v for k, v in grid.items()}
             except KeyError:
-                raise KeyError(
+                raise NotImplementedError(
                     f"Estimator {estimator_name} has no predefined hyperparameter grid, so it has to be supplied."
                 )
         self._pass_instance_attrs(estimator)
@@ -1254,23 +1297,6 @@ class PoniardBaseEstimator(ABC):
             stratify = self.y if "Stratified" in self.cv_.__class__.__name__ else None
             cv_params_for_split.update({"stratify": stratify})
         return train_test_split(self.X, self.y, test_size=0.2, **cv_params_for_split)
-
-    def _check_estimator_type(self) -> Optional[str]:
-        """Utility to check whether self is a Poniard regressor or classifier.
-
-        Returns
-        -------
-        Optional[str]
-            "classifier", "regressor" or None
-        """
-        from poniard import PoniardRegressor, PoniardClassifier
-
-        if isinstance(self, PoniardRegressor):
-            return "regressor"
-        elif isinstance(self, PoniardClassifier):
-            return "classifier"
-        else:
-            return None
 
     def _pass_instance_attrs(self, obj: Union[ClassifierMixin, RegressorMixin]):
         """Helper method to propagate instance attributes to objects."""

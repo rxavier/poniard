@@ -15,8 +15,6 @@ from sklearn.ensemble import (
     HistGradientBoostingClassifier,
 )
 from xgboost import XGBClassifier
-from sklearn.dummy import DummyClassifier
-from sklearn.utils.multiclass import type_of_target
 
 from poniard.estimators.core import PoniardBaseEstimator
 from poniard.plot.plot_factory import PoniardPlotFactory
@@ -151,19 +149,19 @@ class PoniardClassifier(PoniardBaseEstimator):
                 random_state=self.random_state,
                 use_label_encoder=False,
             ),
-            DummyClassifier(strategy="prior"),
         ]
 
     def _build_metrics(self) -> Union[Dict[str, Callable], List[str], Callable]:
         y = self.y
-        if y.ndim > 1:
+        if self.target_info["type_"] == "multilabel-indicator":
             return [
+                "roc_auc",
                 "accuracy",
                 "precision_macro",
                 "recall_macro",
                 "f1_macro",
             ]
-        elif y.ndim == 1 and len(np.unique(y)) > 2:
+        elif self.target_info["type_"] == "multiclass":
             return [
                 "roc_auc_ovr",
                 "accuracy",
@@ -185,7 +183,7 @@ class PoniardClassifier(PoniardBaseEstimator):
         cv = self.cv or 5
         if isinstance(cv, int):
             if (self.y is not None) and (
-                type_of_target(self.y) in ("binary", "multiclass")
+                self.target_info["type_"] in ("binary", "multiclass")
             ):
                 return StratifiedKFold(
                     n_splits=cv, shuffle=True, random_state=self.random_state
