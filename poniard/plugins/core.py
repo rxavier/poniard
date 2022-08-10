@@ -1,6 +1,9 @@
 from typing import Optional, TYPE_CHECKING
 from abc import ABC
 
+from plotly.graph_objs._figure import Figure
+from sklearn.base import BaseEstimator
+
 if TYPE_CHECKING:
     from poniard.estimators.core import PoniardBaseEstimator
 
@@ -23,10 +26,10 @@ class BasePlugin(ABC):
     def on_fit_end(self):
         pass
 
-    def on_plot(self):
+    def on_plot(self, figure: Figure, name: str):
         pass
 
-    def on_get_estimator(self):
+    def on_get_estimator(self, estimator: BaseEstimator, name: str):
         pass
 
     def on_remove_estimators(self):
