@@ -66,6 +66,9 @@ class WandBPlugin(BasePlugin):
             dataset = pd.DataFrame(dataset)
         table = wandb.Table(dataframe=dataset)
         wandb.log({"dataset": table})
+        wandb.log(
+            {"preprocessor": wandb.Html(self._poniard.preprocessor_._repr_html_())}
+        )
         return
 
     def on_plot(self, figure: Figure, name: str):
