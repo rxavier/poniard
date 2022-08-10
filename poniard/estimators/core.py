@@ -1368,17 +1368,19 @@ class PoniardBaseEstimator(ABC):
         """
         return self.remove_estimators(estimator_names, drop_results=True)
 
-    def __getitem__(self, estimators: Union[str, Sequence[str]]) -> pd.DataFrame:
-        """Get results by indexing with estimator names.
+    def __getitem__(
+        self, estimator_name: str
+    ) -> Union[Pipeline, ClassifierMixin, RegressorMixin]:
+        """Get an estimator by indexing with its name
 
         Parameters
         ----------
-        estimators :
-            Estimator name(s) as string or list of strings.
+        estimator_name :
+            Estimator name as string.
 
         Returns
         -------
-        pd.DataFrame
-            Filtered results.
+        Union[Pipeline, ClassifierMixin, RegressorMixin]
+            Built estimator.
         """
-        return self.show_results().loc[estimators, :]
+        return self.get_estimator(estimator_name)
