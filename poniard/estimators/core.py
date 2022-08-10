@@ -1323,8 +1323,10 @@ class PoniardBaseEstimator(ABC):
             fetched_method = getattr(plugin, method, None)
             if callable(fetched_method):
                 accepted_kwargs = inspect.getargs(fetched_method.__code__).args
-                kwargs = {k: v for k, v in kwargs.items() if k in accepted_kwargs}
-                fetched_method(**kwargs)
+                matched_kwargs = {
+                    k: v for k, v in kwargs.items() if k in accepted_kwargs
+                }
+                fetched_method(**matched_kwargs)
         return
 
     def __repr__(self):
