@@ -168,15 +168,22 @@ class PoniardBaseEstimator(ABC):
             self._memory = None
         self._fitted_estimator_ids = []
 
-        self.plot_options = plot_options or PoniardPlotFactory()
-        self.plot = self.plot_options
-        self.plot._poniard = self
+        self._init_plugins(plugins)
+        self._init_plots(plot_options)
 
+    def _init_plugins(self, plugins: Optional[Sequence[Any]] = None) -> None:
         self.plugins = (
             plugins if isinstance(plugins, Sequence) or plugins is None else [plugins]
         )
         if self.plugins:
             [setattr(plugin, "_poniard", self) for plugin in self.plugins]
+        return
+
+    def _init_plots(self, plot_options: Optional[PoniardPlotFactory] = None) -> None:
+        self.plot_options = plot_options or PoniardPlotFactory()
+        self.plot = self.plot_options
+        self.plot._poniard = self
+        return
 
     @property
     def poniard_task(self) -> Optional[str]:
