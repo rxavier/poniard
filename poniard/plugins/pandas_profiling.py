@@ -1,3 +1,4 @@
+import warnings
 from typing import Union
 from pathlib import Path
 
@@ -56,7 +57,16 @@ class PandasProfilingPlugin(BasePlugin):
         )
         self.report.to_file(self.html_path)
         self._log_to_wandb_if_available()
-        self.report.to_notebook_iframe()
+        try:
+            import ipywidgets
+
+            self.report.to_notebook_iframe()
+        except ImportError:
+            warnings.warn(
+                "ipywidgets is not installed. HTML report will be saved to {}".format(
+                    self.html_path
+                )
+            )
         return
 
     def _log_to_wandb_if_available(self):
