@@ -82,6 +82,14 @@ class WandBPlugin(BasePlugin):
         results.rename(columns={"index": "Estimator"}, inplace=True)
         table = wandb.Table(dataframe=results)
         wandb.log({"results": table})
+        for test_metric in results.columns[results.columns.str.startswith("test_")]:
+            wandb.log(
+                {
+                    f"{test_metric}_plot": wandb.plot.bar(
+                        table, label="Estimator", value=test_metric
+                    )
+                }
+            )
         return
 
     def on_get_estimator(self, estimator: BaseEstimator, name: str):
