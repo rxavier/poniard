@@ -85,19 +85,9 @@ class WandBPlugin(BasePlugin):
         return
 
     def on_get_estimator(self, estimator: BaseEstimator, name: str):
-        """Log fitted estimator on full data and log multiple estimator plots provided by WandB."""
+        """Save fitted estimator as artifact and log multiple estimator plots provided by WandB."""
         X, y = self._poniard.X, self._poniard.y
         saved_model_path = Path(wandb.run.dir, f"{name}.joblib")
-        # This works fine for sklearn and sklearn-like models only.
-        try:
-            check_is_fitted(estimator)
-        except NotFittedError:
-            estimator.fit(X, y)
-        joblib.dump(estimator, saved_model_path)
-        artifact = wandb.Artifact(name=f"saved_estimators", type="model")
-        artifact.add_file(saved_model_path.as_posix(), name=name)
-        wandb.log_artifact(artifact)
-
         (
             X_train,
             X_test,
@@ -105,6 +95,11 @@ class WandBPlugin(BasePlugin):
             y_test,
         ) = self._poniard._train_test_split_from_cv()
         estimator.fit(X_train, y_train)
+        joblib.dump(estimator, saved_model_path)
+        artifact = wandb.Artifact(name=f"saved_estimators", type="model")
+        artifact.add_file(saved_model_path.as_posix(), name=name)
+        wandb.log_artifact(artifact)
+
         y_pred = estimator.predict(X_test)
         estimator_type = self._poniard.poniard_task
         if estimator_type == "classification":
