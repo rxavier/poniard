@@ -221,7 +221,7 @@ class PoniardPlotFactory:
         if isinstance(X_test, pd.DataFrame):
             index = X_test.columns
         else:
-            index = list(range(X_test.shape[1]))
+            index = [str(x) for x in range(X_test.shape[1])]
         importances = pd.DataFrame(raw_importances["importances"], index=index)
         importances.rename_axis("Feature", inplace=True)
         importances.reset_index(inplace=True)
