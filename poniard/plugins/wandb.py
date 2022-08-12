@@ -51,10 +51,13 @@ class WandBPlugin(BasePlugin):
         }
 
     def on_setup_end(self) -> None:
-        """Log config and dataset."""
+        """Log config."""
         config = self.build_config()
         wandb.config.update(config)
+        return
 
+    def on_setup_data(self) -> None:
+        """Log dataset"""
         X, y = self._poniard.X, self._poniard.y
         try:
             dataset = pd.concat([X, y], axis=1)
@@ -63,6 +66,16 @@ class WandBPlugin(BasePlugin):
             dataset = pd.DataFrame(dataset)
         table = wandb.Table(dataframe=dataset)
         wandb.log({"dataset": table})
+        return
+
+    def on_infer_types(self):
+        """Log inferred types."""
+        table = wandb.Table(dataframe=self._poniard.inferred_types)
+        wandb.log({"Inferred types": table})
+        return
+
+    def on_setup_preprocessor(self) -> None:
+        """Log preprocessor's HTML repr."""
         wandb.log(
             {"preprocessor": wandb.Html(self._poniard.preprocessor_._repr_html_())}
         )
@@ -127,6 +140,22 @@ class WandBPlugin(BasePlugin):
     def on_remove_estimators(self):
         """Log config and results table."""
         self.on_fit_end()
-        config = self.build_config()
-        wandb.config.update(config)
+        self.on_setup_end()
+        return
+
+    def on_add_estimators(self):
+        """Rerun logging at setup end."""
+        self.on_setup_end()
+        return
+
+    def on_add_preprocessing_step(self):
+        """Rerun logging at setup end."""
+        self.on_setup_end()
+        self.on_setup_preprocessor()
+        return
+
+    def on_reassign_types(self):
+        """Rerun logging at setup end."""
+        self.on_setup_end()
+        self.on_setup_preprocessor()
         return

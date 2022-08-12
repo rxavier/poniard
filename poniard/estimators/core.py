@@ -228,6 +228,8 @@ class PoniardBaseEstimator(ABC):
             y = np.array(y)
         self.X = X
         self.y = y
+        self._run_plugin_methods("on_setup_data")
+
         self.target_info = get_target_info(self.y, self.poniard_task)
         print("Target info", "-----------", sep="\n")
         print(
@@ -264,6 +266,7 @@ class PoniardBaseEstimator(ABC):
                 self.preprocessor_ = self.custom_preprocessor
             else:
                 self.preprocessor_ = self._build_preprocessor()
+        self._run_plugin_methods("on_setup_preprocessor")
 
         self.cv_ = self._build_cv()
 
@@ -342,17 +345,18 @@ class PoniardBaseEstimator(ABC):
             "datetime": datetime,
         }
         print("Inferred feature types", "----------------------", sep="\n")
-        inferred_types_df = pd.DataFrame.from_dict(
+        self.inferred_types = pd.DataFrame.from_dict(
             self._inferred_dtypes, orient="index"
         ).T.fillna("")
         try:
             # Try to print the table nicely
             from IPython.display import display, HTML
 
-            display(HTML(inferred_types_df.to_html()))
+            display(HTML(self.inferred_types.to_html()))
             print("\n")
         except ImportError:
-            print(inferred_types_df)
+            print(self.inferred_types)
+        self._run_plugin_methods("on_infer_types")
         return numeric, categorical_high, categorical_low, datetime
 
     def _build_preprocessor(
@@ -830,7 +834,7 @@ class PoniardBaseEstimator(ABC):
         # [fit -> reassign_types -> fit] actually fits models. Ideally, build the
         # preprocessor + estimator pipeline during setup and save those IDs when calling fit.
         self._fitted_estimator_ids = []
-        self._run_plugin_methods("on_setup_end")
+        self._run_plugin_methods("on_reassign_types")
         return self
 
     def add_preprocessing_step(
@@ -889,7 +893,7 @@ class PoniardBaseEstimator(ABC):
         # [fit -> add_preprocessing_step -> fit] actually fits models. Ideally, build the
         # preprocessor + estimator pipeline during setup and save those IDs when calling fit.
         self._fitted_estimator_ids = []
-        self._run_plugin_methods("on_setup_end")
+        self._run_plugin_methods("on_add_preprocessing_step")
         return self
 
     def show_results(
@@ -954,6 +958,7 @@ class PoniardBaseEstimator(ABC):
         for new_estimator in new_estimators.values():
             self._pass_instance_attrs(new_estimator)
         self.estimators_.update(new_estimators)
+        self._run_plugin_methods("on_add_estimators")
         return self
 
     def remove_estimators(

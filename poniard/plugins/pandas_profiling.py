@@ -38,16 +38,13 @@ class PandasProfilingPlugin(BasePlugin):
         self.html_path = html_path or Path(self.title + ".html")
         self.kwargs = kwargs or {}
 
-    def on_setup_end(self) -> None:
+    def on_setup_data(self) -> None:
         """Create Pandas Profiling HTML report."""
         X, y = self._poniard.X, self._poniard.y
         try:
             dataset = pd.concat([X, y], axis=1)
         except TypeError:
-            if y.ndim == 1:
-                dataset = np.concatenate([X, np.expand_dims(y, 1)], axis=1)
-            else:
-                dataset = np.concatenate([X, y], axis=1)
+            dataset = np.column_stack([X, y])
             dataset = pd.DataFrame(dataset)
         self.report = ProfileReport(
             df=dataset,
