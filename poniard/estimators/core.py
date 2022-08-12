@@ -345,17 +345,17 @@ class PoniardBaseEstimator(ABC):
             "datetime": datetime,
         }
         print("Inferred feature types", "----------------------", sep="\n")
-        self.inferred_types = pd.DataFrame.from_dict(
+        self.inferred_types_ = pd.DataFrame.from_dict(
             self._inferred_dtypes, orient="index"
         ).T.fillna("")
         try:
             # Try to print the table nicely
             from IPython.display import display, HTML
 
-            display(HTML(self.inferred_types.to_html()))
+            display(HTML(self.inferred_types_.to_html()))
             print("\n")
         except ImportError:
-            print(self.inferred_types)
+            print(self.inferred_types_)
         self._run_plugin_methods("on_infer_types")
         return numeric, categorical_high, categorical_low, datetime
 
