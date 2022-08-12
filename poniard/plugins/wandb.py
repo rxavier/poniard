@@ -83,10 +83,11 @@ class WandBPlugin(BasePlugin):
         table = wandb.Table(dataframe=results)
         wandb.log({"results": table})
         for test_metric in results.columns[results.columns.str.startswith("test_")]:
+            aux_table = wandb.Table(dataframe=results[["Estimator", test_metric]])
             wandb.log(
                 {
                     f"{test_metric}_plot": wandb.plot.bar(
-                        table, label="Estimator", value=test_metric
+                        aux_table, label="Estimator", value=test_metric
                     )
                 }
             )
