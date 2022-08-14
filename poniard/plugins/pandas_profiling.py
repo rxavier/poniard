@@ -71,5 +71,5 @@ class PandasProfilingPlugin(BasePlugin):
             with open(self.html_path) as report:
                 import wandb
 
-                wandb.log({"profile_report": wandb.Html(report)})
+                wandb.log({"Pandas Profiling Report": wandb.Html(report)})
         return

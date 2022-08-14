@@ -30,7 +30,7 @@ class WandBPlugin(BasePlugin):
     ):
         self.project = project
         self.entity = entity
-        wandb.init(project=project, entity=entity, **kwargs)
+        self.run = wandb.init(project=project, entity=entity, **kwargs)
 
     def build_config(self) -> dict:
         """Helper method that builds a config dict from the poniard instance."""
@@ -65,7 +65,7 @@ class WandBPlugin(BasePlugin):
             dataset = np.column_stack([X, y])
             dataset = pd.DataFrame(dataset)
         table = wandb.Table(dataframe=dataset)
-        wandb.log({"dataset": table})
+        wandb.log({"Dataset": table})
         return
 
     def on_infer_types(self):
@@ -77,7 +77,7 @@ class WandBPlugin(BasePlugin):
     def on_setup_preprocessor(self) -> None:
         """Log preprocessor's HTML repr."""
         wandb.log(
-            {"preprocessor": wandb.Html(self._poniard.preprocessor_._repr_html_())}
+            {"Preprocessor": wandb.Html(self._poniard.preprocessor_._repr_html_())}
         )
         return
 
@@ -91,12 +91,12 @@ class WandBPlugin(BasePlugin):
         results = self._poniard.show_results().reset_index()
         results.rename(columns={"index": "Estimator"}, inplace=True)
         table = wandb.Table(dataframe=results)
-        wandb.log({"results": table})
+        wandb.log({"Results": table})
         for test_metric in results.columns[results.columns.str.startswith("test_")]:
             aux_table = wandb.Table(dataframe=results[["Estimator", test_metric]])
             wandb.log(
                 {
-                    f"{test_metric}_plot": wandb.plot.bar(
+                    f"{test_metric} plot": wandb.plot.bar(
                         aux_table, label="Estimator", value=test_metric
                     )
                 }
