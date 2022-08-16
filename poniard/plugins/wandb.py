@@ -128,13 +128,19 @@ class WandBPlugin(BasePlugin):
                 y_probas = estimator.predict_proba(X_test)
                 wandb.sklearn.plot_roc(y_test, y_probas, labels)
                 wandb.sklearn.plot_precision_recall(y_test, y_probas, labels)
-            wandb.sklearn.plot_calibration_curve(estimator, X_train, y_train, name)
-            if isinstance(estimator, Pipeline):
-                estimator = estimator[-1]
-            wandb.sklearn.plot_feature_importances(estimator, pd.DataFrame(X).columns)
+            # Wandb complains about missing and non-numeric features despite the estimator
+            # having everything to deal with them, so we comment out each function that takes X.
+            # wandb.sklearn.plot_learning_curve(estimator, X_train, y_train)
+            # wandb.sklearn.plot_calibration_curve(estimator, X_train, y_train, name)
+
+            # Remove temporarily so we can figure out how to get column names.
+            # if isinstance(estimator, Pipeline):
+            #     estimator = estimator[-1]
+            # wandb.sklearn.plot_feature_importances(estimator, pd.DataFrame(X).columns)
         else:
-            wandb.sklearn.plot_residuals(estimator, X_train, y_train)
-            wandb.sklearn.plot_outlier_candidates(estimator, X_train, y_train)
+            # wandb.sklearn.plot_residuals(estimator, X_train, y_train)
+            # wandb.sklearn.plot_outlier_candidates(estimator, X_train, y_train)
+            pass
         return
 
     def on_remove_estimators(self):
