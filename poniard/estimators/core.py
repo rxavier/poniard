@@ -221,14 +221,14 @@ class PoniardBaseEstimator(ABC):
             Target
 
         """
-        self._run_plugin_methods("on_setup_start")
+        self._run_plugin_method("on_setup_start")
         if not isinstance(X, (pd.DataFrame, pd.Series, np.ndarray)):
             X = np.array(X)
         if not isinstance(y, (pd.DataFrame, pd.Series, np.ndarray)):
             y = np.array(y)
         self.X = X
         self.y = y
-        self._run_plugin_methods("on_setup_data")
+        self._run_plugin_method("on_setup_data")
 
         self.target_info = get_target_info(self.y, self.poniard_task)
         print("Target info", "-----------", sep="\n")
@@ -266,11 +266,11 @@ class PoniardBaseEstimator(ABC):
                 self.preprocessor_ = self.custom_preprocessor
             else:
                 self.preprocessor_ = self._build_preprocessor()
-        self._run_plugin_methods("on_setup_preprocessor")
+        self._run_plugin_method("on_setup_preprocessor")
 
         self.cv_ = self._build_cv()
 
-        self._run_plugin_methods("on_setup_end")
+        self._run_plugin_method("on_setup_end")
         return self
 
     def _infer_dtypes(self) -> Tuple[List[str], List[str], List[str]]:
@@ -356,7 +356,7 @@ class PoniardBaseEstimator(ABC):
             print("\n")
         except ImportError:
             print(self.inferred_types_)
-        self._run_plugin_methods("on_infer_types")
+        self._run_plugin_method("on_infer_types")
         return numeric, categorical_high, categorical_low, datetime
 
     def _build_preprocessor(
@@ -434,7 +434,9 @@ class PoniardBaseEstimator(ABC):
                 ("categorical_imputer", cat_date_imputer),
                 (
                     "one-hot_encoder",
-                    OneHotEncoder(drop="if_binary", handle_unknown="ignore"),
+                    OneHotEncoder(
+                        drop="if_binary", handle_unknown="ignore", sparse=False
+                    ),
                 ),
             ]
         )
@@ -605,7 +607,7 @@ class PoniardBaseEstimator(ABC):
         """
         if not hasattr(self, "cv_"):
             raise ValueError("`setup` must be called before `fit`.")
-        self._run_plugin_methods("on_fit_start")
+        self._run_plugin_method("on_fit_start")
 
         results = {}
         filtered_estimators = {
@@ -650,7 +652,7 @@ class PoniardBaseEstimator(ABC):
 
         self._process_results()
         self._process_long_results()
-        self._run_plugin_methods("on_fit_end")
+        self._run_plugin_method("on_fit_end")
         return self
 
     def _predict(
@@ -834,7 +836,7 @@ class PoniardBaseEstimator(ABC):
         # [fit -> reassign_types -> fit] actually fits models. Ideally, build the
         # preprocessor + estimator pipeline during setup and save those IDs when calling fit.
         self._fitted_estimator_ids = []
-        self._run_plugin_methods("on_reassign_types")
+        self._run_plugin_method("on_reassign_types")
         return self
 
     def add_preprocessing_step(
@@ -893,7 +895,7 @@ class PoniardBaseEstimator(ABC):
         # [fit -> add_preprocessing_step -> fit] actually fits models. Ideally, build the
         # preprocessor + estimator pipeline during setup and save those IDs when calling fit.
         self._fitted_estimator_ids = []
-        self._run_plugin_methods("on_add_preprocessing_step")
+        self._run_plugin_method("on_add_preprocessing_step")
         return self
 
     def show_results(
@@ -958,7 +960,7 @@ class PoniardBaseEstimator(ABC):
         for new_estimator in new_estimators.values():
             self._pass_instance_attrs(new_estimator)
         self.estimators_.update(new_estimators)
-        self._run_plugin_methods("on_add_estimators")
+        self._run_plugin_method("on_add_estimators")
         return self
 
     def remove_estimators(
@@ -994,7 +996,7 @@ class PoniardBaseEstimator(ABC):
                 for k, v in self._experiment_results.items()
                 if k not in estimator_names
             }
-        self._run_plugin_methods("on_remove_estimators")
+        self._run_plugin_method("on_remove_estimators")
         return self
 
     def get_estimator(
@@ -1026,7 +1028,7 @@ class PoniardBaseEstimator(ABC):
         model = clone(model)
         if retrain:
             model.fit(self.X, self.y)
-        self._run_plugin_methods(
+        self._run_plugin_method(
             "on_get_estimator", estimator=model, name=estimator_name
         )
         return model
@@ -1320,7 +1322,7 @@ class PoniardBaseEstimator(ABC):
                 setattr(obj, attr, value)
         return
 
-    def _run_plugin_methods(self, method: str, **kwargs):
+    def _run_plugin_method(self, method: str, **kwargs):
         """Helper method to run plugin methods by name."""
         if not self.plugins:
             return
