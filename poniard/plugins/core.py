@@ -67,7 +67,10 @@ class BasePlugin(ABC):
         pass
 
     def _check_plugin_used(self, plugin_cls_name: str):
-        if any(x.__class__.__name__ == plugin_cls_name for x in self._poniard.plugins):
-            return True
+        """Check if another plugin is present. If it is, return its instance. Else, return False."""
+        plugin_names = [x.__class__.__name__ for x in self._poniard.plugins]
+        check = any(x == plugin_cls_name for x in plugin_names)
+        if check:
+            return self._poniard.plugins[plugin_names.index(plugin_cls_name)]
         else:
             return False

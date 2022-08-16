@@ -67,9 +67,10 @@ class PandasProfilingPlugin(BasePlugin):
         return
 
     def _log_to_wandb_if_available(self):
-        if self._check_plugin_used("WandBPlugin"):
-            with open(self.html_path) as report:
-                import wandb
+        wandb_plugin = self._check_plugin_used("WandBPlugin")
+        if wandb_plugin:
+            import wandb
 
-                wandb.log({"Pandas Profiling Report": wandb.Html(report)})
+            with open(self.html_path) as report:
+                wandb_plugin.run.log({"Pandas Profiling Report": wandb.Html(report)})
         return
