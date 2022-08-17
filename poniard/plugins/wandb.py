@@ -104,7 +104,7 @@ class WandBPlugin(BasePlugin):
         return
 
     def on_get_estimator(self, estimator: BaseEstimator, name: str):
-        """Save fitted estimator as artifact and log multiple estimator plots provided by WandB."""
+        """Save fitted estimator as artifact."""
         X, y = self._poniard.X, self._poniard.y
         saved_model_path = Path(wandb.run.dir, f"{name}.joblib")
         (
@@ -119,28 +119,30 @@ class WandBPlugin(BasePlugin):
         artifact.add_file(saved_model_path.as_posix(), name=name)
         wandb.log_artifact(artifact)
 
-        y_pred = estimator.predict(X_test)
-        estimator_type = self._poniard.poniard_task
-        if estimator_type == "classification":
-            labels = np.unique(y_test)
-            wandb.sklearn.plot_confusion_matrix(y_test, y_pred, labels)
-            if hasattr(estimator, "predict_proba"):
-                y_probas = estimator.predict_proba(X_test)
-                wandb.sklearn.plot_roc(y_test, y_probas, labels)
-                wandb.sklearn.plot_precision_recall(y_test, y_probas, labels)
-            # Wandb complains about missing and non-numeric features despite the estimator
-            # having everything to deal with them, so we comment out each function that takes X.
-            # wandb.sklearn.plot_learning_curve(estimator, X_train, y_train)
-            # wandb.sklearn.plot_calibration_curve(estimator, X_train, y_train, name)
+        wandb.log({f"{name} pipeline": wandb.Html(estimator._repr_html_())})
 
-            # Remove temporarily so we can figure out how to get column names.
-            # if isinstance(estimator, Pipeline):
-            #     estimator = estimator[-1]
-            # wandb.sklearn.plot_feature_importances(estimator, pd.DataFrame(X).columns)
-        else:
-            # wandb.sklearn.plot_residuals(estimator, X_train, y_train)
-            # wandb.sklearn.plot_outlier_candidates(estimator, X_train, y_train)
-            pass
+        # Wandb complains about missing and non-numeric features despite the estimator
+        # having everything to deal with them, so we comment out each function that takes X.
+        # y_pred = estimator.predict(X_test)
+        # estimator_type = self._poniard.poniard_task
+        # if estimator_type == "classification":
+        #     labels = np.unique(y_test)
+        #     wandb.sklearn.plot_confusion_matrix(y_test, y_pred, labels)
+        #     if hasattr(estimator, "predict_proba"):
+        #         y_probas = estimator.predict_proba(X_test)
+        #         wandb.sklearn.plot_roc(y_test, y_probas, labels)
+        #         wandb.sklearn.plot_precision_recall(y_test, y_probas, labels)
+
+        # wandb.sklearn.plot_learning_curve(estimator, X_train, y_train)
+        # wandb.sklearn.plot_calibration_curve(estimator, X_train, y_train, name)
+
+        # Remove temporarily so we can figure out how to get column names.
+        # if isinstance(estimator, Pipeline):
+        #     estimator = estimator[-1]
+        # wandb.sklearn.plot_feature_importances(estimator, pd.DataFrame(X).columns)
+        # else:
+        # wandb.sklearn.plot_residuals(estimator, X_train, y_train)
+        # wandb.sklearn.plot_outlier_candidates(estimator, X_train, y_train)
         return
 
     def on_remove_estimators(self):
