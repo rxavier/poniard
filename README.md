@@ -12,14 +12,16 @@ The core functionality has been tested to work on Python 3.7 through 3.10 on Lin
 
 # Installation
 
+Stable version:
+
 ```bash
 pip install poniard
 ```
 
-Or from source.
+Dev version with most up to date changes:
 
 ```bash
-pip install git+https://github.com/rxavier/poniard
+pip install git+https://github.com/rxavier/poniard.git@develop#egg=poniard
 ```
 
 # Documentation
