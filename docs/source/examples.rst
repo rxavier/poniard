@@ -8,3 +8,4 @@ Example notebooks
    02._main_parameters.ipynb
    03._preprocessing_parameters.ipynb
    04._plotting.ipynb
+   05._plugins.ipynb

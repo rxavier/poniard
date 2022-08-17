@@ -131,7 +131,7 @@ class PoniardPlotFactory:
             )
         fig.update_xaxes(matches=None)
         fig.update_layout(yaxis_title="")
-        self._poniard._run_plugin_methods("on_plot", figure=fig, name="scores_plot")
+        self._poniard._run_plugin_method("on_plot", figure=fig, name="scores_plot")
         return fig
 
     def overfitness(
@@ -173,9 +173,7 @@ class PoniardPlotFactory:
             title=f"{metric} overfitness",
         )
         fig.update_layout(xaxis_title="Train / test ratio", yaxis_title="")
-        self._poniard._run_plugin_methods(
-            "on_plot", figure=fig, name="overfitness_plot"
-        )
+        self._poniard._run_plugin_method("on_plot", figure=fig, name="overfitness_plot")
         return fig
 
     def permutation_importance(
@@ -221,7 +219,7 @@ class PoniardPlotFactory:
         if isinstance(X_test, pd.DataFrame):
             index = X_test.columns
         else:
-            index = list(range(X_test.shape[1]))
+            index = [str(x) for x in range(X_test.shape[1])]
         importances = pd.DataFrame(raw_importances["importances"], index=index)
         importances.rename_axis("Feature", inplace=True)
         importances.reset_index(inplace=True)
@@ -254,7 +252,7 @@ class PoniardPlotFactory:
             ]
             fig = px.bar(importances, x="Importance", y="Feature", title=title)
             fig.update_layout(yaxis={"categoryorder": "total ascending"})
-        self._poniard._run_plugin_methods(
+        self._poniard._run_plugin_method(
             "on_plot", figure=fig, name=f"{estimator_name}_permutation_importances_plot"
         )
         return fig
@@ -366,7 +364,7 @@ class PoniardPlotFactory:
                 }
             ]
         )
-        self._poniard._run_plugin_methods("on_plot", figure=fig, name="roc_plot")
+        self._poniard._run_plugin_method("on_plot", figure=fig, name="roc_plot")
         return fig
 
     def confusion_matrix(self, estimator_name: str, **kwargs) -> Figure:
@@ -400,9 +398,7 @@ class PoniardPlotFactory:
         fig.update_yaxes(nticks=len(np.unique(y)) + 1)
         fig.update_xaxes(nticks=len(np.unique(y)) + 1)
         fig.update(layout_coloraxis_showscale=False)
-        self._poniard._run_plugin_methods(
-            "on_plot", figure=fig, name="confusion_matrix"
-        )
+        self._poniard._run_plugin_method("on_plot", figure=fig, name="confusion_matrix")
         return fig
 
     def partial_dependence(
@@ -457,7 +453,7 @@ class PoniardPlotFactory:
         )
         if hide_legend:
             fig.update_layout(showlegend=False)
-        self._poniard._run_plugin_methods(
+        self._poniard._run_plugin_method(
             "on_plot", figure=fig, name=f"{feature}_partial_dependence_plot"
         )
         return fig
