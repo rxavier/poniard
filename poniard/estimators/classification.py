@@ -77,7 +77,7 @@ class PoniardClassifier(PoniardBaseEstimator):
 
     Attributes
     ----------
-    estimators_ :
+    pipelines :
         Estimators used for scoring.
     preprocessor_ :
         Pipeline that preprocesses the data.

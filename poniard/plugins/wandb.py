@@ -35,7 +35,7 @@ class WandBPlugin(BasePlugin):
     def build_config(self) -> dict:
         """Helper method that builds a config dict from the poniard instance."""
         return {
-            "estimators": list(self._poniard.estimators_.values()),
+            "pipelines": list(self._poniard.estimators_.values()),
             "metrics": self._poniard.metrics_,
             "cv": self._poniard.cv_,
             "preprocess": self._poniard.preprocess,

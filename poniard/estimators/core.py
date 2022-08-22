@@ -97,7 +97,7 @@ class PoniardBaseEstimator(ABC):
 
     Attributes
     ----------
-    estimators_ :
+    pipelines :
         Estimators used for scoring.
     preprocessor_ :
         Pipeline that preprocesses the data.
@@ -211,7 +211,7 @@ class PoniardBaseEstimator(ABC):
         """Orchestrator.
 
         Converts inputs to arrays if necessary, sets :attr:`metrics_`,
-        :attr:`preprocessor_`, attr:`cv_` and :attr:`estimators_`.
+        :attr:`preprocessor_`, attr:`cv_` and :attr:`pipelines`.
 
         Parameters
         ----------
@@ -245,7 +245,7 @@ class PoniardBaseEstimator(ABC):
                 "no sklearn metrics support them."
             )
 
-        self.estimators_ = self._build_initial_estimators()
+        self.pipelines = self._build_pipelines()
 
         if self.metrics:
             self.metrics_ = (
@@ -535,16 +535,23 @@ class PoniardBaseEstimator(ABC):
     def _base_estimators(self) -> List[ClassifierMixin]:
         return []
 
-    def _build_initial_estimators(
+    @property
+    def estimators_(self):
+        warnings.warn(
+            "'estimators_' has been renamed to 'pipelines'", DeprecationWarning
+        )
+        return self.pipelines
+
+    def _build_pipelines(
         self,
     ) -> Dict[str, Union[ClassifierMixin, RegressorMixin]]:
-        """Build :attr:`estimators_` dict where keys are the estimator class names.
+        """Build :attr:`pipelines` dict where keys are the estimator class names.
 
         Adds dummy estimators if not included during construction. Does nothing if
-        :attr:`estimators_` exists.
+        :attr:`pipelines` exists.
 
         """
-        if hasattr(self, "estimators_"):
+        if hasattr(self, "pipelines"):
             return
 
         if isinstance(self.estimators, dict):
@@ -588,7 +595,7 @@ class PoniardBaseEstimator(ABC):
 
     def fit(self) -> PoniardBaseEstimator:
         """This is the main Poniard method. It uses scikit-learn's `cross_validate` function to
-        score all :attr:`metrics_` for every :attr:`preprocessor_` | :attr:`estimators_`, using
+        score all :attr:`metrics_` for every :attr:`preprocessor_` | :attr:`pipelines`, using
         :attr:`cv` for cross validation.
 
         After running :meth:`fit`, both :attr:`X` and :attr:`y` will be held as attributes.
@@ -612,7 +619,7 @@ class PoniardBaseEstimator(ABC):
         results = {}
         filtered_estimators = {
             name: estimator
-            for name, estimator in self.estimators_.items()
+            for name, estimator in self.pipelines.items()
             if id(estimator) not in self._fitted_estimator_ids
         }
         pbar = tqdm(filtered_estimators.items())
@@ -664,12 +671,12 @@ class PoniardBaseEstimator(ABC):
             raise ValueError("`setup` must be called before `predict`.")
         X, y = self.X, self.y
         if not estimator_names:
-            estimator_names = [estimator for estimator in self.estimators_.keys()]
+            estimator_names = [estimator for estimator in self.pipelines.keys()]
         results = {}
         pbar = tqdm(estimator_names)
         for i, name in enumerate(pbar):
             pbar.set_description(f"{name}")
-            estimator = self.estimators_[name]
+            estimator = self.pipelines[name]
             if self.preprocess:
                 final_estimator = Pipeline(
                     [("preprocessor", self.preprocessor_), (name, estimator)],
@@ -942,7 +949,7 @@ class PoniardBaseEstimator(ABC):
         self, estimators: Union[Dict[str, ClassifierMixin], Sequence[ClassifierMixin]]
     ) -> PoniardBaseEstimator:
         """Include new estimator. This is the recommended way of adding an estimator (as opposed
-        to modifying :attr:`estimators_` directly), since it also injects random state, n_jobs
+        to modifying :attr:`pipelines` directly), since it also injects random state, n_jobs
         and verbosity.
 
         Parameters
@@ -966,7 +973,7 @@ class PoniardBaseEstimator(ABC):
             new_estimators = estimators
         for new_estimator in new_estimators.values():
             self._pass_instance_attrs(new_estimator)
-        self.estimators_.update(new_estimators)
+        self.pipelines.update(new_estimators)
         self._run_plugin_method("on_add_estimators")
         return self
 
@@ -974,7 +981,7 @@ class PoniardBaseEstimator(ABC):
         self, estimator_names: Sequence[str], drop_results: bool = True
     ) -> PoniardBaseEstimator:
         """Remove estimators. This is the recommended way of removing an estimator (as opposed
-        to modifying :attr:`estimators_` directly), since it also removes the associated rows from
+        to modifying :attr:`pipelines` directly), since it also removes the associated rows from
         the results tables.
 
         Parameters
@@ -990,11 +997,11 @@ class PoniardBaseEstimator(ABC):
             Self.
         """
         pruned_estimators = {
-            k: v for k, v in self.estimators_.items() if k not in estimator_names
+            k: v for k, v in self.pipelines.items() if k not in estimator_names
         }
         if len(pruned_estimators) == 0:
             raise ValueError("Cannot remove all estimators.")
-        self.estimators_ = pruned_estimators
+        self.pipelines = pruned_estimators
         if drop_results and hasattr(self, "_means"):
             self._means = self._means.loc[~self._means.index.isin(estimator_names)]
             self._stds = self._stds.loc[~self._stds.index.isin(estimator_names)]
@@ -1012,7 +1019,7 @@ class PoniardBaseEstimator(ABC):
         include_preprocessor: bool = True,
         retrain: bool = False,
     ) -> Union[Pipeline, ClassifierMixin, RegressorMixin]:
-        """Obtain an estimator in :attr:`estimators_` by name. This is useful for extracting default
+        """Obtain an estimator in :attr:`pipelines` by name. This is useful for extracting default
         estimators or hyperparmeter-optimized estimators (after using :meth:`tune_estimator`).
 
         Parameters
@@ -1064,7 +1071,7 @@ class PoniardBaseEstimator(ABC):
         sort_by :
             Which metric to consider for ordering results. Default None, which uses the first metric.
         ensemble_name :
-            Ensemble name when adding to :attr:`estimators_`. Default None.
+            Ensemble name when adding to :attr:`pipelines`. Default None.
 
         Returns
         -------
@@ -1183,7 +1190,7 @@ class PoniardBaseEstimator(ABC):
         mode :
             Type of search. Eithe "grid", "halving" or "random". Default "grid".
         tuned_estimator_name :
-            Estimator name when adding to :attr:`estimators_`. Default None.
+            Estimator name when adding to :attr:`pipelines`. Default None.
 
         Returns
         -------
