@@ -28,6 +28,7 @@ jobs:
       run: tox
 
   publish:
+    if: startsWith(github.ref, 'refs/tags')
     needs: build
     uses: rxavier/poniard/.github/workflows/publish.yml@main
     secrets:
