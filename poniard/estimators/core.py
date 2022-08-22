@@ -101,9 +101,9 @@ class PoniardBaseEstimator(ABC):
         Estimators used for scoring.
     preprocessor_ :
         Pipeline that preprocesses the data.
-    metrics_ :
+    metrics :
         Metrics used for scoring estimators during fit and hyperparameter optimization.
-    cv_ :
+    cv :
         Cross validation strategy.
     """
 
@@ -210,8 +210,8 @@ class PoniardBaseEstimator(ABC):
     ) -> PoniardBaseEstimator:
         """Orchestrator.
 
-        Converts inputs to arrays if necessary, sets :attr:`metrics_`,
-        :attr:`preprocessor_`, attr:`cv_` and :attr:`pipelines`.
+        Converts inputs to arrays if necessary, sets :attr:`metrics`,
+        :attr:`preprocessor_`, attr:`cv` and :attr:`pipelines`.
 
         Parameters
         ----------
@@ -248,11 +248,11 @@ class PoniardBaseEstimator(ABC):
         self.pipelines = self._build_pipelines()
 
         if self.metrics:
-            self.metrics_ = (
+            self.metrics = (
                 self.metrics if not isinstance(self.metrics, str) else [self.metrics]
             )
         else:
-            self.metrics_ = self._build_metrics()
+            self.metrics = self._build_metrics()
         print(
             "Main metric",
             "-----------",
@@ -268,7 +268,7 @@ class PoniardBaseEstimator(ABC):
                 self.preprocessor_ = self._build_preprocessor()
         self._run_plugin_method("on_setup_preprocessor")
 
-        self.cv_ = self._build_cv()
+        self.cv = self._build_cv()
 
         self._run_plugin_method("on_setup_end")
         return self
@@ -542,6 +542,16 @@ class PoniardBaseEstimator(ABC):
         )
         return self.pipelines
 
+    @property
+    def metrics_(self):
+        warnings.warn("'metrics_' has been renamed to 'metrics'", DeprecationWarning)
+        return self.metrics
+
+    @property
+    def cv_(self):
+        warnings.warn("'cv_' has been renamed to 'cv'", DeprecationWarning)
+        return self.cv
+
     def _build_pipelines(
         self,
     ) -> Dict[str, Union[ClassifierMixin, RegressorMixin]]:
@@ -595,7 +605,7 @@ class PoniardBaseEstimator(ABC):
 
     def fit(self) -> PoniardBaseEstimator:
         """This is the main Poniard method. It uses scikit-learn's `cross_validate` function to
-        score all :attr:`metrics_` for every :attr:`preprocessor_` | :attr:`pipelines`, using
+        score all :attr:`metrics` for every :attr:`preprocessor_` | :attr:`pipelines`, using
         :attr:`cv` for cross validation.
 
         After running :meth:`fit`, both :attr:`X` and :attr:`y` will be held as attributes.
@@ -612,7 +622,7 @@ class PoniardBaseEstimator(ABC):
         PoniardBaseEstimator
             Self.
         """
-        if not hasattr(self, "cv_"):
+        if not hasattr(self, "cv"):
             raise ValueError("`setup` must be called before `fit`.")
         self._run_plugin_method("on_fit_start")
 
@@ -641,8 +651,8 @@ class PoniardBaseEstimator(ABC):
                     final_estimator,
                     self.X,
                     self.y,
-                    scoring=self.metrics_,
-                    cv=self.cv_,
+                    scoring=self.metrics,
+                    cv=self.cv,
                     return_train_score=True,
                     return_estimator=True,
                     verbose=self.verbose,
@@ -667,7 +677,7 @@ class PoniardBaseEstimator(ABC):
     ) -> Dict[str, np.ndarray]:
         """Helper method for predicting targets or target probabilities with cross validation.
         Accepts predict, predict_proba, predict_log_proba or decision_function."""
-        if not hasattr(self, "cv_"):
+        if not hasattr(self, "cv"):
             raise ValueError("`setup` must be called before `predict`.")
         X, y = self.X, self.y
         if not estimator_names:
@@ -689,7 +699,7 @@ class PoniardBaseEstimator(ABC):
                     final_estimator,
                     X,
                     y,
-                    cv=self.cv_,
+                    cv=self.cv,
                     method=method,
                     verbose=self.verbose,
                     n_jobs=self.n_jobs,
@@ -1113,11 +1123,11 @@ class PoniardBaseEstimator(ABC):
         else:
             if self.poniard_task == "classification":
                 ensemble = StackingClassifier(
-                    estimators=models, verbose=self.verbose, cv=self.cv_, **kwargs
+                    estimators=models, verbose=self.verbose, cv=self.cv, **kwargs
                 )
             else:
                 ensemble = StackingRegressor(
-                    estimators=models, verbose=self.verbose, cv=self.cv_, **kwargs
+                    estimators=models, verbose=self.verbose, cv=self.cv, **kwargs
                 )
         ensemble_name = ensemble_name or ensemble.__class__.__name__
         self.add_estimators(estimators={ensemble_name: ensemble})
@@ -1220,7 +1230,7 @@ class PoniardBaseEstimator(ABC):
                 estimator,
                 grid,
                 scoring=scoring,
-                cv=self.cv_,
+                cv=self.cv,
                 verbose=self.verbose,
                 n_jobs=self.n_jobs,
                 random_state=self.random_state,
@@ -1233,7 +1243,7 @@ class PoniardBaseEstimator(ABC):
                 estimator,
                 grid,
                 scoring=scoring,
-                cv=self.cv_,
+                cv=self.cv,
                 verbose=self.verbose,
                 n_jobs=self.n_jobs,
                 random_state=self.random_state,
@@ -1243,7 +1253,7 @@ class PoniardBaseEstimator(ABC):
                 estimator,
                 grid,
                 scoring=scoring,
-                cv=self.cv_,
+                cv=self.cv,
                 verbose=self.verbose,
                 n_jobs=self.n_jobs,
             )
@@ -1300,29 +1310,29 @@ class PoniardBaseEstimator(ABC):
 
     def _first_scorer(self, sklearn_scorer: bool) -> Union[str, Callable]:
         """Helper method to get the first scoring function or name."""
-        if isinstance(self.metrics_, Sequence):
-            return self.metrics_[0]
-        elif isinstance(self.metrics_, dict):
+        if isinstance(self.metrics, Sequence):
+            return self.metrics[0]
+        elif isinstance(self.metrics, dict):
             if sklearn_scorer:
-                return list(self.metrics_.values())[0]
+                return list(self.metrics.values())[0]
             else:
-                return list(self.metrics_.keys())[0]
+                return list(self.metrics.keys())[0]
         else:
             raise ValueError(
-                "self.metrics_ can only be a sequence of str or dict of str: callable."
+                "self.metrics can only be a sequence of str or dict of str: callable."
             )
 
     def _train_test_split_from_cv(self):
         """Split data in a 80/20 fashion following the cross-validation strategy defined in the constructor."""
-        if isinstance(self.cv_, (int, Iterable)):
+        if isinstance(self.cv, (int, Iterable)):
             cv_params_for_split = {}
         else:
             cv_params_for_split = {
                 k: v
-                for k, v in vars(self.cv_).items()
+                for k, v in vars(self.cv).items()
                 if k in ["shuffle", "random_state"]
             }
-            stratify = self.y if "Stratified" in self.cv_.__class__.__name__ else None
+            stratify = self.y if "Stratified" in self.cv.__class__.__name__ else None
             cv_params_for_split.update({"stratify": stratify})
         return train_test_split(self.X, self.y, test_size=0.2, **cv_params_for_split)
 

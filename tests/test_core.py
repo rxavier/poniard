@@ -68,7 +68,7 @@ def test_classifier_fit(target, metrics, estimators, cv):
     if isinstance(metrics, str):
         n_metrics = 1
     else:
-        n_metrics = len(clf.metrics_)
+        n_metrics = len(clf.metrics)
     assert results.isna().sum().sum() == 0
     assert results.shape == (n_estimators + 1, n_metrics * 2 + 2)
 
@@ -119,7 +119,7 @@ def test_regressor_fit(target, metrics, estimators, cv):
     if isinstance(metrics, str):
         n_metrics = 1
     else:
-        n_metrics = len(clf.metrics_)
+        n_metrics = len(clf.metrics)
     assert results.isna().sum().sum() == 0
     assert results.shape == (n_estimators + 1, n_metrics * 2 + 2)
 

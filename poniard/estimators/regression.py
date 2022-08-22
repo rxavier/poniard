@@ -80,9 +80,9 @@ class PoniardRegressor(PoniardBaseEstimator):
         Estimators used for scoring.
     preprocessor_ :
         Pipeline that preprocesses the data.
-    metrics_ :
+    metrics :
         Metrics used for scoring estimators during fit and hyperparameter optimization.
-    cv_ :
+    cv :
         Cross validation strategy.
     """
 
