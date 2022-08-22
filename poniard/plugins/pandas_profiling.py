@@ -72,5 +72,7 @@ class PandasProfilingPlugin(BasePlugin):
             import wandb
 
             with open(self.html_path) as report:
-                wandb_plugin.run.log({"Pandas Profiling Report": wandb.Html(report)})
+                artifact = wandb.Artifact(name="pandas_profiling_report", type="html")
+                artifact.add(wandb.Html(report), "Pandas Profiling Report")
+                wandb_plugin.run.log_artifact(artifact)
         return
