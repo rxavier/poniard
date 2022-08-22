@@ -7,7 +7,7 @@ from sklearn.model_selection._split import BaseCrossValidator, BaseShuffleSplit
 from sklearn.model_selection import KFold, StratifiedKFold
 from sklearn.linear_model import LogisticRegression
 from sklearn.naive_bayes import GaussianNB
-from sklearn.svm import LinearSVC
+from sklearn.svm import SVC
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import (
@@ -134,8 +134,12 @@ class PoniardClassifier(PoniardBaseEstimator):
                 random_state=self.random_state, verbose=self.verbose, max_iter=5000
             ),
             GaussianNB(),
-            LinearSVC(
-                random_state=self.random_state, verbose=self.verbose, max_iter=5000
+            SVC(
+                kernel="linear",
+                probability=True,
+                random_state=self.random_state,
+                verbose=self.verbose,
+                max_iter=5000,
             ),
             KNeighborsClassifier(),
             DecisionTreeClassifier(random_state=self.random_state),
