@@ -898,6 +898,13 @@ class PoniardBaseEstimator(ABC):
         self._run_plugin_method("on_add_preprocessing_step")
         return self
 
+    @property
+    def results(self):
+        full_table = self._means
+        return full_table.loc[
+            :, full_table.columns.str.contains("test_|fit|score", regex=True)
+        ]
+
     def show_results(
         self,
         std: bool = False,

@@ -45,25 +45,25 @@ Poniard provides sane defaults for 1, 2 and 3, so in most cases you can just do.
 ```python
 from poniard import PoniardClassifier
 
-pnd = PoniardClassifier(random_state=0)
+pnd = PoniardClassifier()
 pnd.setup(X_train, y_train)
 pnd.fit()
-pnd.show_results()
+pnd.results
 ```
 
 ... and get a nice table showing the average of each metric in all folds for every model, including fit and score times (thanks, scikit-learn `cross_validate` function!)
 
-|                                |   test_roc_auc |   train_roc_auc |   test_accuracy |   train_accuracy |   test_precision |   train_precision |   test_recall |   train_recall |   test_f1 |   train_f1 |   fit_time |   score_time |
-|:-------------------------------|---------------:|----------------:|----------------:|-----------------:|-----------------:|------------------:|--------------:|---------------:|----------:|-----------:|-----------:|-------------:|
-| LogisticRegression             |          1     |         1       |            0.95 |           0.9925 |         0.935664 |          0.985366 |          0.98 |           1    |  0.953863 |   0.992593 | 0.125515   |    0.0132173 |
-| RandomForestClassifier         |          1     |         1       |            0.99 |           1      |         0.981818 |          1        |          1    |           1    |  0.990476 |   1        | 0.30499    |    0.254084  |
-| GaussianNB                     |          0.998 |         1       |            0.99 |           0.99   |         0.981818 |          0.980488 |          1    |           1    |  0.990476 |   0.990123 | 0.00988617 |    0.0146274 |
-| HistGradientBoostingClassifier |          0.99  |         1       |            0.98 |           1      |         0.963636 |          1        |          1    |           1    |  0.980952 |   1        | 0.100336   |    0.0139906 |
-| XGBClassifier                  |          0.988 |         1       |            0.98 |           1      |         0.981818 |          1        |          0.98 |           1    |  0.97995  |   1        | 0.236586   |    0.0198627 |
-| DecisionTreeClassifier         |          0.98  |         1       |            0.98 |           1      |         0.981818 |          1        |          0.98 |           1    |  0.97995  |   1        | 0.00964909 |    0.0208005 |
-| LinearSVC                      |          0.966 |         1       |            0.92 |           1      |         0.900513 |          1        |          0.96 |           1    |  0.925205 |   1        | 0.00792336 |    0.0122485 |
-| KNeighborsClassifier           |          0.93  |         0.97975 |            0.87 |           0.9275 |         0.837483 |          0.894992 |          0.92 |           0.97 |  0.874865 |   0.930467 | 0.00526905 |    0.262831  |
-| DummyClassifier                |          0.5   |         0.5     |            0.5  |           0.5    |         0        |          0        |          0    |           0    |  0        |   0        | 0.00288043 |    0.0212384 |
+|                                |   test_roc_auc |   test_accuracy |   test_precision |   test_recall |   test_f1 |   fit_time |   score_time |
+|:-------------------------------|---------------:|----------------:|-----------------:|--------------:|----------:|-----------:|-------------:|
+| LogisticRegression             |       0.995456 |        0.978916 |         0.975411 |      0.991549 |  0.983351 | 0.0455776  |   0.00492911 |
+| SVC                            |       0.994139 |        0.975408 |         0.975111 |      0.985955 |  0.980477 | 0.0135186  |   0.00860071 |
+| HistGradientBoostingClassifier |       0.994128 |        0.970129 |         0.967263 |      0.985955 |  0.976433 | 1.02461    |   0.0249005  |
+| XGBClassifier                  |       0.994123 |        0.970129 |         0.967554 |      0.985915 |  0.976469 | 0.0533132  |   0.00457506 |
+| RandomForestClassifier         |       0.992264 |        0.964881 |         0.964647 |      0.980282 |  0.972192 | 0.0795071  |   0.00955095 |
+| GaussianNB                     |       0.98873  |        0.9297   |         0.940993 |      0.949413 |  0.9443   | 0.00533643 |   0.00397215 |
+| KNeighborsClassifier           |       0.98061  |        0.964881 |         0.955018 |      0.991628 |  0.972746 | 0.00236444 |   0.0104116  |
+| DecisionTreeClassifier         |       0.920983 |        0.926223 |         0.941672 |      0.94108  |  0.941054 | 0.00618615 |   0.00303702 |
+| DummyClassifier                |       0.5      |        0.627418 |         0.627418 |      1        |  0.771052 | 0.00240407 |   0.00279222 |
 
 Alternatively, you can also get a nice plot of your different metrics by using the `estimator.plot.metrics()` method.
 
@@ -84,7 +84,7 @@ Poniard makes it easy to combine various estimators in stacking or voting ensemb
 
 Poniard also reports how similar the predictions of the estimators are, so ensembles with different base estimators can be built. A basic correlation table of the cross-validated predictions is built for regression tasks, while [Cramér's V](https://en.wikipedia.org/wiki/Cram%C3%A9r%27s_V) is used for classification.
 
-By default, it computes this similarity of prediction errors instead of the actual predictions; this helps in building ensembles with good scoring estimators and uncorrelated errors, which in principle and hopefully should lead to a "wisdom of crowds" kind of situation.
+By default, it computes this similarity of prediction errors instead of the actual predictions; this helps in building ensembles with good scoring estimators and uncorrelated errors.
 
 ## Hyperparameter optimization
 The `tune_estimator` method can be used to optimize the hyperparameters of a given estimator, either by passing a grid of parameters or using the inbuilt ones available for default estimators. The tuned estimator will be added to the list of estimators and will be scored the next time `fit()` is called.
@@ -92,7 +92,7 @@ The `tune_estimator` method can be used to optimize the hyperparameters of a giv
 ```python
 from poniard import PoniardRegressor
 
-pnd = PoniardRegressor(random_state=0)
+pnd = PoniardRegressor()
 pnd.setup(x, y)
 pnd.fit()
 pnd.show_results()
@@ -167,4 +167,4 @@ Poniard is not a groundbreaking idea, and a number of libraries follow a similar
 
 **[LazyPredict](https://github.com/shankarpandala/lazypredict)** is similar in that it runs multiple estimators and provides results for various metrics. Unlike Poniard, by default it tries most scikit-learn estimators, and is not based on cross validation.
 
-**[PyCaret](https://github.com/pycaret/pycaret)** is a whole other beast that includes model explainability, deployment, plotting, NLP, anomaly detection, etc., which leads to a list of dependencies several times larger than Poniard's, and a more complicated API.
+**[PyCaret](https://github.com/pycaret/pycaret)** is a whole other beast that includes model explainability, deployment, plotting, NLP, anomaly detection, etc., which leads to a list of dependencies several times larger than Poniard's, and a much higher level of abstraction.
