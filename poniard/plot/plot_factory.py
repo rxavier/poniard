@@ -295,18 +295,18 @@ class PoniardPlotFactory:
                 hasattr(results[estimator]["estimator"][0], "predict_proba")
                 for estimator in estimator_names
             ):
-                prediction = "predict_proba"
+                type_of_prediction = "predict_proba"
             elif all(
                 hasattr(results[estimator]["estimator"][0], "decision_function")
                 for estimator in estimator_names
             ):
-                prediction = "decision_function"
+                type_of_prediction = "decision_function"
             else:
                 raise ValueError(
                     "Selected estimators do not have a common response_method (predict_proba or decision_function)."
                 )
         else:
-            prediction = response_method
+            type_of_prediction = response_method
             if not all(
                 hasattr(results[estimator]["estimator"][0], response_method)
                 for estimator in estimator_names
@@ -317,10 +317,14 @@ class PoniardPlotFactory:
 
         estimator_metrics = []
         for name in estimator_names:
-            if name not in results or prediction not in results[name]:
-                raise KeyError(f"Predictions have not been computed for {name}.")
-            y_pred = results[name][prediction]
-            if prediction == "predict_proba":
+            try:
+                y_pred = results[name][type_of_prediction]
+            except KeyError:
+                self._poniard._predict(
+                    method=type_of_prediction, estimator_names=[name]
+                )
+                y_pred = results[name][type_of_prediction]
+            if type_of_prediction == "predict_proba":
                 y_pred = y_pred[:, 1]
             fpr, tpr, _ = roc_curve(y, y_pred, **kwargs)
             roc_auc = auc(fpr, tpr)
@@ -386,7 +390,11 @@ class PoniardPlotFactory:
             raise ValueError("Confusion matrix is not available for regressors.")
         y = self._poniard.y
         results = self._poniard._experiment_results
-        y_pred = results[estimator_name]["predict"]
+        try:
+            y_pred = results[estimator_name]["predict"]
+        except KeyError:
+            self._poniard._predict(method="predict", estimator_names=[estimator_name])
+            y_pred = results[estimator_name]["predict"]
         matrix = confusion_matrix(y, y_pred, **kwargs)
         fig = px.imshow(
             matrix,
