@@ -35,7 +35,7 @@ class WandBPlugin(BasePlugin):
     def build_config(self) -> dict:
         """Helper method that builds a config dict from the poniard instance."""
         return {
-            "estimators": self._poniard.estimators_,
+            "estimators": list(self._poniard.estimators_.values()),
             "metrics": self._poniard.metrics_,
             "cv": self._poniard.cv_,
             "preprocess": self._poniard.preprocess,
@@ -45,6 +45,7 @@ class WandBPlugin(BasePlugin):
             "scaler": self._poniard.scaler,
             "numeric_threshold": self._poniard.numeric_threshold,
             "cardinality_threshold": self._poniard.cardinality_threshold,
+            "high_cardinality_encoder": self._poniard.high_cardinality_encoder,
             "verbosity": self._poniard.verbose,
             "n_jobs": self._poniard.n_jobs,
             "random_state": self._poniard.random_state,
@@ -65,7 +66,9 @@ class WandBPlugin(BasePlugin):
             dataset = np.column_stack([X, y])
             dataset = pd.DataFrame(dataset)
         table = wandb.Table(dataframe=dataset)
-        wandb.log({"Dataset": table})
+        artifact = wandb.Artifact(name="dataset", type="dataset")
+        artifact.add(table, "Dataset")
+        wandb.log_artifact(artifact)
         return
 
     def on_infer_types(self):
