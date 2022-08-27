@@ -565,34 +565,33 @@ class PoniardBaseEstimator(ABC):
             return
 
         if isinstance(self.estimators, dict):
-            initial_estimators = self.estimators.copy()
+            estimators = self.estimators.copy()
         elif self.estimators:
-            initial_estimators = {
+            estimators = {
                 estimator.__class__.__name__: estimator for estimator in self.estimators
             }
         else:
-            initial_estimators = {
+            estimators = {
                 estimator.__class__.__name__: estimator
                 for estimator in self._base_estimators
             }
-        if (
-            self.poniard_task == "classification"
-            and "DummyClassifier" not in initial_estimators.keys()
-        ):
-            initial_estimators.update(
-                {"DummyClassifier": DummyClassifier(strategy="prior")}
-            )
-        elif (
-            self.poniard_task == "regression"
-            and "DummyRegressor" not in initial_estimators.keys()
-        ):
-            initial_estimators.update(
-                {"DummyRegressor": DummyRegressor(strategy="mean")}
-            )
+        estimators = self._add_dummy_estimators(estimators)
 
-        for estimator in initial_estimators.values():
+        for estimator in estimators.values():
             self._pass_instance_attrs(estimator)
-        return initial_estimators
+        return estimators
+
+    def _add_dummy_estimators(self, estimators: dict):
+        if (
+            "DummyClassifier" in estimators.keys()
+            or "DummyRegressor" in estimators.keys()
+        ):
+            return estimators
+        if self.poniard_task == "classification":
+            estimators.update({"DummyClassifier": DummyClassifier(strategy="prior")})
+        elif self.poniard_task == "regression":
+            estimators.update({"DummyRegressor": DummyRegressor(strategy="mean")})
+        return estimators
 
     @abstractmethod
     def _build_metrics(self) -> Union[Dict[str, Callable], List[str]]:
