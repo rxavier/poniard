@@ -166,7 +166,6 @@ class PoniardBaseEstimator(ABC):
             self._memory = joblib.Memory("transformation_cache", verbose=self.verbose)
         else:
             self._memory = None
-        self._fitted_estimator_ids = []
 
         self._init_plugins(plugins)
         self._init_plots(plot_options)
@@ -561,9 +560,6 @@ class PoniardBaseEstimator(ABC):
         :attr:`pipelines` exists.
 
         """
-        if hasattr(self, "pipelines"):
-            return
-
         if isinstance(self.estimators, dict):
             estimators = self.estimators.copy()
         elif self.estimators:
@@ -598,6 +594,7 @@ class PoniardBaseEstimator(ABC):
                     for name, estimator in estimators.items()
                 }
             )
+        self._fitted_pipeline_ids = []
         return pipelines
 
     def _add_dummy_estimators(self, estimators: dict):
@@ -645,13 +642,13 @@ class PoniardBaseEstimator(ABC):
         self._run_plugin_method("on_fit_start")
 
         results = {}
-        filtered_estimators = {
-            name: estimator
-            for name, estimator in self.pipelines.items()
-            if id(estimator) not in self._fitted_estimator_ids
+        filtered_pipelines = {
+            name: pipeline
+            for name, pipeline in self.pipelines.items()
+            if id(pipeline) not in self._fitted_pipeline_ids
         }
-        pbar = tqdm(filtered_estimators.items())
-        for i, (name, estimator) in enumerate(pbar):
+        pbar = tqdm(filtered_pipelines.items())
+        for i, (name, pipeline) in enumerate(pbar):
             pbar.set_description(f"{name}")
             with warnings.catch_warnings():
                 warnings.filterwarnings("ignore", category=UndefinedMetricWarning)
@@ -659,7 +656,7 @@ class PoniardBaseEstimator(ABC):
                     "ignore", message=".*will be encoded as all zeros"
                 )
                 result = cross_validate(
-                    estimator,
+                    pipeline,
                     self.X,
                     self.y,
                     scoring=self.metrics,
@@ -669,7 +666,7 @@ class PoniardBaseEstimator(ABC):
                     n_jobs=self.n_jobs,
                 )
             results.update({name: result})
-            self._fitted_estimator_ids.append(id(estimator))
+            self._fitted_pipeline_ids.append(id(pipeline))
             if i == len(pbar) - 1:
                 pbar.set_description("Completed")
         if hasattr(self, "_experiment_results"):
@@ -859,11 +856,8 @@ class PoniardBaseEstimator(ABC):
         if not self.preprocess or self.custom_preprocessor is not None:
             return self
         self.preprocessor_ = self._build_preprocessor(assigned_types=assigned_types)
-        # TODO: Clearing the `_fitted_estimator_ids` attr is a hacky way of ensuring that doing
-        # [fit -> reassign_types -> fit] actually fits models. Ideally, build the
-        # preprocessor + estimator pipeline during setup and save those IDs when calling fit.
-        self._fitted_estimator_ids = []
         self._run_plugin_method("on_reassign_types")
+        self.pipelines = self._build_pipelines()
         return self
 
     def add_preprocessing_step(
@@ -918,10 +912,7 @@ class PoniardBaseEstimator(ABC):
                     [("initial_preprocessor", self.preprocessor_), step],
                     memory=self._memory,
                 )
-        # TODO: Clearing the `_fitted_estimator_ids` attr is a hacky way of ensuring that doing
-        # [fit -> add_preprocessing_step -> fit] actually fits models. Ideally, build the
-        # preprocessor + estimator pipeline during setup and save those IDs when calling fit.
-        self._fitted_estimator_ids = []
+        self.pipelines = self._build_pipelines()
         self._run_plugin_method("on_add_preprocessing_step")
         return self
 
