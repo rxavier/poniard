@@ -204,7 +204,7 @@ class PoniardPlotFactory:
         """
         X_train, X_test, y_train, y_test = self._poniard._train_test_split_from_cv()
         scoring = self._poniard._first_scorer(sklearn_scorer=True)
-        estimator = self._poniard._experiment_results[estimator_name]["estimator"][0]
+        estimator = self._poniard.pipelines[estimator_name]
         estimator.fit(X_train, y_train)
         raw_importances = permutation_importance(
             estimator,
@@ -292,12 +292,12 @@ class PoniardPlotFactory:
 
         if response_method == "auto":
             if all(
-                hasattr(results[estimator]["estimator"][0], "predict_proba")
+                hasattr(self._poniard.pipelines[estimator], "predict_proba")
                 for estimator in estimator_names
             ):
                 type_of_prediction = "predict_proba"
             elif all(
-                hasattr(results[estimator]["estimator"][0], "decision_function")
+                hasattr(self._poniard.pipelines[estimator], "decision_function")
                 for estimator in estimator_names
             ):
                 type_of_prediction = "decision_function"
@@ -308,7 +308,7 @@ class PoniardPlotFactory:
         else:
             type_of_prediction = response_method
             if not all(
-                hasattr(results[estimator]["estimator"][0], response_method)
+                hasattr(self._poniard.pipelines[estimator], response_method)
                 for estimator in estimator_names
             ):
                 raise ValueError(
@@ -433,7 +433,7 @@ class PoniardPlotFactory:
         y = self._poniard.y
         X = self._poniard.X
         results = self._poniard._experiment_results
-        estimator = results[estimator_name]["estimator"][0]
+        estimator = self._poniard.pipelines[estimator_name]
         estimator.fit(X, y)
         partial_dep = partial_dependence(
             estimator, X, features=[feature], kind="average", **kwargs

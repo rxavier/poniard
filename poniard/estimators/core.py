@@ -665,7 +665,6 @@ class PoniardBaseEstimator(ABC):
                     scoring=self.metrics,
                     cv=self.cv,
                     return_train_score=True,
-                    return_estimator=True,
                     verbose=self.verbose,
                     n_jobs=self.n_jobs,
                 )
@@ -1057,7 +1056,7 @@ class PoniardBaseEstimator(ABC):
         ClassifierMixin
             Estimator.
         """
-        model = self._experiment_results[estimator_name]["estimator"][0]
+        model = self.pipelines[estimator_name]
         if not include_preprocessor:
             model = model._final_estimator
         model = clone(model)
@@ -1108,7 +1107,7 @@ class PoniardBaseEstimator(ABC):
             raise ValueError("Method must be either voting or stacking.")
         if estimator_names:
             models = [
-                (name, self._experiment_results[name]["estimator"][0]._final_estimator)
+                (name, self.pipelines[name]._final_estimator)
                 for name in estimator_names
             ]
         else:
@@ -1117,7 +1116,7 @@ class PoniardBaseEstimator(ABC):
             else:
                 sorter = self._means.columns[0]
             models = [
-                (name, self._experiment_results[name]["estimator"][0]._final_estimator)
+                (name, self.pipelines[name]._final_estimator)
                 for name in self._means.sort_values(sorter, ascending=False).index[
                     :top_n
                 ]
@@ -1224,7 +1223,7 @@ class PoniardBaseEstimator(ABC):
             If no grid is defined and the estimator is not a default one.
         """
         X, y = self.X, self.y
-        estimator = clone(self._experiment_results[estimator_name]["estimator"][0])
+        estimator = clone(self.pipelines[estimator_name])
         if not grid:
             try:
                 grid = GRID[estimator_name]
@@ -1287,8 +1286,7 @@ class PoniardBaseEstimator(ABC):
             [
                 x
                 for x in results.columns
-                if x
-                not in ["estimator", "predict", "predict_proba", "decision_function"]
+                if x not in ["predict", "predict_proba", "decision_function"]
             ],
         ]
         means = results.apply(lambda x: np.mean(x.values.tolist(), axis=1))
@@ -1301,7 +1299,7 @@ class PoniardBaseEstimator(ABC):
 
     def _process_long_results(self) -> None:
         """Prepare experiment results for plotting."""
-        base = pd.DataFrame(self._experiment_results).T.drop(["estimator"], axis=1)
+        base = pd.DataFrame(self._experiment_results).T
         melted = (
             base.rename_axis("Model")
             .reset_index()
