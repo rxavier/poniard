@@ -99,7 +99,7 @@ class PoniardBaseEstimator(ABC):
     ----------
     pipelines :
         Estimators used for scoring.
-    preprocessor_ :
+    preprocessor :
         Pipeline that preprocesses the data.
     metrics :
         Metrics used for scoring estimators during fit and hyperparameter optimization.
@@ -210,7 +210,7 @@ class PoniardBaseEstimator(ABC):
         """Orchestrator.
 
         Converts inputs to arrays if necessary, sets :attr:`metrics`,
-        :attr:`preprocessor_`, attr:`cv` and :attr:`pipelines`.
+        :attr:`preprocessor`, attr:`cv` and :attr:`pipelines`.
 
         Parameters
         ----------
@@ -260,9 +260,9 @@ class PoniardBaseEstimator(ABC):
 
         if self.preprocess:
             if self.custom_preprocessor:
-                self.preprocessor_ = self.custom_preprocessor
+                self.preprocessor = self.custom_preprocessor
             else:
-                self.preprocessor_ = self._build_preprocessor()
+                self.preprocessor = self._build_preprocessor()
         self._run_plugin_method("on_setup_preprocessor")
 
         self.pipelines = self._build_pipelines()
@@ -368,8 +368,8 @@ class PoniardBaseEstimator(ABC):
 
         """
         X = self.X
-        if hasattr(self, "preprocessor_") and not assigned_types:
-            return self.preprocessor_
+        if hasattr(self, "preprocessor") and not assigned_types:
+            return self.preprocessor
         if assigned_types:
             numeric = assigned_types["numeric"]
             categorical_high = assigned_types["categorical_high"]
@@ -537,18 +537,33 @@ class PoniardBaseEstimator(ABC):
     @property
     def estimators_(self):
         warnings.warn(
-            "'estimators_' has been renamed to 'pipelines'", DeprecationWarning
+            "'estimators_' has been renamed to 'pipelines'",
+            DeprecationWarning,
+            stacklevel=2,
         )
         return self.pipelines
 
     @property
+    def preprocessor_(self):
+        warnings.warn(
+            "'preprocessor_' has been renamed to 'preprocessor'",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.preprocessor
+
+    @property
     def metrics_(self):
-        warnings.warn("'metrics_' has been renamed to 'metrics'", DeprecationWarning)
+        warnings.warn(
+            "'metrics_' has been renamed to 'metrics'", DeprecationWarning, stacklevel=2
+        )
         return self.metrics
 
     @property
     def cv_(self):
-        warnings.warn("'cv_' has been renamed to 'cv'", DeprecationWarning)
+        warnings.warn(
+            "'cv_' has been renamed to 'cv'", DeprecationWarning, stacklevel=2
+        )
         return self.cv
 
     def _build_pipelines(
@@ -581,7 +596,7 @@ class PoniardBaseEstimator(ABC):
             pipelines.update(
                 {
                     name: Pipeline(
-                        [("preprocessor", self.preprocessor_), (name, estimator)],
+                        [("preprocessor", self.preprocessor), (name, estimator)],
                         memory=self._memory,
                     )
                     for name, estimator in estimators.items()
@@ -620,7 +635,7 @@ class PoniardBaseEstimator(ABC):
 
     def fit(self) -> PoniardBaseEstimator:
         """This is the main Poniard method. It uses scikit-learn's `cross_validate` function to
-        score all :attr:`metrics` for every :attr:`preprocessor_` | :attr:`pipelines`, using
+        score all :attr:`metrics` for every :attr:`preprocessor` | :attr:`pipelines`, using
         :attr:`cv` for cross validation.
 
         After running :meth:`fit`, both :attr:`X` and :attr:`y` will be held as attributes.
@@ -696,7 +711,7 @@ class PoniardBaseEstimator(ABC):
             estimator = self.pipelines[name]
             if self.preprocess:
                 final_estimator = Pipeline(
-                    [("preprocessor", self.preprocessor_), (name, estimator)],
+                    [("preprocessor", self.preprocessor), (name, estimator)],
                     memory=self._memory,
                 )
             else:
@@ -855,7 +870,7 @@ class PoniardBaseEstimator(ABC):
         # custom preprocessor was set.
         if not self.preprocess or self.custom_preprocessor is not None:
             return self
-        self.preprocessor_ = self._build_preprocessor(assigned_types=assigned_types)
+        self.preprocessor = self._build_preprocessor(assigned_types=assigned_types)
         self._run_plugin_method("on_reassign_types")
         self.pipelines = self._build_pipelines()
         return self
@@ -868,7 +883,7 @@ class PoniardBaseEstimator(ABC):
         ],
         position: Union[str, int] = "end",
     ) -> Pipeline:
-        """Add a preprocessing step to :attr:`preprocessor_`.
+        """Add a preprocessing step to :attr:`preprocessor`.
 
         Parameters
         ----------
@@ -886,7 +901,7 @@ class PoniardBaseEstimator(ABC):
         """
         if not isinstance(position, int) and position not in ["start", "end"]:
             raise ValueError("`position` can only be int, 'start' or 'end'.")
-        existing_preprocessor = self.preprocessor_
+        existing_preprocessor = self.preprocessor
         if not isinstance(step, Tuple):
             step = (f"step_{step.__class__.__name__.lower()}", step)
         if isinstance(position, str) and isinstance(existing_preprocessor, Pipeline):
@@ -903,13 +918,13 @@ class PoniardBaseEstimator(ABC):
                     "'end' are accepted as `position`."
                 )
             if position == "start":
-                self.preprocessor_ = Pipeline(
-                    [step, ("initial_preprocessor", self.preprocessor_)],
+                self.preprocessor = Pipeline(
+                    [step, ("initial_preprocessor", self.preprocessor)],
                     memory=self._memory,
                 )
             else:
-                self.preprocessor_ = Pipeline(
-                    [("initial_preprocessor", self.preprocessor_), step],
+                self.preprocessor = Pipeline(
+                    [("initial_preprocessor", self.preprocessor), step],
                     memory=self._memory,
                 )
         self.pipelines = self._build_pipelines()

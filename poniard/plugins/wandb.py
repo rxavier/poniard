@@ -39,7 +39,7 @@ class WandBPlugin(BasePlugin):
             "metrics": self._poniard.metrics,
             "cv": self._poniard.cv,
             "preprocess": self._poniard.preprocess,
-            "preprocessor": self._poniard.preprocessor_,
+            "preprocessor": self._poniard.preprocessor,
             "custom_preprocessor": self._poniard.custom_preprocessor,
             "numeric_imputer": self._poniard.numeric_imputer,
             "scaler": self._poniard.scaler,
@@ -80,7 +80,7 @@ class WandBPlugin(BasePlugin):
     def on_setup_preprocessor(self) -> None:
         """Log preprocessor's HTML repr."""
         wandb.log(
-            {"Preprocessor": wandb.Html(self._poniard.preprocessor_._repr_html_())}
+            {"Preprocessor": wandb.Html(self._poniard.preprocessor._repr_html_())}
         )
         return
 

@@ -142,4 +142,4 @@ def test_add_step(new_step, position, existing_step):
     y = np.random.uniform(0, 1, size=5)
     reg = PoniardRegressor(custom_preprocessor=existing_step).setup(X, y)
     reg.add_preprocessing_step(new_step, position)
-    assert isinstance(reg.preprocessor_, Pipeline)
+    assert isinstance(reg.preprocessor, Pipeline)

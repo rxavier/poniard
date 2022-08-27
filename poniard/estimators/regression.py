@@ -78,7 +78,7 @@ class PoniardRegressor(PoniardBaseEstimator):
     ----------
     pipelines :
         Estimators used for scoring.
-    preprocessor_ :
+    preprocessor :
         Pipeline that preprocesses the data.
     metrics :
         Metrics used for scoring estimators during fit and hyperparameter optimization.
