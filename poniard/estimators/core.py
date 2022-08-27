@@ -245,8 +245,6 @@ class PoniardBaseEstimator(ABC):
                 "no sklearn metrics support them."
             )
 
-        self.pipelines = self._build_pipelines()
-
         if self.metrics:
             self.metrics = (
                 self.metrics if not isinstance(self.metrics, str) else [self.metrics]
@@ -267,6 +265,8 @@ class PoniardBaseEstimator(ABC):
             else:
                 self.preprocessor_ = self._build_preprocessor()
         self._run_plugin_method("on_setup_preprocessor")
+
+        self.pipelines = self._build_pipelines()
 
         self.cv = self._build_cv()
 
@@ -579,7 +579,26 @@ class PoniardBaseEstimator(ABC):
 
         for estimator in estimators.values():
             self._pass_instance_attrs(estimator)
-        return estimators
+
+        pipelines = {}
+        if self.preprocess:
+            pipelines.update(
+                {
+                    name: Pipeline(
+                        [("preprocessor", self.preprocessor_), (name, estimator)],
+                        memory=self._memory,
+                    )
+                    for name, estimator in estimators.items()
+                }
+            )
+        else:
+            pipelines.update(
+                {
+                    name: Pipeline([(name, estimator)])
+                    for name, estimator in estimators.items()
+                }
+            )
+        return pipelines
 
     def _add_dummy_estimators(self, estimators: dict):
         if (
@@ -634,20 +653,13 @@ class PoniardBaseEstimator(ABC):
         pbar = tqdm(filtered_estimators.items())
         for i, (name, estimator) in enumerate(pbar):
             pbar.set_description(f"{name}")
-            if self.preprocess:
-                final_estimator = Pipeline(
-                    [("preprocessor", self.preprocessor_), (name, estimator)],
-                    memory=self._memory,
-                )
-            else:
-                final_estimator = Pipeline([(name, estimator)])
             with warnings.catch_warnings():
                 warnings.filterwarnings("ignore", category=UndefinedMetricWarning)
                 warnings.filterwarnings(
                     "ignore", message=".*will be encoded as all zeros"
                 )
                 result = cross_validate(
-                    final_estimator,
+                    estimator,
                     self.X,
                     self.y,
                     scoring=self.metrics,
