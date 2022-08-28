@@ -78,13 +78,17 @@ class PoniardClassifier(PoniardBaseEstimator):
     Attributes
     ----------
     pipelines :
-        Estimators used for scoring.
+        Pipelines used for scoring, generally composed by a preprocessor and an estimator.
     preprocessor :
         Pipeline that preprocesses the data.
     metrics :
         Metrics used for scoring estimators during fit and hyperparameter optimization.
     cv :
         Cross validation strategy.
+    target_info :
+        Dict containing information about the `y`.
+    inferred_types :
+        DataFrame mapping features to 1 of 4 types.
     """
 
     def __init__(
@@ -128,7 +132,7 @@ class PoniardClassifier(PoniardBaseEstimator):
         )
 
     @property
-    def _base_estimators(self) -> List[ClassifierMixin]:
+    def _default_estimators(self) -> List[ClassifierMixin]:
         return [
             LogisticRegression(
                 random_state=self.random_state, verbose=self.verbose, max_iter=5000

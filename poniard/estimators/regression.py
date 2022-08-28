@@ -77,13 +77,17 @@ class PoniardRegressor(PoniardBaseEstimator):
     Attributes
     ----------
     pipelines :
-        Estimators used for scoring.
+        Pipelines used for scoring, generally composed by a preprocessor and an estimator.
     preprocessor :
         Pipeline that preprocesses the data.
     metrics :
         Metrics used for scoring estimators during fit and hyperparameter optimization.
     cv :
         Cross validation strategy.
+    target_info :
+        Dict containing information about the `y`.
+    inferred_types :
+        DataFrame mapping features to 1 of 4 types.
     """
 
     def __init__(
@@ -127,7 +131,7 @@ class PoniardRegressor(PoniardBaseEstimator):
         )
 
     @property
-    def _base_estimators(self) -> List[RegressorMixin]:
+    def _default_estimators(self) -> List[RegressorMixin]:
         return [
             LinearRegression(),
             ElasticNet(random_state=self.random_state),
