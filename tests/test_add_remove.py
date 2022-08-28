@@ -39,8 +39,8 @@ def test_remove_fitted():
     clf.remove_estimators(["RandomForestClassifier"], drop_results=True)
     # Same amount of estimators because the dummy is added
     assert len(clf.pipelines) == len(clf._base_estimators)
-    assert clf.show_results().shape[0] == len(clf._base_estimators)
-    assert "RandomForestClassifier" not in clf.show_results().index
+    assert clf.get_results().shape[0] == len(clf._base_estimators)
+    assert "RandomForestClassifier" not in clf.get_results().index
 
 
 @pytest.mark.parametrize(

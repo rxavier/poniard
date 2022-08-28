@@ -566,6 +566,20 @@ class PoniardBaseEstimator(ABC):
         )
         return self.cv
 
+    def show_results(
+        self,
+        std: bool = False,
+        wrt_dummy: bool = False,
+    ):
+        warnings.warn(
+            "'show_results' has been renamed to 'get_results'",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return get_results(
+            self, return_train_scores=False, std=std, wrt_dummy=wrt_dummy
+        )
+
     def _build_pipelines(
         self,
     ) -> Dict[str, Union[ClassifierMixin, RegressorMixin]]:
@@ -938,8 +952,9 @@ class PoniardBaseEstimator(ABC):
             :, full_table.columns.str.contains("test_|fit|score", regex=True)
         ]
 
-    def show_results(
+    def get_results(
         self,
+        return_train_scores: bool = False,
         std: bool = False,
         wrt_dummy: bool = False,
     ) -> Union[Tuple[pd.DataFrame, pd.DataFrame], pd.DataFrame]:
@@ -948,6 +963,8 @@ class PoniardBaseEstimator(ABC):
 
         Parameters
         ----------
+        return_train_scores :
+            If False, only return test scores.
         std :
             Whether to return standard deviation of the scores. Default False.
         wrt_dummy :
@@ -961,6 +978,11 @@ class PoniardBaseEstimator(ABC):
         """
         means = self._means
         stds = self._stds
+        if not return_train_scores:
+            means = means.loc[
+                :, means.columns.str.contains("test_|fit|score", regex=True)
+            ]
+            stds = stds.loc[:, stds.columns.str.contains("test_|fit|score", regex=True)]
         if wrt_dummy:
             dummy_means = means.loc[means.index.str.contains("Dummy")]
             dummy_stds = stds.loc[stds.index.str.contains("Dummy")]
