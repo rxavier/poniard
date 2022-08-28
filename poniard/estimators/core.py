@@ -727,17 +727,10 @@ class PoniardBaseEstimator(ABC):
         pbar = tqdm(estimator_names)
         for i, name in enumerate(pbar):
             pbar.set_description(f"{name}")
-            estimator = self.pipelines[name]
-            if self.preprocess:
-                final_estimator = Pipeline(
-                    [("preprocessor", self.preprocessor), (name, estimator)],
-                    memory=self._memory,
-                )
-            else:
-                final_estimator = estimator
+            pipeline = self.pipelines[name]
             try:
                 result = cross_val_predict(
-                    final_estimator,
+                    pipeline,
                     X,
                     y,
                     cv=self.cv,
@@ -949,13 +942,6 @@ class PoniardBaseEstimator(ABC):
         self.pipelines = self._build_pipelines()
         self._run_plugin_method("on_add_preprocessing_step")
         return self
-
-    @property
-    def results(self):
-        full_table = self._means
-        return full_table.loc[
-            :, full_table.columns.str.contains("test_|fit|score", regex=True)
-        ]
 
     def get_results(
         self,
