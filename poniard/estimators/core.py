@@ -290,18 +290,14 @@ class PoniardBaseEstimator(ABC):
         categorical_high = []
         categorical_low = []
         datetime = []
-        if isinstance(self.cardinality_threshold, int):
-            self.cardinality_threshold_ = self.cardinality_threshold
-        else:
-            self.cardinality_threshold_ = int(self.cardinality_threshold * X.shape[0])
-        if isinstance(self.numeric_threshold, int):
-            self.numeric_threshold_ = self.numeric_threshold
-        else:
-            self.numeric_threshold_ = int(self.numeric_threshold * X.shape[0])
+        if not isinstance(self.cardinality_threshold, int):
+            self.cardinality_threshold = int(self.cardinality_threshold * X.shape[0])
+        if not isinstance(self.numeric_threshold, int):
+            self.numeric_threshold = int(self.numeric_threshold * X.shape[0])
         print(
             "Thresholds",
             "----------",
-            f"Minimum unique values to consider a feature numeric: {self.numeric_threshold_}",
+            f"Minimum unique values to consider a feature numeric: {self.numeric_threshold}",
             f"Minimum unique values to consider a categorical high cardinality: {self.cardinality_threshold}",
             sep="\n",
             end="\n\n",
@@ -312,15 +308,15 @@ class PoniardBaseEstimator(ABC):
             ).columns.tolist()
             numbers = X.select_dtypes(include="number").columns
             for column in numbers:
-                if X[column].nunique() > self.numeric_threshold_:
+                if X[column].nunique() > self.numeric_threshold:
                     numeric.append(column)
-                elif X[column].nunique() > self.cardinality_threshold_:
+                elif X[column].nunique() > self.cardinality_threshold:
                     categorical_high.append(column)
                 else:
                     categorical_low.append(column)
             strings = X.select_dtypes(exclude=["number", "datetime"]).columns
             for column in strings:
-                if X[column].nunique() > self.cardinality_threshold_:
+                if X[column].nunique() > self.cardinality_threshold:
                     categorical_high.append(column)
                 else:
                     categorical_low.append(column)
@@ -329,36 +325,36 @@ class PoniardBaseEstimator(ABC):
                 datetime.extend(range(X.shape[1]))
             if np.issubdtype(X.dtype, np.number):
                 for i in range(X.shape[1]):
-                    if np.unique(X[:, i]).shape[0] > self.numeric_threshold_:
+                    if np.unique(X[:, i]).shape[0] > self.numeric_threshold:
                         numeric.append(i)
-                    elif np.unique(X[:, i]).shape[0] > self.cardinality_threshold_:
+                    elif np.unique(X[:, i]).shape[0] > self.cardinality_threshold:
                         categorical_high.append(i)
                     else:
                         categorical_low.append(i)
             else:
                 for i in range(X.shape[1]):
-                    if np.unique(X[:, i]).shape[0] > self.cardinality_threshold_:
+                    if np.unique(X[:, i]).shape[0] > self.cardinality_threshold:
                         categorical_high.append(i)
                     else:
                         categorical_low.append(i)
-        self._inferred_dtypes = {
+        self._inferred_types = {
             "numeric": numeric,
             "categorical_high": categorical_high,
             "categorical_low": categorical_low,
             "datetime": datetime,
         }
         print("Inferred feature types", "----------------------", sep="\n")
-        self.inferred_types_ = pd.DataFrame.from_dict(
-            self._inferred_dtypes, orient="index"
+        self.inferred_types = pd.DataFrame.from_dict(
+            self._inferred_types, orient="index"
         ).T.fillna("")
         try:
             # Try to print the table nicely
             from IPython.display import display, HTML
 
-            display(HTML(self.inferred_types_.to_html()))
+            display(HTML(self.inferred_types.to_html()))
             print("\n")
         except ImportError:
-            print(self.inferred_types_)
+            print(self.inferred_types)
         self._run_plugin_method("on_infer_types")
         return numeric, categorical_high, categorical_low, datetime
 
@@ -403,6 +399,7 @@ class PoniardBaseEstimator(ABC):
                 warnings.warn(
                     "TargetEncoder is not supported for multilabel or multioutput targets. "
                     "Switching to OrdinalEncoder.",
+                    NotImplementedError,
                     stacklevel=2,
                 )
                 high_cardinality_encoder = OrdinalEncoder(
@@ -535,7 +532,7 @@ class PoniardBaseEstimator(ABC):
 
     @property
     @abstractmethod
-    def _base_estimators(self) -> List[ClassifierMixin]:
+    def _default_estimators(self) -> List[ClassifierMixin]:
         return []
 
     @property
@@ -602,7 +599,7 @@ class PoniardBaseEstimator(ABC):
         else:
             estimators = {
                 estimator.__class__.__name__: estimator
-                for estimator in self._base_estimators
+                for estimator in self._default_estimators
             }
         estimators = self._add_dummy_estimators(estimators)
 
@@ -871,10 +868,10 @@ class PoniardBaseEstimator(ABC):
             "categorical_low": categorical_low or [],
             "datetime": datetime or [],
         }
-        self._inferred_dtypes = assigned_types
+        self._inferred_types = assigned_types
         print("Assigned feature types", "----------------------", sep="\n")
         assigned_types_df = pd.DataFrame.from_dict(
-            self._inferred_dtypes, orient="index"
+            self._inferred_types, orient="index"
         ).T.fillna("")
         try:
             # Try to print the table nicely

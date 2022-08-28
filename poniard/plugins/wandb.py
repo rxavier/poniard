@@ -73,7 +73,7 @@ class WandBPlugin(BasePlugin):
 
     def on_infer_types(self):
         """Log inferred types."""
-        table = wandb.Table(dataframe=self._poniard.inferred_types_)
+        table = wandb.Table(dataframe=self._poniard.inferred_types)
         wandb.log({"Inferred types": table})
         return
 

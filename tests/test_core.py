@@ -62,7 +62,7 @@ def test_classifier_fit(target, metrics, estimators, cv):
     clf.fit()
     results = clf.get_results(return_train_scores=True)
     if not estimators:
-        n_estimators = len(clf._base_estimators)
+        n_estimators = len(clf._default_estimators)
     else:
         n_estimators = len(estimators)
     if isinstance(metrics, str):
@@ -113,7 +113,7 @@ def test_regressor_fit(target, metrics, estimators, cv):
     clf.fit()
     results = clf.get_results(return_train_scores=True)
     if not estimators:
-        n_estimators = len(clf._base_estimators)
+        n_estimators = len(clf._default_estimators)
     else:
         n_estimators = len(estimators)
     if isinstance(metrics, str):
@@ -183,16 +183,15 @@ def test_type_inference():
     clf.setup(x, y)
     clf.fit()
     assert all(
-        x in clf._inferred_dtypes["numeric"]
-        for x in ["numeric", "high_cardinality_int"]
+        x in clf._inferred_types["numeric"] for x in ["numeric", "high_cardinality_int"]
     )
     assert all(
-        x in clf._inferred_dtypes["categorical_high"] for x in ["high_cardinality_str"]
+        x in clf._inferred_types["categorical_high"] for x in ["high_cardinality_str"]
     )
     assert all(
-        x in clf._inferred_dtypes["categorical_low"]
+        x in clf._inferred_types["categorical_low"]
         for x in ["low_cardinality_str", "low_cardinality_int"]
     )
     assert all(
-        x in clf._inferred_dtypes["datetime"] for x in ["datetime_H", "datetime_D"]
+        x in clf._inferred_types["datetime"] for x in ["datetime_H", "datetime_D"]
     )
