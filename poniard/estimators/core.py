@@ -10,6 +10,7 @@ import numpy as np
 import joblib
 
 try:
+    import ipywidgets
     from tqdm.notebook import tqdm
 except ImportError:
     from tqdm import tqdm
