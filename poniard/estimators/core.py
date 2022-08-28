@@ -399,7 +399,6 @@ class PoniardBaseEstimator(ABC):
                 warnings.warn(
                     "TargetEncoder is not supported for multilabel or multioutput targets. "
                     "Switching to OrdinalEncoder.",
-                    NotImplementedError,
                     stacklevel=2,
                 )
                 high_cardinality_encoder = OrdinalEncoder(
