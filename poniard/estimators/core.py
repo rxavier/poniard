@@ -8,7 +8,11 @@ from typing import List, Optional, Union, Callable, Dict, Tuple, Any, Sequence, 
 import pandas as pd
 import numpy as np
 import joblib
-from tqdm import tqdm
+
+try:
+    from tqdm.notebook import tqdm
+except ImportError:
+    from tqdm import tqdm
 from sklearn.base import ClassifierMixin, RegressorMixin, TransformerMixin, clone
 from sklearn.model_selection._split import BaseCrossValidator, BaseShuffleSplit
 from sklearn.model_selection import train_test_split
