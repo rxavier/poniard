@@ -105,7 +105,7 @@ def test_preprocessing_classifier(
     estimator.setup(X, y)
     estimator.fit()
     assert estimator.get_results().isna().sum().sum() == 0
-    assert estimator.get_results().shape == (2, 12)
+    assert estimator.get_results(return_train_scores=True).shape == (2, 12)
     assert isinstance(
         estimator.get_estimator(
             "LogisticRegression", include_preprocessor=include_preprocessor

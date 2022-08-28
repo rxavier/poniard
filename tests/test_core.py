@@ -60,7 +60,7 @@ def test_classifier_fit(target, metrics, estimators, cv):
     )
     clf.setup(features, target)
     clf.fit()
-    results = clf.get_results()
+    results = clf.get_results(return_train_scores=True)
     if not estimators:
         n_estimators = len(clf._base_estimators)
     else:
@@ -111,7 +111,7 @@ def test_regressor_fit(target, metrics, estimators, cv):
     )
     clf.setup(features, target)
     clf.fit()
-    results = clf.get_results()
+    results = clf.get_results(return_train_scores=True)
     if not estimators:
         n_estimators = len(clf._base_estimators)
     else:
@@ -135,7 +135,7 @@ def test_multilabel_fit():
     )
     clf.setup(X, y)
     clf.fit()
-    results = clf.get_results()
+    results = clf.get_results(return_train_scores=True)
     assert results.isna().sum().sum() == 0
     assert results.shape == (3, 12)
 
@@ -151,7 +151,7 @@ def test_multioutput_fit():
     )
     clf.setup(X, y)
     clf.fit()
-    results = clf.get_results()
+    results = clf.get_results(return_train_scores=True)
     assert results.isna().sum().sum() == 0
     assert results.shape == (3, 10)
 
