@@ -25,5 +25,5 @@ def test_tune(grid, mode):
     clf.fit()
     clf.tune_estimator("LogisticRegression", grid, mode)
     clf.fit()
-    assert clf.show_results().shape[0] == 3
-    assert clf.show_results().isna().sum().sum() == 0
+    assert clf.get_results().shape[0] == 3
+    assert clf.get_results().isna().sum().sum() == 0

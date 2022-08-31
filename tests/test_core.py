@@ -60,15 +60,15 @@ def test_classifier_fit(target, metrics, estimators, cv):
     )
     clf.setup(features, target)
     clf.fit()
-    results = clf.show_results()
+    results = clf.get_results(return_train_scores=True)
     if not estimators:
-        n_estimators = len(clf._base_estimators)
+        n_estimators = len(clf._default_estimators)
     else:
         n_estimators = len(estimators)
     if isinstance(metrics, str):
         n_metrics = 1
     else:
-        n_metrics = len(clf.metrics_)
+        n_metrics = len(clf.metrics)
     assert results.isna().sum().sum() == 0
     assert results.shape == (n_estimators + 1, n_metrics * 2 + 2)
 
@@ -111,15 +111,15 @@ def test_regressor_fit(target, metrics, estimators, cv):
     )
     clf.setup(features, target)
     clf.fit()
-    results = clf.show_results()
+    results = clf.get_results(return_train_scores=True)
     if not estimators:
-        n_estimators = len(clf._base_estimators)
+        n_estimators = len(clf._default_estimators)
     else:
         n_estimators = len(estimators)
     if isinstance(metrics, str):
         n_metrics = 1
     else:
-        n_metrics = len(clf.metrics_)
+        n_metrics = len(clf.metrics)
     assert results.isna().sum().sum() == 0
     assert results.shape == (n_estimators + 1, n_metrics * 2 + 2)
 
@@ -135,7 +135,7 @@ def test_multilabel_fit():
     )
     clf.setup(X, y)
     clf.fit()
-    results = clf.show_results()
+    results = clf.get_results(return_train_scores=True)
     assert results.isna().sum().sum() == 0
     assert results.shape == (3, 12)
 
@@ -151,7 +151,7 @@ def test_multioutput_fit():
     )
     clf.setup(X, y)
     clf.fit()
-    results = clf.show_results()
+    results = clf.get_results(return_train_scores=True)
     assert results.isna().sum().sum() == 0
     assert results.shape == (3, 10)
 
@@ -183,16 +183,15 @@ def test_type_inference():
     clf.setup(x, y)
     clf.fit()
     assert all(
-        x in clf._inferred_dtypes["numeric"]
-        for x in ["numeric", "high_cardinality_int"]
+        x in clf._inferred_types["numeric"] for x in ["numeric", "high_cardinality_int"]
     )
     assert all(
-        x in clf._inferred_dtypes["categorical_high"] for x in ["high_cardinality_str"]
+        x in clf._inferred_types["categorical_high"] for x in ["high_cardinality_str"]
     )
     assert all(
-        x in clf._inferred_dtypes["categorical_low"]
+        x in clf._inferred_types["categorical_low"]
         for x in ["low_cardinality_str", "low_cardinality_int"]
     )
     assert all(
-        x in clf._inferred_dtypes["datetime"] for x in ["datetime_H", "datetime_D"]
+        x in clf._inferred_types["datetime"] for x in ["datetime_H", "datetime_D"]
     )

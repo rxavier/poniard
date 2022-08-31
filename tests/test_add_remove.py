@@ -15,9 +15,9 @@ def test_add():
     clf.add_estimators([ExtraTreesClassifier()])
     clf + {"rf2": RandomForestClassifier()}
     # Dummy is also added
-    assert len(clf.estimators_) == len(clf._base_estimators) + 3
-    assert "rf2" in clf.estimators_
-    assert "ExtraTreesClassifier" in clf.estimators_
+    assert len(clf.pipelines) == len(clf._default_estimators) + 3
+    assert "rf2" in clf.pipelines
+    assert "ExtraTreesClassifier" in clf.pipelines
 
 
 def test_remove():
@@ -27,7 +27,7 @@ def test_remove():
     clf.remove_estimators(["RandomForestClassifier"])
     clf - ["LogisticRegression"]
     # Same amount of estimators because the dummy is added
-    assert len(clf.estimators_) == len(clf._base_estimators) - 1
+    assert len(clf.pipelines) == len(clf._default_estimators) - 1
 
 
 def test_remove_fitted():
@@ -38,9 +38,9 @@ def test_remove_fitted():
     clf.fit()
     clf.remove_estimators(["RandomForestClassifier"], drop_results=True)
     # Same amount of estimators because the dummy is added
-    assert len(clf.estimators_) == len(clf._base_estimators)
-    assert clf.show_results().shape[0] == len(clf._base_estimators)
-    assert "RandomForestClassifier" not in clf.show_results().index
+    assert len(clf.pipelines) == len(clf._default_estimators)
+    assert clf.get_results().shape[0] == len(clf._default_estimators)
+    assert "RandomForestClassifier" not in clf.get_results().index
 
 
 @pytest.mark.parametrize(

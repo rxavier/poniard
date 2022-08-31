@@ -7,7 +7,7 @@ from sklearn.model_selection._split import BaseCrossValidator, BaseShuffleSplit
 from sklearn.model_selection import KFold, StratifiedKFold
 from sklearn.linear_model import LogisticRegression
 from sklearn.naive_bayes import GaussianNB
-from sklearn.svm import LinearSVC
+from sklearn.svm import SVC
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import (
@@ -77,14 +77,18 @@ class PoniardClassifier(PoniardBaseEstimator):
 
     Attributes
     ----------
-    estimators_ :
-        Estimators used for scoring.
-    preprocessor_ :
+    pipelines :
+        Pipelines used for scoring, generally composed by a preprocessor and an estimator.
+    preprocessor :
         Pipeline that preprocesses the data.
-    metrics_ :
+    metrics :
         Metrics used for scoring estimators during fit and hyperparameter optimization.
-    cv_ :
+    cv :
         Cross validation strategy.
+    target_info :
+        Dict containing information about the `y`.
+    inferred_types :
+        DataFrame mapping features to 1 of 4 types.
     """
 
     def __init__(
@@ -128,14 +132,17 @@ class PoniardClassifier(PoniardBaseEstimator):
         )
 
     @property
-    def _base_estimators(self) -> List[ClassifierMixin]:
+    def _default_estimators(self) -> List[ClassifierMixin]:
         return [
             LogisticRegression(
                 random_state=self.random_state, verbose=self.verbose, max_iter=5000
             ),
             GaussianNB(),
-            LinearSVC(
-                random_state=self.random_state, verbose=self.verbose, max_iter=5000
+            SVC(
+                kernel="linear",
+                probability=True,
+                random_state=self.random_state,
+                verbose=self.verbose,
             ),
             KNeighborsClassifier(),
             DecisionTreeClassifier(random_state=self.random_state),

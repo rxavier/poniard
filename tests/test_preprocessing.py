@@ -104,8 +104,8 @@ def test_preprocessing_classifier(
     y = [0, 1, 0, 1, 0]
     estimator.setup(X, y)
     estimator.fit()
-    assert estimator.show_results().isna().sum().sum() == 0
-    assert estimator.show_results().shape == (2, 12)
+    assert estimator.get_results().isna().sum().sum() == 0
+    assert estimator.get_results(return_train_scores=True).shape == (2, 12)
     assert isinstance(
         estimator.get_estimator(
             "LogisticRegression", include_preprocessor=include_preprocessor
@@ -142,4 +142,4 @@ def test_add_step(new_step, position, existing_step):
     y = np.random.uniform(0, 1, size=5)
     reg = PoniardRegressor(custom_preprocessor=existing_step).setup(X, y)
     reg.add_preprocessing_step(new_step, position)
-    assert isinstance(reg.preprocessor_, Pipeline)
+    assert isinstance(reg.preprocessor, Pipeline)

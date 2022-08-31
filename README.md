@@ -31,43 +31,43 @@ Check the full docs at [Read The Docs](https://poniard.readthedocs.io/en/latest/
 # Usage/features
 
 ## Basics
-The API was designed with regression and classification tasks in mind, but it should also work with time series tasks provided an appropiate cross validation strategy is used (don't shuffle!)
+The API was designed with classic regression and classification tasks in mind, and it should also work with time series tasks provided an appropiate cross validation strategy is used (don't shuffle!)
 
 The usual Poniard flow is:
 1. Define some estimators.
 2. Define some metrics.
 3. Define a cross validation strategy.
 4. Fit everything.
-5. Print the results.
+5. Show the results.
 
 Poniard provides sane defaults for 1, 2 and 3, so in most cases you can just do...
 
 ```python
 from poniard import PoniardClassifier
 
-pnd = PoniardClassifier(random_state=0)
+pnd = PoniardClassifier()
 pnd.setup(X_train, y_train)
 pnd.fit()
-pnd.show_results()
+pnd.get_results()
 ```
 
 ... and get a nice table showing the average of each metric in all folds for every model, including fit and score times (thanks, scikit-learn `cross_validate` function!)
 
-|                                |   test_roc_auc |   train_roc_auc |   test_accuracy |   train_accuracy |   test_precision |   train_precision |   test_recall |   train_recall |   test_f1 |   train_f1 |   fit_time |   score_time |
-|:-------------------------------|---------------:|----------------:|----------------:|-----------------:|-----------------:|------------------:|--------------:|---------------:|----------:|-----------:|-----------:|-------------:|
-| LogisticRegression             |          1     |         1       |            0.95 |           0.9925 |         0.935664 |          0.985366 |          0.98 |           1    |  0.953863 |   0.992593 | 0.125515   |    0.0132173 |
-| RandomForestClassifier         |          1     |         1       |            0.99 |           1      |         0.981818 |          1        |          1    |           1    |  0.990476 |   1        | 0.30499    |    0.254084  |
-| GaussianNB                     |          0.998 |         1       |            0.99 |           0.99   |         0.981818 |          0.980488 |          1    |           1    |  0.990476 |   0.990123 | 0.00988617 |    0.0146274 |
-| HistGradientBoostingClassifier |          0.99  |         1       |            0.98 |           1      |         0.963636 |          1        |          1    |           1    |  0.980952 |   1        | 0.100336   |    0.0139906 |
-| XGBClassifier                  |          0.988 |         1       |            0.98 |           1      |         0.981818 |          1        |          0.98 |           1    |  0.97995  |   1        | 0.236586   |    0.0198627 |
-| DecisionTreeClassifier         |          0.98  |         1       |            0.98 |           1      |         0.981818 |          1        |          0.98 |           1    |  0.97995  |   1        | 0.00964909 |    0.0208005 |
-| LinearSVC                      |          0.966 |         1       |            0.92 |           1      |         0.900513 |          1        |          0.96 |           1    |  0.925205 |   1        | 0.00792336 |    0.0122485 |
-| KNeighborsClassifier           |          0.93  |         0.97975 |            0.87 |           0.9275 |         0.837483 |          0.894992 |          0.92 |           0.97 |  0.874865 |   0.930467 | 0.00526905 |    0.262831  |
-| DummyClassifier                |          0.5   |         0.5     |            0.5  |           0.5    |         0        |          0        |          0    |           0    |  0        |   0        | 0.00288043 |    0.0212384 |
+|                                |   test_roc_auc |   test_accuracy |   test_precision |   test_recall |   test_f1 |   fit_time |   score_time |
+|:-------------------------------|---------------:|----------------:|-----------------:|--------------:|----------:|-----------:|-------------:|
+| LogisticRegression             |       0.995456 |        0.978916 |         0.975411 |      0.991549 |  0.983351 | 0.0455776  |   0.00492911 |
+| SVC                            |       0.994139 |        0.975408 |         0.975111 |      0.985955 |  0.980477 | 0.0135186  |   0.00860071 |
+| HistGradientBoostingClassifier |       0.994128 |        0.970129 |         0.967263 |      0.985955 |  0.976433 | 1.02461    |   0.0249005  |
+| XGBClassifier                  |       0.994123 |        0.970129 |         0.967554 |      0.985915 |  0.976469 | 0.0533132  |   0.00457506 |
+| RandomForestClassifier         |       0.992264 |        0.964881 |         0.964647 |      0.980282 |  0.972192 | 0.0795071  |   0.00955095 |
+| GaussianNB                     |       0.98873  |        0.9297   |         0.940993 |      0.949413 |  0.9443   | 0.00533643 |   0.00397215 |
+| KNeighborsClassifier           |       0.98061  |        0.964881 |         0.955018 |      0.991628 |  0.972746 | 0.00236444 |   0.0104116  |
+| DecisionTreeClassifier         |       0.920983 |        0.926223 |         0.941672 |      0.94108  |  0.941054 | 0.00618615 |   0.00303702 |
+| DummyClassifier                |       0.5      |        0.627418 |         0.627418 |      1        |  0.771052 | 0.00240407 |   0.00279222 |
 
 Alternatively, you can also get a nice plot of your different metrics by using the `estimator.plot.metrics()` method.
 
-You may be wondering why does `setup()` exist and need to be called before `fit()` (which in turn doesn't take any arguments, unlike what you're used to in sklearn). Basically, because Poniard performs type inference to build the preprocessor, separating `fit()` allows the user to check whether the preprocessor is correct and to change it if necessary.
+You may be wondering why does `setup()` exist and need to be called before `fit()` (which in turn doesn't take any arguments, unlike what you're used to in sklearn). Basically, because Poniard performs type inference to build the preprocessor, decoupling `fit()` allows the user to check whether the preprocessor is appropiate and change it if necessary before training models, which could take long.
 ## Type inference
 Poniard uses some basic heuristics to infer the data types.
 
@@ -84,7 +84,7 @@ Poniard makes it easy to combine various estimators in stacking or voting ensemb
 
 Poniard also reports how similar the predictions of the estimators are, so ensembles with different base estimators can be built. A basic correlation table of the cross-validated predictions is built for regression tasks, while [Cramér's V](https://en.wikipedia.org/wiki/Cram%C3%A9r%27s_V) is used for classification.
 
-By default, it computes this similarity of prediction errors instead of the actual predictions; this helps in building ensembles with good scoring estimators and uncorrelated errors, which in principle and hopefully should lead to a "wisdom of crowds" kind of situation.
+By default, it computes this similarity of prediction errors instead of the actual predictions; this helps in building ensembles with good scoring estimators and uncorrelated errors.
 
 ## Hyperparameter optimization
 The `tune_estimator` method can be used to optimize the hyperparameters of a given estimator, either by passing a grid of parameters or using the inbuilt ones available for default estimators. The tuned estimator will be added to the list of estimators and will be scored the next time `fit()` is called.
@@ -92,27 +92,13 @@ The `tune_estimator` method can be used to optimize the hyperparameters of a giv
 ```python
 from poniard import PoniardRegressor
 
-pnd = PoniardRegressor(random_state=0)
+pnd = PoniardRegressor()
 pnd.setup(x, y)
 pnd.fit()
-pnd.show_results()
+pnd.get_results()
 pnd.tune_estimator("RandomForestRegressor", mode="grid")
 pnd.fit() # This will only fit new estimators
-pnd.show_results()
 ```
-|                               |   test_neg_mean_squared_error |   train_neg_mean_squared_error |   test_neg_mean_absolute_percentage_error |   train_neg_mean_absolute_percentage_error |   test_neg_median_absolute_error |   train_neg_median_absolute_error |    test_r2 |   train_r2 |   fit_time |   score_time |
-|:------------------------------|------------------------------:|-------------------------------:|------------------------------------------:|-------------------------------------------:|---------------------------------:|----------------------------------:|-----------:|-----------:|-----------:|-------------:|
-| LinearRegression              |                      -8051.97 |                   -1.21019e-25 |                                  -7.31808 |                               -4.15903e-14 |                         -56.3348 |                      -2.19114e-13 |  0.661716  |   1        | 0.0114767  |   0.00424609 |
-| ElasticNet                    |                     -13169.4  |                -2128.96        |                                  -4.59068 |                               -0.938363    |                         -70.3958 |                     -26.1924      |  0.4942    |   0.919408 | 0.00304666 |   0.00537877 |
-| HistGradientBoostingRegressor |                     -13203.5  |                 -748.071       |                                  -7.05925 |                               -0.957685    |                         -87.9605 |                     -14.9543      |  0.404863  |   0.971676 | 0.450184   |   0.0156513  |
-| LinearSVR                     |                     -14668.2  |                -5691.34        |                                 -10.7275  |                               -0.238392    |                         -83.5699 |                      -9.55763     |  0.453208  |   0.785703 | 0.00706563 |   0.00295434 |
-| RandomForestRegressor_tuned   |                     -17411.9  |                -2934.28        |                                  -1.97944 |                               -2.31562     |                         -86.9236 |                     -35.0583      |  0.332384  |   0.889133 | 0.338669   |   0.124866   |
-| RandomForestRegressor         |                     -18330    |                -2631.47        |                                  -3.34435 |                               -1.20557     |                        -103.777  |                     -34.6603      |  0.148666  |   0.899722 | 0.459331   |   0.123703   |
-| XGBRegressor                  |                     -18563.8  |                   -1.17836e-07 |                                  -6.24788 |                               -2.9186e-05  |                         -86.2496 |                      -0.000179579 |  0.283574  |   1        | 0.490598   |   0.0165236  |
-| KNeighborsRegressor           |                     -22388.9  |               -16538.6         |                                  -5.35881 |                               -5.40109     |                        -109.728  |                     -86.218       |  0.105827  |   0.374221 | 0.0043016  |   0.127281   |
-| DummyRegressor                |                     -27480.4  |               -26460           |                                  -1.57572 |                               -1.89635     |                        -119.372  |                    -110.842       | -0.0950711 |   0        | 0.00351734 |   0          |
-| DecisionTreeRegressor         |                     -40700.6  |                    0           |                                 -24.6131  |                                0           |                        -151.028  |                       0           | -0.562759  |   1        | 0.0193477  |   0.00560312 |
-
 ## Plotting
 The `plot` accessor provides several plotting methods based on the attached Poniard estimator instance. These Plotly plots are based on a default template, but can be modified by passing a different `PoniardPlotFactory` to the Poniard `plot_options` argument.
 
@@ -122,7 +108,7 @@ The `plugins` argument in Poniard estimators takes a plugin or list of plugins t
 This makes it easy for third parties to extend Poniard's functionality.
 
 Two plugins are baked into Poniard.
-1. Weights and Biases: logs your data, plots, runs wandb scikit-learn analysis, saves model artifacts, etc.
+1. Weights and Biases: logs your data to an artifact, plots, runs wandb scikit-learn analysis, saves model artifacts, etc.
 2. Pandas Profiling: generates an HTML report of the features and target. If the Weights and Biases plugin is present, also logs this report to the wandb run.
 
 The requirements for these plugins are not included in the base Poniard dependencies, so you can safely ignore them if you don't intend to use them.
@@ -167,4 +153,4 @@ Poniard is not a groundbreaking idea, and a number of libraries follow a similar
 
 **[LazyPredict](https://github.com/shankarpandala/lazypredict)** is similar in that it runs multiple estimators and provides results for various metrics. Unlike Poniard, by default it tries most scikit-learn estimators, and is not based on cross validation.
 
-**[PyCaret](https://github.com/pycaret/pycaret)** is a whole other beast that includes model explainability, deployment, plotting, NLP, anomaly detection, etc., which leads to a list of dependencies several times larger than Poniard's, and a more complicated API.
+**[PyCaret](https://github.com/pycaret/pycaret)** is a whole other beast that includes model explainability, deployment, plotting, NLP, anomaly detection, etc., which leads to a list of dependencies several times larger than Poniard's, and a much higher level of abstraction.

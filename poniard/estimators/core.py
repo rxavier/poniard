@@ -8,7 +8,12 @@ from typing import List, Optional, Union, Callable, Dict, Tuple, Any, Sequence, 
 import pandas as pd
 import numpy as np
 import joblib
-from tqdm import tqdm
+
+try:
+    import ipywidgets
+    from tqdm.notebook import tqdm
+except ImportError:
+    from tqdm import tqdm
 from sklearn.base import ClassifierMixin, RegressorMixin, TransformerMixin, clone
 from sklearn.model_selection._split import BaseCrossValidator, BaseShuffleSplit
 from sklearn.model_selection import train_test_split
@@ -97,14 +102,18 @@ class PoniardBaseEstimator(ABC):
 
     Attributes
     ----------
-    estimators_ :
-        Estimators used for scoring.
-    preprocessor_ :
+    pipelines :
+        Pipelines used for scoring, generally composed by a preprocessor and an estimator.
+    preprocessor :
         Pipeline that preprocesses the data.
-    metrics_ :
+    metrics :
         Metrics used for scoring estimators during fit and hyperparameter optimization.
-    cv_ :
+    cv :
         Cross validation strategy.
+    target_info :
+        Dict containing information about the `y`.
+    inferred_types :
+        DataFrame mapping features to 1 of 4 types.
     """
 
     def __init__(
@@ -166,7 +175,6 @@ class PoniardBaseEstimator(ABC):
             self._memory = joblib.Memory("transformation_cache", verbose=self.verbose)
         else:
             self._memory = None
-        self._fitted_estimator_ids = []
 
         self._init_plugins(plugins)
         self._init_plots(plot_options)
@@ -210,8 +218,8 @@ class PoniardBaseEstimator(ABC):
     ) -> PoniardBaseEstimator:
         """Orchestrator.
 
-        Converts inputs to arrays if necessary, sets :attr:`metrics_`,
-        :attr:`preprocessor_`, attr:`cv_` and :attr:`estimators_`.
+        Converts inputs to arrays if necessary, sets :attr:`metrics`,
+        :attr:`preprocessor`, attr:`cv` and :attr:`pipelines`.
 
         Parameters
         ----------
@@ -245,14 +253,12 @@ class PoniardBaseEstimator(ABC):
                 "no sklearn metrics support them."
             )
 
-        self.estimators_ = self._build_initial_estimators()
-
         if self.metrics:
-            self.metrics_ = (
+            self.metrics = (
                 self.metrics if not isinstance(self.metrics, str) else [self.metrics]
             )
         else:
-            self.metrics_ = self._build_metrics()
+            self.metrics = self._build_metrics()
         print(
             "Main metric",
             "-----------",
@@ -263,12 +269,14 @@ class PoniardBaseEstimator(ABC):
 
         if self.preprocess:
             if self.custom_preprocessor:
-                self.preprocessor_ = self.custom_preprocessor
+                self.preprocessor = self.custom_preprocessor
             else:
-                self.preprocessor_ = self._build_preprocessor()
+                self.preprocessor = self._build_preprocessor()
         self._run_plugin_method("on_setup_preprocessor")
 
-        self.cv_ = self._build_cv()
+        self.pipelines = self._build_pipelines()
+
+        self.cv = self._build_cv()
 
         self._run_plugin_method("on_setup_end")
         return self
@@ -287,18 +295,14 @@ class PoniardBaseEstimator(ABC):
         categorical_high = []
         categorical_low = []
         datetime = []
-        if isinstance(self.cardinality_threshold, int):
-            self.cardinality_threshold_ = self.cardinality_threshold
-        else:
-            self.cardinality_threshold_ = int(self.cardinality_threshold * X.shape[0])
-        if isinstance(self.numeric_threshold, int):
-            self.numeric_threshold_ = self.numeric_threshold
-        else:
-            self.numeric_threshold_ = int(self.numeric_threshold * X.shape[0])
+        if not isinstance(self.cardinality_threshold, int):
+            self.cardinality_threshold = int(self.cardinality_threshold * X.shape[0])
+        if not isinstance(self.numeric_threshold, int):
+            self.numeric_threshold = int(self.numeric_threshold * X.shape[0])
         print(
             "Thresholds",
             "----------",
-            f"Minimum unique values to consider a feature numeric: {self.numeric_threshold_}",
+            f"Minimum unique values to consider a feature numeric: {self.numeric_threshold}",
             f"Minimum unique values to consider a categorical high cardinality: {self.cardinality_threshold}",
             sep="\n",
             end="\n\n",
@@ -309,15 +313,15 @@ class PoniardBaseEstimator(ABC):
             ).columns.tolist()
             numbers = X.select_dtypes(include="number").columns
             for column in numbers:
-                if X[column].nunique() > self.numeric_threshold_:
+                if X[column].nunique() > self.numeric_threshold:
                     numeric.append(column)
-                elif X[column].nunique() > self.cardinality_threshold_:
+                elif X[column].nunique() > self.cardinality_threshold:
                     categorical_high.append(column)
                 else:
                     categorical_low.append(column)
             strings = X.select_dtypes(exclude=["number", "datetime"]).columns
             for column in strings:
-                if X[column].nunique() > self.cardinality_threshold_:
+                if X[column].nunique() > self.cardinality_threshold:
                     categorical_high.append(column)
                 else:
                     categorical_low.append(column)
@@ -326,36 +330,36 @@ class PoniardBaseEstimator(ABC):
                 datetime.extend(range(X.shape[1]))
             if np.issubdtype(X.dtype, np.number):
                 for i in range(X.shape[1]):
-                    if np.unique(X[:, i]).shape[0] > self.numeric_threshold_:
+                    if np.unique(X[:, i]).shape[0] > self.numeric_threshold:
                         numeric.append(i)
-                    elif np.unique(X[:, i]).shape[0] > self.cardinality_threshold_:
+                    elif np.unique(X[:, i]).shape[0] > self.cardinality_threshold:
                         categorical_high.append(i)
                     else:
                         categorical_low.append(i)
             else:
                 for i in range(X.shape[1]):
-                    if np.unique(X[:, i]).shape[0] > self.cardinality_threshold_:
+                    if np.unique(X[:, i]).shape[0] > self.cardinality_threshold:
                         categorical_high.append(i)
                     else:
                         categorical_low.append(i)
-        self._inferred_dtypes = {
+        self._inferred_types = {
             "numeric": numeric,
             "categorical_high": categorical_high,
             "categorical_low": categorical_low,
             "datetime": datetime,
         }
         print("Inferred feature types", "----------------------", sep="\n")
-        self.inferred_types_ = pd.DataFrame.from_dict(
-            self._inferred_dtypes, orient="index"
+        self.inferred_types = pd.DataFrame.from_dict(
+            self._inferred_types, orient="index"
         ).T.fillna("")
         try:
             # Try to print the table nicely
             from IPython.display import display, HTML
 
-            display(HTML(self.inferred_types_.to_html()))
+            display(HTML(self.inferred_types.to_html()))
             print("\n")
         except ImportError:
-            print(self.inferred_types_)
+            print(self.inferred_types)
         self._run_plugin_method("on_infer_types")
         return numeric, categorical_high, categorical_low, datetime
 
@@ -369,8 +373,8 @@ class PoniardBaseEstimator(ABC):
 
         """
         X = self.X
-        if hasattr(self, "preprocessor_") and not assigned_types:
-            return self.preprocessor_
+        if hasattr(self, "preprocessor") and not assigned_types:
+            return self.preprocessor
         if assigned_types:
             numeric = assigned_types["numeric"]
             categorical_high = assigned_types["categorical_high"]
@@ -532,50 +536,112 @@ class PoniardBaseEstimator(ABC):
 
     @property
     @abstractmethod
-    def _base_estimators(self) -> List[ClassifierMixin]:
+    def _default_estimators(self) -> List[ClassifierMixin]:
         return []
 
-    def _build_initial_estimators(
+    @property
+    def estimators_(self):
+        warnings.warn(
+            "'estimators_' has been renamed to 'pipelines'",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.pipelines
+
+    @property
+    def preprocessor_(self):
+        warnings.warn(
+            "'preprocessor_' has been renamed to 'preprocessor'",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.preprocessor
+
+    @property
+    def metrics_(self):
+        warnings.warn(
+            "'metrics_' has been renamed to 'metrics'", DeprecationWarning, stacklevel=2
+        )
+        return self.metrics
+
+    @property
+    def cv_(self):
+        warnings.warn(
+            "'cv_' has been renamed to 'cv'", DeprecationWarning, stacklevel=2
+        )
+        return self.cv
+
+    def show_results(
+        self,
+        std: bool = False,
+        wrt_dummy: bool = False,
+    ):
+        warnings.warn(
+            "'show_results' has been renamed to 'get_results'",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return get_results(
+            self, return_train_scores=False, std=std, wrt_dummy=wrt_dummy
+        )
+
+    def _build_pipelines(
         self,
     ) -> Dict[str, Union[ClassifierMixin, RegressorMixin]]:
-        """Build :attr:`estimators_` dict where keys are the estimator class names.
+        """Build :attr:`pipelines` dict where keys are the estimator class names.
 
         Adds dummy estimators if not included during construction. Does nothing if
-        :attr:`estimators_` exists.
+        :attr:`pipelines` exists.
 
         """
-        if hasattr(self, "estimators_"):
-            return
-
         if isinstance(self.estimators, dict):
-            initial_estimators = self.estimators.copy()
+            estimators = self.estimators.copy()
         elif self.estimators:
-            initial_estimators = {
+            estimators = {
                 estimator.__class__.__name__: estimator for estimator in self.estimators
             }
         else:
-            initial_estimators = {
+            estimators = {
                 estimator.__class__.__name__: estimator
-                for estimator in self._base_estimators
+                for estimator in self._default_estimators
             }
-        if (
-            self.poniard_task == "classification"
-            and "DummyClassifier" not in initial_estimators.keys()
-        ):
-            initial_estimators.update(
-                {"DummyClassifier": DummyClassifier(strategy="prior")}
-            )
-        elif (
-            self.poniard_task == "regression"
-            and "DummyRegressor" not in initial_estimators.keys()
-        ):
-            initial_estimators.update(
-                {"DummyRegressor": DummyRegressor(strategy="mean")}
-            )
+        estimators = self._add_dummy_estimators(estimators)
 
-        for estimator in initial_estimators.values():
+        for estimator in estimators.values():
             self._pass_instance_attrs(estimator)
-        return initial_estimators
+
+        pipelines = {}
+        if self.preprocess:
+            pipelines.update(
+                {
+                    name: Pipeline(
+                        [("preprocessor", self.preprocessor), (name, estimator)],
+                        memory=self._memory,
+                    )
+                    for name, estimator in estimators.items()
+                }
+            )
+        else:
+            pipelines.update(
+                {
+                    name: Pipeline([(name, estimator)])
+                    for name, estimator in estimators.items()
+                }
+            )
+        self._fitted_pipeline_ids = []
+        return pipelines
+
+    def _add_dummy_estimators(self, estimators: dict):
+        if (
+            "DummyClassifier" in estimators.keys()
+            or "DummyRegressor" in estimators.keys()
+        ):
+            return estimators
+        if self.poniard_task == "classification":
+            estimators.update({"DummyClassifier": DummyClassifier(strategy="prior")})
+        elif self.poniard_task == "regression":
+            estimators.update({"DummyRegressor": DummyRegressor(strategy="mean")})
+        return estimators
 
     @abstractmethod
     def _build_metrics(self) -> Union[Dict[str, Callable], List[str]]:
@@ -588,7 +654,7 @@ class PoniardBaseEstimator(ABC):
 
     def fit(self) -> PoniardBaseEstimator:
         """This is the main Poniard method. It uses scikit-learn's `cross_validate` function to
-        score all :attr:`metrics_` for every :attr:`preprocessor_` | :attr:`estimators_`, using
+        score all :attr:`metrics` for every :attr:`preprocessor` | :attr:`pipelines`, using
         :attr:`cv` for cross validation.
 
         After running :meth:`fit`, both :attr:`X` and :attr:`y` will be held as attributes.
@@ -605,44 +671,36 @@ class PoniardBaseEstimator(ABC):
         PoniardBaseEstimator
             Self.
         """
-        if not hasattr(self, "cv_"):
+        if not hasattr(self, "cv"):
             raise ValueError("`setup` must be called before `fit`.")
         self._run_plugin_method("on_fit_start")
 
         results = {}
-        filtered_estimators = {
-            name: estimator
-            for name, estimator in self.estimators_.items()
-            if id(estimator) not in self._fitted_estimator_ids
+        filtered_pipelines = {
+            name: pipeline
+            for name, pipeline in self.pipelines.items()
+            if id(pipeline) not in self._fitted_pipeline_ids
         }
-        pbar = tqdm(filtered_estimators.items())
-        for i, (name, estimator) in enumerate(pbar):
+        pbar = tqdm(filtered_pipelines.items())
+        for i, (name, pipeline) in enumerate(pbar):
             pbar.set_description(f"{name}")
-            if self.preprocess:
-                final_estimator = Pipeline(
-                    [("preprocessor", self.preprocessor_), (name, estimator)],
-                    memory=self._memory,
-                )
-            else:
-                final_estimator = Pipeline([(name, estimator)])
             with warnings.catch_warnings():
                 warnings.filterwarnings("ignore", category=UndefinedMetricWarning)
                 warnings.filterwarnings(
                     "ignore", message=".*will be encoded as all zeros"
                 )
                 result = cross_validate(
-                    final_estimator,
+                    pipeline,
                     self.X,
                     self.y,
-                    scoring=self.metrics_,
-                    cv=self.cv_,
+                    scoring=self.metrics,
+                    cv=self.cv,
                     return_train_score=True,
-                    return_estimator=True,
                     verbose=self.verbose,
                     n_jobs=self.n_jobs,
                 )
             results.update({name: result})
-            self._fitted_estimator_ids.append(id(estimator))
+            self._fitted_pipeline_ids.append(id(pipeline))
             if i == len(pbar) - 1:
                 pbar.set_description("Completed")
         if hasattr(self, "_experiment_results"):
@@ -660,29 +718,22 @@ class PoniardBaseEstimator(ABC):
     ) -> Dict[str, np.ndarray]:
         """Helper method for predicting targets or target probabilities with cross validation.
         Accepts predict, predict_proba, predict_log_proba or decision_function."""
-        if not hasattr(self, "cv_"):
+        if not hasattr(self, "cv"):
             raise ValueError("`setup` must be called before `predict`.")
         X, y = self.X, self.y
         if not estimator_names:
-            estimator_names = [estimator for estimator in self.estimators_.keys()]
+            estimator_names = [estimator for estimator in self.pipelines.keys()]
         results = {}
         pbar = tqdm(estimator_names)
         for i, name in enumerate(pbar):
             pbar.set_description(f"{name}")
-            estimator = self.estimators_[name]
-            if self.preprocess:
-                final_estimator = Pipeline(
-                    [("preprocessor", self.preprocessor_), (name, estimator)],
-                    memory=self._memory,
-                )
-            else:
-                final_estimator = estimator
+            pipeline = self.pipelines[name]
             try:
                 result = cross_val_predict(
-                    final_estimator,
+                    pipeline,
                     X,
                     y,
-                    cv=self.cv_,
+                    cv=self.cv,
                     method=method,
                     verbose=self.verbose,
                     n_jobs=self.n_jobs,
@@ -814,10 +865,10 @@ class PoniardBaseEstimator(ABC):
             "categorical_low": categorical_low or [],
             "datetime": datetime or [],
         }
-        self._inferred_dtypes = assigned_types
+        self._inferred_types = assigned_types
         print("Assigned feature types", "----------------------", sep="\n")
         assigned_types_df = pd.DataFrame.from_dict(
-            self._inferred_dtypes, orient="index"
+            self._inferred_types, orient="index"
         ).T.fillna("")
         try:
             # Try to print the table nicely
@@ -831,12 +882,9 @@ class PoniardBaseEstimator(ABC):
         # custom preprocessor was set.
         if not self.preprocess or self.custom_preprocessor is not None:
             return self
-        self.preprocessor_ = self._build_preprocessor(assigned_types=assigned_types)
-        # TODO: Clearing the `_fitted_estimator_ids` attr is a hacky way of ensuring that doing
-        # [fit -> reassign_types -> fit] actually fits models. Ideally, build the
-        # preprocessor + estimator pipeline during setup and save those IDs when calling fit.
-        self._fitted_estimator_ids = []
+        self.preprocessor = self._build_preprocessor(assigned_types=assigned_types)
         self._run_plugin_method("on_reassign_types")
+        self.pipelines = self._build_pipelines()
         return self
 
     def add_preprocessing_step(
@@ -847,7 +895,7 @@ class PoniardBaseEstimator(ABC):
         ],
         position: Union[str, int] = "end",
     ) -> Pipeline:
-        """Add a preprocessing step to :attr:`preprocessor_`.
+        """Add a preprocessing step to :attr:`preprocessor`.
 
         Parameters
         ----------
@@ -865,7 +913,7 @@ class PoniardBaseEstimator(ABC):
         """
         if not isinstance(position, int) and position not in ["start", "end"]:
             raise ValueError("`position` can only be int, 'start' or 'end'.")
-        existing_preprocessor = self.preprocessor_
+        existing_preprocessor = self.preprocessor
         if not isinstance(step, Tuple):
             step = (f"step_{step.__class__.__name__.lower()}", step)
         if isinstance(position, str) and isinstance(existing_preprocessor, Pipeline):
@@ -882,24 +930,22 @@ class PoniardBaseEstimator(ABC):
                     "'end' are accepted as `position`."
                 )
             if position == "start":
-                self.preprocessor_ = Pipeline(
-                    [step, ("initial_preprocessor", self.preprocessor_)],
+                self.preprocessor = Pipeline(
+                    [step, ("initial_preprocessor", self.preprocessor)],
                     memory=self._memory,
                 )
             else:
-                self.preprocessor_ = Pipeline(
-                    [("initial_preprocessor", self.preprocessor_), step],
+                self.preprocessor = Pipeline(
+                    [("initial_preprocessor", self.preprocessor), step],
                     memory=self._memory,
                 )
-        # TODO: Clearing the `_fitted_estimator_ids` attr is a hacky way of ensuring that doing
-        # [fit -> add_preprocessing_step -> fit] actually fits models. Ideally, build the
-        # preprocessor + estimator pipeline during setup and save those IDs when calling fit.
-        self._fitted_estimator_ids = []
+        self.pipelines = self._build_pipelines()
         self._run_plugin_method("on_add_preprocessing_step")
         return self
 
-    def show_results(
+    def get_results(
         self,
+        return_train_scores: bool = False,
         std: bool = False,
         wrt_dummy: bool = False,
     ) -> Union[Tuple[pd.DataFrame, pd.DataFrame], pd.DataFrame]:
@@ -908,6 +954,8 @@ class PoniardBaseEstimator(ABC):
 
         Parameters
         ----------
+        return_train_scores :
+            If False, only return test scores.
         std :
             Whether to return standard deviation of the scores. Default False.
         wrt_dummy :
@@ -921,6 +969,11 @@ class PoniardBaseEstimator(ABC):
         """
         means = self._means
         stds = self._stds
+        if not return_train_scores:
+            means = means.loc[
+                :, means.columns.str.contains("test_|fit|score", regex=True)
+            ]
+            stds = stds.loc[:, stds.columns.str.contains("test_|fit|score", regex=True)]
         if wrt_dummy:
             dummy_means = means.loc[means.index.str.contains("Dummy")]
             dummy_stds = stds.loc[stds.index.str.contains("Dummy")]
@@ -935,7 +988,7 @@ class PoniardBaseEstimator(ABC):
         self, estimators: Union[Dict[str, ClassifierMixin], Sequence[ClassifierMixin]]
     ) -> PoniardBaseEstimator:
         """Include new estimator. This is the recommended way of adding an estimator (as opposed
-        to modifying :attr:`estimators_` directly), since it also injects random state, n_jobs
+        to modifying :attr:`pipelines` directly), since it also injects random state, n_jobs
         and verbosity.
 
         Parameters
@@ -959,7 +1012,7 @@ class PoniardBaseEstimator(ABC):
             new_estimators = estimators
         for new_estimator in new_estimators.values():
             self._pass_instance_attrs(new_estimator)
-        self.estimators_.update(new_estimators)
+        self.pipelines.update(new_estimators)
         self._run_plugin_method("on_add_estimators")
         return self
 
@@ -967,7 +1020,7 @@ class PoniardBaseEstimator(ABC):
         self, estimator_names: Sequence[str], drop_results: bool = True
     ) -> PoniardBaseEstimator:
         """Remove estimators. This is the recommended way of removing an estimator (as opposed
-        to modifying :attr:`estimators_` directly), since it also removes the associated rows from
+        to modifying :attr:`pipelines` directly), since it also removes the associated rows from
         the results tables.
 
         Parameters
@@ -983,11 +1036,11 @@ class PoniardBaseEstimator(ABC):
             Self.
         """
         pruned_estimators = {
-            k: v for k, v in self.estimators_.items() if k not in estimator_names
+            k: v for k, v in self.pipelines.items() if k not in estimator_names
         }
         if len(pruned_estimators) == 0:
             raise ValueError("Cannot remove all estimators.")
-        self.estimators_ = pruned_estimators
+        self.pipelines = pruned_estimators
         if drop_results and hasattr(self, "_means"):
             self._means = self._means.loc[~self._means.index.isin(estimator_names)]
             self._stds = self._stds.loc[~self._stds.index.isin(estimator_names)]
@@ -1005,7 +1058,7 @@ class PoniardBaseEstimator(ABC):
         include_preprocessor: bool = True,
         retrain: bool = False,
     ) -> Union[Pipeline, ClassifierMixin, RegressorMixin]:
-        """Obtain an estimator in :attr:`estimators_` by name. This is useful for extracting default
+        """Obtain an estimator in :attr:`pipelines` by name. This is useful for extracting default
         estimators or hyperparmeter-optimized estimators (after using :meth:`tune_estimator`).
 
         Parameters
@@ -1022,7 +1075,7 @@ class PoniardBaseEstimator(ABC):
         ClassifierMixin
             Estimator.
         """
-        model = self._experiment_results[estimator_name]["estimator"][0]
+        model = self.pipelines[estimator_name]
         if not include_preprocessor:
             model = model._final_estimator
         model = clone(model)
@@ -1057,7 +1110,7 @@ class PoniardBaseEstimator(ABC):
         sort_by :
             Which metric to consider for ordering results. Default None, which uses the first metric.
         ensemble_name :
-            Ensemble name when adding to :attr:`estimators_`. Default None.
+            Ensemble name when adding to :attr:`pipelines`. Default None.
 
         Returns
         -------
@@ -1073,7 +1126,7 @@ class PoniardBaseEstimator(ABC):
             raise ValueError("Method must be either voting or stacking.")
         if estimator_names:
             models = [
-                (name, self._experiment_results[name]["estimator"][0]._final_estimator)
+                (name, self.pipelines[name]._final_estimator)
                 for name in estimator_names
             ]
         else:
@@ -1082,7 +1135,7 @@ class PoniardBaseEstimator(ABC):
             else:
                 sorter = self._means.columns[0]
             models = [
-                (name, self._experiment_results[name]["estimator"][0]._final_estimator)
+                (name, self.pipelines[name]._final_estimator)
                 for name in self._means.sort_values(sorter, ascending=False).index[
                     :top_n
                 ]
@@ -1099,11 +1152,11 @@ class PoniardBaseEstimator(ABC):
         else:
             if self.poniard_task == "classification":
                 ensemble = StackingClassifier(
-                    estimators=models, verbose=self.verbose, cv=self.cv_, **kwargs
+                    estimators=models, verbose=self.verbose, cv=self.cv, **kwargs
                 )
             else:
                 ensemble = StackingRegressor(
-                    estimators=models, verbose=self.verbose, cv=self.cv_, **kwargs
+                    estimators=models, verbose=self.verbose, cv=self.cv, **kwargs
                 )
         ensemble_name = ensemble_name or ensemble.__class__.__name__
         self.add_estimators(estimators={ensemble_name: ensemble})
@@ -1176,7 +1229,7 @@ class PoniardBaseEstimator(ABC):
         mode :
             Type of search. Eithe "grid", "halving" or "random". Default "grid".
         tuned_estimator_name :
-            Estimator name when adding to :attr:`estimators_`. Default None.
+            Estimator name when adding to :attr:`pipelines`. Default None.
 
         Returns
         -------
@@ -1189,7 +1242,7 @@ class PoniardBaseEstimator(ABC):
             If no grid is defined and the estimator is not a default one.
         """
         X, y = self.X, self.y
-        estimator = clone(self._experiment_results[estimator_name]["estimator"][0])
+        estimator = clone(self.pipelines[estimator_name])
         if not grid:
             try:
                 grid = GRID[estimator_name]
@@ -1206,7 +1259,7 @@ class PoniardBaseEstimator(ABC):
                 estimator,
                 grid,
                 scoring=scoring,
-                cv=self.cv_,
+                cv=self.cv,
                 verbose=self.verbose,
                 n_jobs=self.n_jobs,
                 random_state=self.random_state,
@@ -1219,7 +1272,7 @@ class PoniardBaseEstimator(ABC):
                 estimator,
                 grid,
                 scoring=scoring,
-                cv=self.cv_,
+                cv=self.cv,
                 verbose=self.verbose,
                 n_jobs=self.n_jobs,
                 random_state=self.random_state,
@@ -1229,7 +1282,7 @@ class PoniardBaseEstimator(ABC):
                 estimator,
                 grid,
                 scoring=scoring,
-                cv=self.cv_,
+                cv=self.cv,
                 verbose=self.verbose,
                 n_jobs=self.n_jobs,
             )
@@ -1252,8 +1305,7 @@ class PoniardBaseEstimator(ABC):
             [
                 x
                 for x in results.columns
-                if x
-                not in ["estimator", "predict", "predict_proba", "decision_function"]
+                if x not in ["predict", "predict_proba", "decision_function"]
             ],
         ]
         means = results.apply(lambda x: np.mean(x.values.tolist(), axis=1))
@@ -1266,7 +1318,7 @@ class PoniardBaseEstimator(ABC):
 
     def _process_long_results(self) -> None:
         """Prepare experiment results for plotting."""
-        base = pd.DataFrame(self._experiment_results).T.drop(["estimator"], axis=1)
+        base = pd.DataFrame(self._experiment_results).T
         melted = (
             base.rename_axis("Model")
             .reset_index()
@@ -1286,29 +1338,29 @@ class PoniardBaseEstimator(ABC):
 
     def _first_scorer(self, sklearn_scorer: bool) -> Union[str, Callable]:
         """Helper method to get the first scoring function or name."""
-        if isinstance(self.metrics_, Sequence):
-            return self.metrics_[0]
-        elif isinstance(self.metrics_, dict):
+        if isinstance(self.metrics, Sequence):
+            return self.metrics[0]
+        elif isinstance(self.metrics, dict):
             if sklearn_scorer:
-                return list(self.metrics_.values())[0]
+                return list(self.metrics.values())[0]
             else:
-                return list(self.metrics_.keys())[0]
+                return list(self.metrics.keys())[0]
         else:
             raise ValueError(
-                "self.metrics_ can only be a sequence of str or dict of str: callable."
+                "self.metrics can only be a sequence of str or dict of str: callable."
             )
 
     def _train_test_split_from_cv(self):
         """Split data in a 80/20 fashion following the cross-validation strategy defined in the constructor."""
-        if isinstance(self.cv_, (int, Iterable)):
+        if isinstance(self.cv, (int, Iterable)):
             cv_params_for_split = {}
         else:
             cv_params_for_split = {
                 k: v
-                for k, v in vars(self.cv_).items()
+                for k, v in vars(self.cv).items()
                 if k in ["shuffle", "random_state"]
             }
-            stratify = self.y if "Stratified" in self.cv_.__class__.__name__ else None
+            stratify = self.y if "Stratified" in self.cv.__class__.__name__ else None
             cv_params_for_split.update({"stratify": stratify})
         return train_test_split(self.X, self.y, test_size=0.2, **cv_params_for_split)
 

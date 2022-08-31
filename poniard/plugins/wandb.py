@@ -35,11 +35,11 @@ class WandBPlugin(BasePlugin):
     def build_config(self) -> dict:
         """Helper method that builds a config dict from the poniard instance."""
         return {
-            "estimators": list(self._poniard.estimators_.values()),
-            "metrics": self._poniard.metrics_,
-            "cv": self._poniard.cv_,
+            "pipelines": list(self._poniard.estimators_.values()),
+            "metrics": self._poniard.metrics,
+            "cv": self._poniard.cv,
             "preprocess": self._poniard.preprocess,
-            "preprocessor": self._poniard.preprocessor_,
+            "preprocessor": self._poniard.preprocessor,
             "custom_preprocessor": self._poniard.custom_preprocessor,
             "numeric_imputer": self._poniard.numeric_imputer,
             "scaler": self._poniard.scaler,
@@ -73,14 +73,14 @@ class WandBPlugin(BasePlugin):
 
     def on_infer_types(self):
         """Log inferred types."""
-        table = wandb.Table(dataframe=self._poniard.inferred_types_)
+        table = wandb.Table(dataframe=self._poniard.inferred_types)
         wandb.log({"Inferred types": table})
         return
 
     def on_setup_preprocessor(self) -> None:
         """Log preprocessor's HTML repr."""
         wandb.log(
-            {"Preprocessor": wandb.Html(self._poniard.preprocessor_._repr_html_())}
+            {"Preprocessor": wandb.Html(self._poniard.preprocessor._repr_html_())}
         )
         return
 
@@ -91,7 +91,7 @@ class WandBPlugin(BasePlugin):
 
     def on_fit_end(self):
         """Log results table."""
-        results = self._poniard.show_results().reset_index()
+        results = self._poniard.get_results().reset_index()
         results.rename(columns={"index": "Estimator"}, inplace=True)
         table = wandb.Table(dataframe=results)
         wandb.log({"Results": table})
