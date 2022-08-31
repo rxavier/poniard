@@ -31,14 +31,14 @@ Check the full docs at [Read The Docs](https://poniard.readthedocs.io/en/latest/
 # Usage/features
 
 ## Basics
-The API was designed with regression and classification tasks in mind, but it should also work with time series tasks provided an appropiate cross validation strategy is used (don't shuffle!)
+The API was designed with classic regression and classification tasks in mind, and it should also work with time series tasks provided an appropiate cross validation strategy is used (don't shuffle!)
 
 The usual Poniard flow is:
 1. Define some estimators.
 2. Define some metrics.
 3. Define a cross validation strategy.
 4. Fit everything.
-5. Print the results.
+5. Show the results.
 
 Poniard provides sane defaults for 1, 2 and 3, so in most cases you can just do...
 
@@ -48,7 +48,7 @@ from poniard import PoniardClassifier
 pnd = PoniardClassifier()
 pnd.setup(X_train, y_train)
 pnd.fit()
-pnd.results
+pnd.get_results()
 ```
 
 ... and get a nice table showing the average of each metric in all folds for every model, including fit and score times (thanks, scikit-learn `cross_validate` function!)
@@ -67,7 +67,7 @@ pnd.results
 
 Alternatively, you can also get a nice plot of your different metrics by using the `estimator.plot.metrics()` method.
 
-You may be wondering why does `setup()` exist and need to be called before `fit()` (which in turn doesn't take any arguments, unlike what you're used to in sklearn). Basically, because Poniard performs type inference to build the preprocessor, separating `fit()` allows the user to check whether the preprocessor is correct and to change it if necessary.
+You may be wondering why does `setup()` exist and need to be called before `fit()` (which in turn doesn't take any arguments, unlike what you're used to in sklearn). Basically, because Poniard performs type inference to build the preprocessor, decoupling `fit()` allows the user to check whether the preprocessor is appropiate and change it if necessary before training models, which could take long.
 ## Type inference
 Poniard uses some basic heuristics to infer the data types.
 
@@ -98,21 +98,7 @@ pnd.fit()
 pnd.get_results()
 pnd.tune_estimator("RandomForestRegressor", mode="grid")
 pnd.fit() # This will only fit new estimators
-pnd.get_results()
 ```
-|                               |   test_neg_mean_squared_error |   train_neg_mean_squared_error |   test_neg_mean_absolute_percentage_error |   train_neg_mean_absolute_percentage_error |   test_neg_median_absolute_error |   train_neg_median_absolute_error |    test_r2 |   train_r2 |   fit_time |   score_time |
-|:------------------------------|------------------------------:|-------------------------------:|------------------------------------------:|-------------------------------------------:|---------------------------------:|----------------------------------:|-----------:|-----------:|-----------:|-------------:|
-| LinearRegression              |                      -8051.97 |                   -1.21019e-25 |                                  -7.31808 |                               -4.15903e-14 |                         -56.3348 |                      -2.19114e-13 |  0.661716  |   1        | 0.0114767  |   0.00424609 |
-| ElasticNet                    |                     -13169.4  |                -2128.96        |                                  -4.59068 |                               -0.938363    |                         -70.3958 |                     -26.1924      |  0.4942    |   0.919408 | 0.00304666 |   0.00537877 |
-| HistGradientBoostingRegressor |                     -13203.5  |                 -748.071       |                                  -7.05925 |                               -0.957685    |                         -87.9605 |                     -14.9543      |  0.404863  |   0.971676 | 0.450184   |   0.0156513  |
-| LinearSVR                     |                     -14668.2  |                -5691.34        |                                 -10.7275  |                               -0.238392    |                         -83.5699 |                      -9.55763     |  0.453208  |   0.785703 | 0.00706563 |   0.00295434 |
-| RandomForestRegressor_tuned   |                     -17411.9  |                -2934.28        |                                  -1.97944 |                               -2.31562     |                         -86.9236 |                     -35.0583      |  0.332384  |   0.889133 | 0.338669   |   0.124866   |
-| RandomForestRegressor         |                     -18330    |                -2631.47        |                                  -3.34435 |                               -1.20557     |                        -103.777  |                     -34.6603      |  0.148666  |   0.899722 | 0.459331   |   0.123703   |
-| XGBRegressor                  |                     -18563.8  |                   -1.17836e-07 |                                  -6.24788 |                               -2.9186e-05  |                         -86.2496 |                      -0.000179579 |  0.283574  |   1        | 0.490598   |   0.0165236  |
-| KNeighborsRegressor           |                     -22388.9  |               -16538.6         |                                  -5.35881 |                               -5.40109     |                        -109.728  |                     -86.218       |  0.105827  |   0.374221 | 0.0043016  |   0.127281   |
-| DummyRegressor                |                     -27480.4  |               -26460           |                                  -1.57572 |                               -1.89635     |                        -119.372  |                    -110.842       | -0.0950711 |   0        | 0.00351734 |   0          |
-| DecisionTreeRegressor         |                     -40700.6  |                    0           |                                 -24.6131  |                                0           |                        -151.028  |                       0           | -0.562759  |   1        | 0.0193477  |   0.00560312 |
-
 ## Plotting
 The `plot` accessor provides several plotting methods based on the attached Poniard estimator instance. These Plotly plots are based on a default template, but can be modified by passing a different `PoniardPlotFactory` to the Poniard `plot_options` argument.
 
@@ -122,7 +108,7 @@ The `plugins` argument in Poniard estimators takes a plugin or list of plugins t
 This makes it easy for third parties to extend Poniard's functionality.
 
 Two plugins are baked into Poniard.
-1. Weights and Biases: logs your data, plots, runs wandb scikit-learn analysis, saves model artifacts, etc.
+1. Weights and Biases: logs your data to an artifact, plots, runs wandb scikit-learn analysis, saves model artifacts, etc.
 2. Pandas Profiling: generates an HTML report of the features and target. If the Weights and Biases plugin is present, also logs this report to the wandb run.
 
 The requirements for these plugins are not included in the base Poniard dependencies, so you can safely ignore them if you don't intend to use them.
