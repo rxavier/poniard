@@ -317,13 +317,7 @@ class PoniardPlotFactory:
 
         estimator_metrics = []
         for name in estimator_names:
-            try:
-                y_pred = results[name][type_of_prediction]
-            except KeyError:
-                self._poniard._predict(
-                    method=type_of_prediction, estimator_names=[name]
-                )
-                y_pred = results[name][type_of_prediction]
+            y_pred = self._get_or_compute_prediction(name, type_of_prediction)
             if type_of_prediction == "predict_proba":
                 y_pred = y_pred[:, 1]
             fpr, tpr, _ = roc_curve(y, y_pred, **kwargs)
@@ -389,12 +383,7 @@ class PoniardPlotFactory:
         if self._poniard.poniard_task == "regression":
             raise ValueError("Confusion matrix is not available for regressors.")
         y = self._poniard.y
-        results = self._poniard._experiment_results
-        try:
-            y_pred = results[estimator_name]["predict"]
-        except KeyError:
-            self._poniard._predict(method="predict", estimator_names=[estimator_name])
-            y_pred = results[estimator_name]["predict"]
+        y_pred = self._get_or_compute_prediction(estimator_name, "predict")
         matrix = confusion_matrix(y, y_pred, **kwargs)
         fig = px.imshow(
             matrix,
@@ -432,7 +421,6 @@ class PoniardPlotFactory:
         """
         y = self._poniard.y
         X = self._poniard.X
-        results = self._poniard._experiment_results
         estimator = self._poniard.pipelines[estimator_name]
         estimator.fit(X, y)
         partial_dep = partial_dependence(
@@ -465,6 +453,15 @@ class PoniardPlotFactory:
             "on_plot", figure=fig, name=f"{feature}_partial_dependence_plot"
         )
         return fig
+
+    def _get_or_compute_prediction(self, estimator_name: str, method: str):
+        """Get predictions (either predict, predict_proba or decision_function) for a given
+        estimator or compute if not available."""
+        try:
+            return self._poniard._experiment_results[estimator_name][method]
+        except KeyError:
+            self._poniard._predict(method=method, estimator_names=[estimator_name])
+            return self._poniard._experiment_results[estimator_name][method]
 
     def __repr__(self):
         return f"""{self.__class__.__name__}(template={self._template},
