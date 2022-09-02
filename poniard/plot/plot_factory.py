@@ -11,6 +11,7 @@ from plotly.graph_objs._figure import Figure
 
 if TYPE_CHECKING:
     from poniard.estimators.core import PoniardBaseEstimator
+from poniard.utils.estimate import element_to_list_maybe
 
 
 class PoniardPlotFactory:
@@ -81,7 +82,7 @@ class PoniardPlotFactory:
         if exclude_dummy:
             results = results.loc[~results["Model"].str.contains("Dummy")]
         if metrics:
-            metrics = [metrics] if isinstance(metrics, str) else metrics
+            metrics = element_to_list_maybe(metrics)
             metrics = "|".join(metrics)
             results = results.loc[results["Metric"].str.contains(metrics)]
         if not show_means:
@@ -287,6 +288,7 @@ class PoniardPlotFactory:
         if y.ndim > 1:
             raise ValueError("ROC curve is only available for binary classification.")
         results = self._poniard._experiment_results
+        estimator_names = element_to_list_maybe(estimator_names)
         if not estimator_names:
             estimator_names = list(results.keys())
 
@@ -479,6 +481,7 @@ class PoniardPlotFactory:
         if self._poniard.poniard_task == "classification":
             raise ValueError("Residuls plot is not available for classifiers.")
         y = self._poniard.y
+        estimator_names = element_to_list_maybe(estimator_names)
         data = []
         if self._poniard.target_info["type_"] == "continuous-multioutput":
             if len(estimator_names) > 1:
@@ -555,6 +558,7 @@ class PoniardPlotFactory:
                 "Residuls histogram plot is not available for classifiers."
             )
         y = self._poniard.y
+        estimator_names = element_to_list_maybe(estimator_names)
         data = []
         if self._poniard.target_info["type_"] == "continuous-multioutput":
             if len(estimator_names) > 1:

@@ -46,7 +46,7 @@ from sklearn.exceptions import UndefinedMetricWarning
 from poniard.preprocessing import DatetimeEncoder, TargetEncoder
 from poniard.utils.stats import cramers_v
 from poniard.utils.hyperparameters import GRID
-from poniard.utils.estimate import get_target_info
+from poniard.utils.estimate import get_target_info, element_to_list_maybe
 from poniard.plot import PoniardPlotFactory
 
 
@@ -169,7 +169,7 @@ class PoniardBaseEstimator(ABC):
         self.cv = cv
         self.verbose = verbose
         self.random_state = random_state or 0
-        self.estimators = estimators
+        self.estimators = element_to_list_maybe(estimators)
         self.n_jobs = n_jobs
         if cache_transformations:
             self._memory = joblib.Memory("transformation_cache", verbose=self.verbose)
@@ -180,9 +180,7 @@ class PoniardBaseEstimator(ABC):
         self._init_plots(plot_options)
 
     def _init_plugins(self, plugins: Optional[Sequence[Any]] = None) -> None:
-        self.plugins = (
-            plugins if isinstance(plugins, Sequence) or plugins is None else [plugins]
-        )
+        self.plugins = element_to_list_maybe(plugins)
         if self.plugins:
             [setattr(plugin, "_poniard", self) for plugin in self.plugins]
         return
@@ -254,9 +252,7 @@ class PoniardBaseEstimator(ABC):
             )
 
         if self.metrics:
-            self.metrics = (
-                self.metrics if not isinstance(self.metrics, str) else [self.metrics]
-            )
+            self.metrics = element_to_list_maybe(self.metrics)
         else:
             self.metrics = self._build_metrics()
         print(
@@ -581,9 +577,7 @@ class PoniardBaseEstimator(ABC):
             DeprecationWarning,
             stacklevel=2,
         )
-        return get_results(
-            self, return_train_scores=False, std=std, wrt_dummy=wrt_dummy
-        )
+        return self.get_results(return_train_scores=False, std=std, wrt_dummy=wrt_dummy)
 
     def _build_pipelines(
         self,
@@ -721,6 +715,7 @@ class PoniardBaseEstimator(ABC):
         if not hasattr(self, "cv"):
             raise ValueError("`setup` must be called before `predict`.")
         X, y = self.X, self.y
+        estimator_names = element_to_list_maybe(estimator_names)
         if not estimator_names:
             estimator_names = [estimator for estimator in self.pipelines.keys()]
         results = {}
@@ -1002,8 +997,7 @@ class PoniardBaseEstimator(ABC):
             Self.
 
         """
-        if not isinstance(estimators, (Sequence, dict)):
-            estimators = [estimators]
+        estimators = element_to_list_maybe(estimators)
         if not isinstance(estimators, dict):
             new_estimators = {
                 estimator.__class__.__name__: estimator for estimator in estimators
@@ -1035,6 +1029,7 @@ class PoniardBaseEstimator(ABC):
         PoniardBaseEstimator
             Self.
         """
+        estimator_names = element_to_list_maybe(estimator_names)
         pruned_estimators = {
             k: v for k, v in self.pipelines.items() if k not in estimator_names
         }
@@ -1124,6 +1119,7 @@ class PoniardBaseEstimator(ABC):
         """
         if method not in ["voting", "stacking"]:
             raise ValueError("Method must be either voting or stacking.")
+        estimator_names = element_to_list_maybe(estimator_names)
         if estimator_names:
             models = [
                 (name, self.pipelines[name]._final_estimator)
@@ -1398,7 +1394,11 @@ class PoniardBaseEstimator(ABC):
             """
 
     def __add__(
-        self, estimators: Union[Dict[str, ClassifierMixin], Sequence[ClassifierMixin]]
+        self,
+        estimators: Union[
+            Dict[str, Union[ClassifierMixin, RegressorMixin]],
+            Sequence[Union[ClassifierMixin, RegressorMixin]],
+        ],
     ) -> PoniardBaseEstimator:
         """Add estimators to a Poniard Estimator.
 
@@ -1412,6 +1412,7 @@ class PoniardBaseEstimator(ABC):
         PoniardBaseEstimator
             Self.
         """
+        estimators = element_to_list_maybe(estimators)
         return self.add_estimators(estimators)
 
     def __sub__(self, estimator_names: Sequence[str]) -> PoniardBaseEstimator:
@@ -1427,6 +1428,7 @@ class PoniardBaseEstimator(ABC):
         PoniardBaseEstimator
             Self.
         """
+        estimator_names = element_to_list_maybe(estimator_names)
         return self.remove_estimators(estimator_names, drop_results=True)
 
     def __getitem__(
