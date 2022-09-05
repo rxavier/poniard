@@ -6,9 +6,10 @@
 #
 joblib==1.1.0
     # via scikit-learn
-numpy==1.21.5
+numpy==1.22.4 ; python_version >= "3.8"
     # via
     #   pandas
+    #   poniard (setup.py)
     #   scikit-learn
     #   scipy
     #   xgboost
@@ -20,7 +21,7 @@ python-dateutil==2.8.2
     # via pandas
 pytz==2021.3
     # via pandas
-scikit-learn==1.1.0
+scikit-learn==1.1.0 ; python_version >= "3.8"
     # via poniard (setup.py)
 scipy==1.7.3
     # via
