@@ -44,9 +44,11 @@ setup(
         "scikit-learn",
     ],
     install_requires=[
-        "scikit-learn>=1.0.2",
+        "scikit-learn>=1.0.2; python_version < '3.8'",
+        "scikit-learn>=1.1.0; python_version >= '3.8'",
         "xgboost>=1.5.0",
         "pandas>=1.3.5",
+        "numpy>=1.22.0; python_version >= '3.8'",
         "plotly",
         "tqdm",
     ],

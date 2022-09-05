@@ -11,6 +11,7 @@ from plotly.graph_objs._figure import Figure
 
 if TYPE_CHECKING:
     from poniard.estimators.core import PoniardBaseEstimator
+from poniard.utils.estimate import element_to_list_maybe
 
 
 class PoniardPlotFactory:
@@ -81,7 +82,7 @@ class PoniardPlotFactory:
         if exclude_dummy:
             results = results.loc[~results["Model"].str.contains("Dummy")]
         if metrics:
-            metrics = [metrics] if isinstance(metrics, str) else metrics
+            metrics = element_to_list_maybe(metrics)
             metrics = "|".join(metrics)
             results = results.loc[results["Metric"].str.contains(metrics)]
         if not show_means:
@@ -287,6 +288,7 @@ class PoniardPlotFactory:
         if y.ndim > 1:
             raise ValueError("ROC curve is only available for binary classification.")
         results = self._poniard._experiment_results
+        estimator_names = element_to_list_maybe(estimator_names)
         if not estimator_names:
             estimator_names = list(results.keys())
 
@@ -317,13 +319,7 @@ class PoniardPlotFactory:
 
         estimator_metrics = []
         for name in estimator_names:
-            try:
-                y_pred = results[name][type_of_prediction]
-            except KeyError:
-                self._poniard._predict(
-                    method=type_of_prediction, estimator_names=[name]
-                )
-                y_pred = results[name][type_of_prediction]
+            y_pred = self._get_or_compute_prediction(name, type_of_prediction)
             if type_of_prediction == "predict_proba":
                 y_pred = y_pred[:, 1]
             fpr, tpr, _ = roc_curve(y, y_pred, **kwargs)
@@ -389,12 +385,7 @@ class PoniardPlotFactory:
         if self._poniard.poniard_task == "regression":
             raise ValueError("Confusion matrix is not available for regressors.")
         y = self._poniard.y
-        results = self._poniard._experiment_results
-        try:
-            y_pred = results[estimator_name]["predict"]
-        except KeyError:
-            self._poniard._predict(method="predict", estimator_names=[estimator_name])
-            y_pred = results[estimator_name]["predict"]
+        y_pred = self._get_or_compute_prediction(estimator_name, "predict")
         matrix = confusion_matrix(y, y_pred, **kwargs)
         fig = px.imshow(
             matrix,
@@ -432,7 +423,6 @@ class PoniardPlotFactory:
         """
         y = self._poniard.y
         X = self._poniard.X
-        results = self._poniard._experiment_results
         estimator = self._poniard.pipelines[estimator_name]
         estimator.fit(X, y)
         partial_dep = partial_dependence(
@@ -465,6 +455,145 @@ class PoniardPlotFactory:
             "on_plot", figure=fig, name=f"{feature}_partial_dependence_plot"
         )
         return fig
+
+    def residuals(self, estimator_names: List[str]) -> Figure:
+        """Plot regression residuals vs predictions for a list of estimators.
+
+        Parameters
+        ----------
+        estimator_names :
+            Estimators to include.
+
+        Returns
+        -------
+        Figure
+            Residuals plot.
+
+        Raises
+        ------
+        ValueError
+            If used with a `Poniard Classifier`.
+        """
+        if self._poniard.poniard_task == "classification":
+            raise ValueError("Residuls plot is not available for classifiers.")
+        y = self._poniard.y
+        estimator_names = element_to_list_maybe(estimator_names)
+        data = []
+        for name in estimator_names:
+            y = np.array(y)
+            y_pred = self._get_or_compute_prediction(name, "predict")
+            if y.ndim == 1:
+                y = np.expand_dims(y, 1)
+            if y_pred.ndim == 1:
+                y_pred = np.expand_dims(y_pred, 1)
+            for i in range(y.shape[1]):
+                data.append(
+                    pd.DataFrame(
+                        {
+                            "Estimator": name,
+                            "Target": i,
+                            "Predicted": y_pred[:, i],
+                            "Residuals": y[:, i] - y_pred[:, i],
+                        }
+                    )
+                )
+        color = "Estimator" if len(estimator_names) > 1 else None
+        symbol = "Target" if y.shape[1] > 1 else None
+        fig = px.scatter(
+            pd.concat(data),
+            x="Predicted",
+            y="Residuals",
+            color=color,
+            symbol=symbol,
+            title="Residuals vs predictions",
+        )
+        self._poniard._run_plugin_method("on_plot", figure=fig, name="residuals_plot")
+        return fig
+        data = pd.concat(data)
+        fig = px.scatter(
+            data,
+            x="Predicted",
+            y="Residuals",
+            color="Estimator",
+            symbol="Target",
+            title="Residuals plot with cross validated predictions",
+        )
+        self._poniard._run_plugin_method(
+            "on_plot",
+            figure=fig,
+            name=f"Residuals plot with cross validated predictions",
+        )
+        return fig
+
+    def residuals_histogram(self, estimator_names: List[str]) -> Figure:
+        """Plot a histogram of regression residuals for a list of estimators.
+
+        Parameters
+        ----------
+        estimator_names :
+            Estimators to include.
+
+        Returns
+        -------
+        Figure
+            Residuals histogram plot.
+
+        Raises
+        ------
+        ValueError
+            If used with a `Poniard Classifier`.
+        """
+        if self._poniard.poniard_task == "classification":
+            raise ValueError(
+                "Residuls histogram plot is not available for classifiers."
+            )
+        y = self._poniard.y
+        estimator_names = element_to_list_maybe(estimator_names)
+        data = []
+        for name in estimator_names:
+            y = np.array(y)
+            y_pred = self._get_or_compute_prediction(name, "predict")
+            if y.ndim == 1:
+                y = np.expand_dims(y, 1)
+            if y_pred.ndim == 1:
+                y_pred = np.expand_dims(y_pred, 1)
+            for i in range(y.shape[1]):
+                data.append(
+                    pd.DataFrame(
+                        {
+                            "Estimator": name,
+                            "Target": i,
+                            "Residuals": y[:, i] - y_pred[:, i],
+                        }
+                    )
+                )
+        color = "Estimator" if len(estimator_names) > 1 else None
+        shape = "Target" if y.shape[1] > 1 else None
+        data = pd.concat(data)
+        fig = px.histogram(
+            data,
+            x="Residuals",
+            color=color,
+            pattern_shape=shape,
+            histnorm="percent",
+            barmode="overlay",
+            title="Residuals histogram plot with cross validated predictions",
+        )
+        self._poniard._run_plugin_method(
+            "on_plot",
+            figure=fig,
+            name=f"Residuals histogram plot with cross validated predictions",
+        )
+        return fig
+
+    def _get_or_compute_prediction(self, estimator_name: str, method: str):
+        """Get predictions (either predict, predict_proba or decision_function) for a given
+        estimator or compute if not available."""
+        try:
+            return self._poniard._experiment_results[estimator_name][method]
+        except KeyError:
+            self._poniard._predict(method=method, estimator_names=[estimator_name])
+            return self._poniard._experiment_results[estimator_name][method]
 
     def __repr__(self):
         return f"""{self.__class__.__name__}(template={self._template},

@@ -1,4 +1,4 @@
-from typing import Union
+from typing import Union, Sequence, Dict
 
 import pandas as pd
 import numpy as np
@@ -19,3 +19,10 @@ def get_target_info(y: Union[pd.DataFrame, pd.Series, np.ndarray], task: str):
     return dict(
         type_=type_of_target_, ndim=y.ndim, shape=y.shape, nunique=np.unique(y).size
     )
+
+
+def element_to_list_maybe(obj):
+    if (isinstance(obj, (Sequence, Dict)) and not isinstance(obj, str)) or obj is None:
+        return obj
+    else:
+        return [obj]
