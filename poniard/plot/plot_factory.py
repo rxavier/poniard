@@ -459,8 +459,6 @@ class PoniardPlotFactory:
     def residuals(self, estimator_names: List[str]) -> Figure:
         """Plot regression residuals vs predictions for a list of estimators.
 
-        If the target is multioutput, only one estimator can be passed.
-
         Parameters
         ----------
         estimator_names :
@@ -475,53 +473,49 @@ class PoniardPlotFactory:
         ------
         ValueError
             If used with a `Poniard Classifier`.
-        ValueError
-            If used with a multioutput target and more than one estimator is passed.
         """
         if self._poniard.poniard_task == "classification":
             raise ValueError("Residuls plot is not available for classifiers.")
         y = self._poniard.y
         estimator_names = element_to_list_maybe(estimator_names)
         data = []
-        if self._poniard.target_info["type_"] == "continuous-multioutput":
-            if len(estimator_names) > 1:
-                raise ValueError(
-                    "For multioutput regression, only one estimator can be plotted"
-                )
-            else:
-                y = np.array(y)
-                name = estimator_names[0]
-                y_pred = self._get_or_compute_prediction(name, "predict")
-                for i in range(y.shape[1]):
-                    data.append(
-                        pd.DataFrame(
-                            {
-                                "Target": str(i),
-                                "Predicted": y_pred[:, i],
-                                "Residuals": y[:, i] - y_pred[:, i],
-                            }
-                        )
-                    )
-                color = "Target"
-        else:
-            for name in estimator_names:
-                y_pred = self._get_or_compute_prediction(name, "predict")
+        for name in estimator_names:
+            y = np.array(y)
+            y_pred = self._get_or_compute_prediction(name, "predict")
+            if y.ndim == 1:
+                y = np.expand_dims(y, 1)
+            if y_pred.ndim == 1:
+                y_pred = np.expand_dims(y_pred, 1)
+            for i in range(y.shape[1]):
                 data.append(
                     pd.DataFrame(
                         {
                             "Estimator": name,
-                            "Predicted": y_pred,
-                            "Residuals": y - y_pred,
+                            "Target": i,
+                            "Predicted": y_pred[:, i],
+                            "Residuals": y[:, i] - y_pred[:, i],
                         }
                     )
                 )
-            color = "Estimator"
+        color = "Estimator" if len(estimator_names) > 1 else None
+        symbol = "Target" if y.shape[1] > 1 else None
+        fig = px.scatter(
+            pd.concat(data),
+            x="Predicted",
+            y="Residuals",
+            color=color,
+            symbol=symbol,
+            title="Residuals vs predictions",
+        )
+        self._poniard._run_plugin_method("on_plot", figure=fig, name="residuals_plot")
+        return fig
         data = pd.concat(data)
         fig = px.scatter(
             data,
             x="Predicted",
             y="Residuals",
-            color=color,
+            color="Estimator",
+            symbol="Target",
             title="Residuals plot with cross validated predictions",
         )
         self._poniard._run_plugin_method(
@@ -533,8 +527,6 @@ class PoniardPlotFactory:
 
     def residuals_histogram(self, estimator_names: List[str]) -> Figure:
         """Plot a histogram of regression residuals for a list of estimators.
-
-        If the target is multioutput, only one estimator can be passed.
 
         Parameters
         ----------
@@ -550,8 +542,6 @@ class PoniardPlotFactory:
         ------
         ValueError
             If used with a `Poniard Classifier`.
-        ValueError
-            If used with a multioutput target and more than one estimator is passed.
         """
         if self._poniard.poniard_task == "classification":
             raise ValueError(
@@ -560,37 +550,35 @@ class PoniardPlotFactory:
         y = self._poniard.y
         estimator_names = element_to_list_maybe(estimator_names)
         data = []
-        if self._poniard.target_info["type_"] == "continuous-multioutput":
-            if len(estimator_names) > 1:
-                raise ValueError(
-                    "For multioutput regression, only one estimator can be plotted"
-                )
-            else:
-                y = np.array(y)
-                name = estimator_names[0]
-                y_pred = self._get_or_compute_prediction(name, "predict")
-                for i in range(y.shape[1]):
-                    data.append(
-                        pd.DataFrame(
-                            {"Target": str(i), "Residuals": y[:, i] - y_pred[:, i]}
-                        )
+        for name in estimator_names:
+            y = np.array(y)
+            y_pred = self._get_or_compute_prediction(name, "predict")
+            if y.ndim == 1:
+                y = np.expand_dims(y, 1)
+            if y_pred.ndim == 1:
+                y_pred = np.expand_dims(y_pred, 1)
+            for i in range(y.shape[1]):
+                data.append(
+                    pd.DataFrame(
+                        {
+                            "Estimator": name,
+                            "Target": i,
+                            "Residuals": y[:, i] - y_pred[:, i],
+                        }
                     )
-                color = "Target"
-        else:
-            for name in estimator_names:
-                y_pred = self._get_or_compute_prediction(name, "predict")
-                data.append(pd.DataFrame({"Estimator": name, "Residuals": y - y_pred}))
-            color = "Estimator"
+                )
+        color = "Estimator" if len(estimator_names) > 1 else None
+        shape = "Target" if y.shape[1] > 1 else None
         data = pd.concat(data)
         fig = px.histogram(
             data,
             x="Residuals",
             color=color,
+            pattern_shape=shape,
             histnorm="percent",
             barmode="overlay",
             title="Residuals histogram plot with cross validated predictions",
         )
-        fig.update_traces(opacity=0.75)
         self._poniard._run_plugin_method(
             "on_plot",
             figure=fig,
