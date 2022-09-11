@@ -45,7 +45,6 @@ from sklearn.model_selection import (
 )
 from sklearn.impute import SimpleImputer
 from sklearn.exceptions import UndefinedMetricWarning
-from fastcore.basics import patch
 
 from ..preprocessing import DatetimeEncoder, TargetEncoder
 from ..utils.stats import cramers_v
