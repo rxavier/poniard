@@ -12,3 +12,5 @@ nbsphinx
 ipykernel
 black
 pre-commit
+nbdev
+ipywidgets
