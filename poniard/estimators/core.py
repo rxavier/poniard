@@ -53,7 +53,7 @@ from ..utils.estimate import get_target_info, element_to_list_maybe
 from ..plot import PoniardPlotFactory
 
 # %% auto 0
-__all__ = ["PoniardBaseEstimator"]
+__all__ = ['PoniardBaseEstimator']
 
 # %% ../../nbs/core.ipynb 5
 class PoniardBaseEstimator(ABC):
@@ -209,7 +209,7 @@ class PoniardBaseEstimator(ABC):
 
         Converts inputs to arrays if necessary, sets `metrics`,
         `preprocessor`, `cv` and `pipelines`.
-
+        
         After running `setup`, both `X` and `y` will be held as attributes.
 
 
