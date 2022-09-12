@@ -380,14 +380,14 @@ e.exports=function(t){return null!=t&&(n(t)||function(t){return"function"==typeo
 <h2 class="anchored" data-anchor-id="estimators"><code>estimators</code></h2>
 <p>Estimators can be passed as a dict of <code>estimator_name: estimator_instance</code>, as a sequence of <code>estimator_instance</code> or as a single estimator. When not specifying names, they will be obtained directly from the class.</p>
 <p>Using a dictionary allows passing multiple instances of the same estimator with different parameters.</p>
-<div class="cell" data-execution_count="2">
+<div class="cell">
 <div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.datasets <span class="im">import</span> make_classification</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.linear_model <span class="im">import</span> LogisticRegression</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.discriminant_analysis <span class="im">import</span> LinearDiscriminantAnalysis</span>
 <span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> poniard <span class="im">import</span> PoniardClassifier</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<div class="cell" data-execution_count="3">
+<div class="cell">
 <div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>X, y <span class="op">=</span> make_classification(n_classes<span class="op">=</span><span class="dv">3</span>, n_features<span class="op">=</span><span class="dv">5</span>, n_informative<span class="op">=</span><span class="dv">3</span>)</span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>pnd <span class="op">=</span> PoniardClassifier(estimators<span class="op">=</span>{<span class="st">"lr"</span>: LogisticRegression(max_iter<span class="op">=</span><span class="dv">5000</span>),</span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>                                    <span class="st">"lr_no_penalty"</span>: LogisticRegression(max_iter<span class="op">=</span><span class="dv">5000</span>, penalty<span class="op">=</span><span class="st">"none"</span>),</span>
@@ -471,7 +471,7 @@ Inferred feature types
 <div class="cell-output cell-output-stderr">
 <pre><code>Completed: 100%|██████████████████████████████████| 4/4 [00:00&lt;00:00, 39.74it/s]</code></pre>
 </div>
-<div class="cell-output cell-output-display" data-execution_count="3">
+<div class="cell-output cell-output-display">
 <pre><code>PoniardClassifier(estimators={'lr': LogisticRegression(max_iter=5000, random_state=0), 'lr_no_penalty': LogisticRegression(max_iter=5000, penalty='none', random_state=0), 'lda': LinearDiscriminantAnalysis()}, metrics=['roc_auc_ovr', 'accuracy', 'precision_macro', 'recall_macro', 'f1_macro'],
     preprocess=True, scaler=standard, numeric_imputer=simple,
     custom_preprocessor=None, numeric_threshold=10,
@@ -483,13 +483,13 @@ Inferred feature types
 </div>
 <p>Since we are in scikit-learn-land, most of the stuff you expect to work still works. For example, multilabel classification.</p>
 <p>Here we had to use a dictionary because <code>estimator.__class__.__name__</code>, which is used for assigning a name to each estimator when a list is passed, would be the same for both <code>OneVsRestClassifier</code> and they would be overwritten.</p>
-<div class="cell" data-execution_count="4">
+<div class="cell">
 <div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.datasets <span class="im">import</span> make_multilabel_classification</span>
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.multiclass <span class="im">import</span> OneVsRestClassifier</span>
 <span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.ensemble <span class="im">import</span> RandomForestClassifier</span>
 <span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.linear_model <span class="im">import</span> LogisticRegression</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<div class="cell" data-execution_count="5">
+<div class="cell">
 <div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>X, y <span class="op">=</span> make_multilabel_classification(n_samples<span class="op">=</span><span class="dv">1000</span>, n_features<span class="op">=</span><span class="dv">6</span>)</span>
 <span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>pnd <span class="op">=</span> PoniardClassifier(estimators<span class="op">=</span>{<span class="st">"rf"</span>: OneVsRestClassifier(RandomForestClassifier()),</span>
 <span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>                                    <span class="st">"lr"</span>: OneVsRestClassifier(LogisticRegression(max_iter<span class="op">=</span><span class="dv">5000</span>))})</span>
@@ -583,7 +583,7 @@ Inferred feature types
 <div class="cell-output cell-output-stderr">
 <pre><code>Completed: 100%|██████████████████████████████████| 3/3 [00:02&lt;00:00,  1.14it/s]</code></pre>
 </div>
-<div class="cell-output cell-output-display" data-execution_count="5">
+<div class="cell-output cell-output-display">
 <pre><code>PoniardClassifier(estimators={'rf': OneVsRestClassifier(estimator=RandomForestClassifier()), 'lr': OneVsRestClassifier(estimator=LogisticRegression(max_iter=5000))}, metrics=['roc_auc', 'accuracy', 'precision_macro', 'recall_macro', 'f1_macro'],
     preprocess=True, scaler=standard, numeric_imputer=simple,
     custom_preprocessor=None, numeric_threshold=100,
@@ -593,9 +593,9 @@ Inferred feature types
             </code></pre>
 </div>
 </div>
-<div class="cell" data-execution_count="6">
+<div class="cell">
 <div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>pnd.get_results()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-display" data-execution_count="6">
+<div class="cell-output cell-output-display">
 
 <div>
 
@@ -652,7 +652,7 @@ Inferred feature types
 <section id="metrics" class="level2">
 <h2 class="anchored" data-anchor-id="metrics"><code>metrics</code></h2>
 <p>Metrics can be passed as a list of strings such as <code>"accuracy"</code> or <code>"neg_mean_squared_error"</code>, following the familiar scikit-learn nomenclature, or as a dict of <code>str: Callable</code>. For convenience, it can also be a single string.</p>
-<p>However, <a href="https://scikit-learn.org/stable/modules/model_evaluation.html#using-multiple-metric-evaluation">in a departure from scikit-learn</a>, <code>metrics</code> will fail if a <code>Callable</code> is passed directly. This restriction is in place to facilitate naming columns in the <code>poniard.estimators.core.PoniardBaseEstimator.get_results</code> method.</p>
+<p>However, <a href="https://scikit-learn.org/stable/modules/model_evaluation.html#using-multiple-metric-evaluation">in a departure from scikit-learn</a>, <code>metrics</code> will fail if a <code>Callable</code> is passed directly. This restriction is in place to facilitate naming columns in the <a href="https://rxavier.github.io/poniard/core.html#get_results"><code>poniard.estimators.core.PoniardBaseEstimator.get_results</code></a> method.</p>
 <div class="callout-caution callout callout-style-default callout-captioned">
 <div class="callout-header d-flex align-content-center">
 <div class="callout-icon-container">
@@ -666,12 +666,12 @@ Inferred feature types
 <p>In scikit-learn parlance, a metric is a measure of the prediction error of a model. Scores, which is used in sklearn model evaluation objects (like <code>GridSearchCV</code> or <code>cross_validate</code>), reflects the same, but <a href="https://scikit-learn.org/stable/modules/model_evaluation.html#common-cases-predefined-values">with the restriction that higher values are better than lower values</a>. Poniard uses the parameter name <code>metrics</code> for now, but will eventually migrate to <code>scoring</code> as that reflects more accurately its meaning.</p>
 </div>
 </div>
-<div class="cell" data-execution_count="7">
+<div class="cell">
 <div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.datasets <span class="im">import</span> make_regression</span>
 <span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.linear_model <span class="im">import</span> LinearRegression</span>
 <span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> poniard <span class="im">import</span> PoniardRegressor</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<div class="cell" data-execution_count="8">
+<div class="cell">
 <div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>X, y <span class="op">=</span> make_regression(n_samples<span class="op">=</span><span class="dv">500</span>, n_features<span class="op">=</span><span class="dv">10</span>, n_informative<span class="op">=</span><span class="dv">5</span>)</span>
 <span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>pnd <span class="op">=</span> PoniardRegressor(metrics<span class="op">=</span>[<span class="st">"explained_variance"</span>, <span class="st">"neg_median_absolute_error"</span>],</span>
 <span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>                       estimators<span class="op">=</span>[LinearRegression()])</span>
@@ -790,7 +790,7 @@ Inferred feature types
 <div class="cell-output cell-output-stderr">
 <pre><code>Completed: 100%|█████████████████████████████████| 2/2 [00:00&lt;00:00, 100.18it/s]</code></pre>
 </div>
-<div class="cell-output cell-output-display" data-execution_count="8">
+<div class="cell-output cell-output-display">
 
 <div>
 
@@ -830,11 +830,11 @@ Inferred feature types
 </div>
 </div>
 </div>
-<div class="cell" data-execution_count="9">
+<div class="cell">
 <div class="sourceCode cell-code" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.metrics <span class="im">import</span> r2_score, make_scorer</span>
 <span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.linear_model <span class="im">import</span> Ridge</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<div class="cell" data-execution_count="10">
+<div class="cell">
 <div class="sourceCode cell-code" id="cb21"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> scaled_r2(y_true, y_pred):</span>
 <span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="bu">round</span>(r2_score(y_true, y_pred) <span class="op">*</span> <span class="dv">100</span>, <span class="dv">1</span>)</span>
 <span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -954,7 +954,7 @@ Inferred feature types
 <div class="cell-output cell-output-stderr">
 <pre><code>Completed: 100%|█████████████████████████████████| 3/3 [00:00&lt;00:00, 104.79it/s]</code></pre>
 </div>
-<div class="cell-output cell-output-display" data-execution_count="10">
+<div class="cell-output cell-output-display">
 
 <div>
 
@@ -996,7 +996,7 @@ Inferred feature types
 </div>
 </div>
 <p>The order in which scorers are passed matters; to be precise, the first scorer will be used in some methods if no other metric is defined.</p>
-<div class="cell" data-execution_count="11">
+<div class="cell">
 <div class="sourceCode cell-code" id="cb25"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(pnd.metrics)</span>
 <span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a>fig <span class="op">=</span> pnd.plot.permutation_importance(<span class="st">"Ridge"</span>)</span>
 <span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a>fig.show(<span class="st">"notebook"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
@@ -1037,11 +1037,11 @@ if (outputEl) {{
 <h2 class="anchored" data-anchor-id="cv"><code>cv</code></h2>
 <p>Cross validation can be anything that scikit-learn accepts. By default, classification tasks will be paired with a <code>StratifiedKFold</code> if the target is binary, and <code>KFold</code> otherwise. Regression tasks use <code>KFold</code> by default.</p>
 <p><code>cv=int</code> or <code>cv=None</code> are internally converted to one of the above classes so that Poniard’s <code>random_state</code> parameter can be passed on.</p>
-<div class="cell" data-execution_count="12">
+<div class="cell">
 <div class="sourceCode cell-code" id="cb27"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> IPython.utils <span class="im">import</span> io</span>
 <span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.model_selection <span class="im">import</span> RepeatedKFold</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<div class="cell" data-execution_count="13">
+<div class="cell">
 <div class="sourceCode cell-code" id="cb28"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> io.capture_output() <span class="im">as</span> c:</span>
 <span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a>    pnd_5 <span class="op">=</span> PoniardRegressor(cv<span class="op">=</span><span class="dv">4</span>).setup(X, y)</span>
 <span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a>    pnd_none <span class="op">=</span> PoniardRegressor(cv<span class="op">=</span><span class="va">None</span>).setup(X, y)</span>

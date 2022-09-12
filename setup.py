@@ -43,6 +43,7 @@ setup(
         "machine learning",
         "scikit-learn",
     ],
+    entry_points={"nbdev": ["poniard=poniard._modidx:d"]},
     install_requires=[
         "scikit-learn>=1.0.2; python_version < '3.8'",
         "scikit-learn>=1.1.0; python_version >= '3.8'",

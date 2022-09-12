@@ -1,95 +1,43 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://rxavier.github.io/poniard/estimators.core_nb.html</loc>
-    <lastmod>2022-09-10T12:06:58.476Z</lastmod>
-  </url>
-  <url>
-    <loc>https://rxavier.github.io/poniard/index.html</loc>
-    <lastmod>2022-09-11T23:12:57.527Z</lastmod>
-  </url>
-  <url>
-    <loc>https://rxavier.github.io/poniard/01_preprocessing.html</loc>
-    <lastmod>2022-09-08T03:25:10.414Z</lastmod>
-  </url>
-  <url>
-    <loc>https://rxavier.github.io/poniard/nutshell.html</loc>
-    <lastmod>2022-09-08T03:25:03.750Z</lastmod>
-  </url>
-  <url>
-    <loc>https://rxavier.github.io/poniard/00_nutshell.html</loc>
-    <lastmod>2022-09-11T11:54:51.435Z</lastmod>
-  </url>
-  <url>
-    <loc>https://rxavier.github.io/poniard/02_preprocessing.html</loc>
-    <lastmod>2022-09-11T11:20:27.465Z</lastmod>
-  </url>
-  <url>
-    <loc>https://rxavier.github.io/poniard/estimators.core.html</loc>
-    <lastmod>2022-09-11T23:12:54.663Z</lastmod>
-  </url>
-  <url>
-    <loc>https://rxavier.github.io/poniard/01_main_parameters.html</loc>
-    <lastmod>2022-09-11T03:41:27.630Z</lastmod>
-  </url>
-  <url>
     <loc>https://rxavier.github.io/poniard/guide/02_preprocessing.html</loc>
-    <lastmod>2022-09-11T19:47:23.377Z</lastmod>
+    <lastmod>2022-09-12T00:38:30.001Z</lastmod>
   </url>
   <url>
     <loc>https://rxavier.github.io/poniard/guide/01_main_parameters.html</loc>
-    <lastmod>2022-09-11T23:13:07.997Z</lastmod>
+    <lastmod>2022-09-12T00:30:40.276Z</lastmod>
   </url>
   <url>
     <loc>https://rxavier.github.io/poniard/guide/00_nutshell.html</loc>
-    <lastmod>2022-09-11T23:00:21.845Z</lastmod>
+    <lastmod>2022-09-12T00:30:41.584Z</lastmod>
   </url>
   <url>
     <loc>https://rxavier.github.io/poniard/guide/03_plotting.html</loc>
-    <lastmod>2022-09-11T19:35:46.804Z</lastmod>
-  </url>
-  <url>
-    <loc>https://rxavier.github.io/poniard/reference/estimators.core.html</loc>
-    <lastmod>2022-09-11T19:47:49.038Z</lastmod>
-  </url>
-  <url>
-    <loc>https://rxavier.github.io/poniard/reference/regressor.html</loc>
-    <lastmod>2022-09-11T12:29:35.856Z</lastmod>
-  </url>
-  <url>
-    <loc>https://rxavier.github.io/poniard/reference/classifier.html</loc>
-    <lastmod>2022-09-11T19:32:59.395Z</lastmod>
-  </url>
-  <url>
-    <loc>https://rxavier.github.io/poniard/reference/plugins.html</loc>
-    <lastmod>2022-09-11T12:29:37.133Z</lastmod>
-  </url>
-  <url>
-    <loc>https://rxavier.github.io/poniard/reference/plotting.html</loc>
-    <lastmod>2022-09-11T12:29:37.593Z</lastmod>
-  </url>
-  <url>
-    <loc>https://rxavier.github.io/poniard/reference/core.html</loc>
-    <lastmod>2022-09-11T22:48:35.925Z</lastmod>
+    <lastmod>2022-09-12T00:30:42.125Z</lastmod>
   </url>
   <url>
     <loc>https://rxavier.github.io/poniard/regressor.html</loc>
-    <lastmod>2022-09-11T23:12:53.663Z</lastmod>
+    <lastmod>2022-09-12T00:30:42.615Z</lastmod>
+  </url>
+  <url>
+    <loc>https://rxavier.github.io/poniard/estimators.core.html</loc>
+    <lastmod>2022-09-12T00:30:43.381Z</lastmod>
   </url>
   <url>
     <loc>https://rxavier.github.io/poniard/classifier.html</loc>
-    <lastmod>2022-09-11T23:12:55.497Z</lastmod>
+    <lastmod>2022-09-12T00:30:43.855Z</lastmod>
   </url>
   <url>
     <loc>https://rxavier.github.io/poniard/plugins.html</loc>
-    <lastmod>2022-09-11T23:12:56.133Z</lastmod>
+    <lastmod>2022-09-12T00:30:44.327Z</lastmod>
   </url>
   <url>
     <loc>https://rxavier.github.io/poniard/plotting.html</loc>
-    <lastmod>2022-09-11T23:12:56.680Z</lastmod>
+    <lastmod>2022-09-12T00:30:44.790Z</lastmod>
   </url>
   <url>
-    <loc>https://rxavier.github.io/poniard/core.html</loc>
-    <lastmod>2022-09-11T23:04:18.615Z</lastmod>
+    <loc>https://rxavier.github.io/poniard/index.html</loc>
+    <lastmod>2022-09-12T00:30:45.460Z</lastmod>
   </url>
 </urlset>

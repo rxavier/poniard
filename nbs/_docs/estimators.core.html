@@ -308,6 +308,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <section id="introduction" class="level2">
 <h2 class="anchored" data-anchor-id="introduction">Introduction</h2>
 <hr>
+<p><a href="https://github.com/rxavier/poniard/blob/master/poniard/estimators/core.py#L59" target="_blank" style="float:right; font-size:smaller">source</a></p>
 <section id="poniardbaseestimator" class="level3">
 <h3 class="anchored" data-anchor-id="poniardbaseestimator">PoniardBaseEstimator</h3>
 <blockquote class="blockquote">
@@ -466,14 +467,14 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 </ol>
 <p>These give a good amount of flexibility while providing sane defaults, so that after initialization only <code>setup</code> and <code>fit</code> have to be called in order to train multiple models.</p>
 <p><code>estimators</code> takes a scikit-learn-compatible estimator, array of estimators or dict of <em>name: estimators</em>.</p>
-<div class="cell" data-execution_count="5">
+<div class="cell">
 <div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> poniard <span class="im">import</span> PoniardRegressor</span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.linear_model <span class="im">import</span> LinearRegression, Ridge</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<div class="cell" data-execution_count="6">
+<div class="cell">
 <div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>estimators <span class="op">=</span> [LinearRegression(), Ridge()]</span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>PoniardRegressor(estimators)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-display" data-execution_count="6">
+<div class="cell-output cell-output-display">
 <pre><code>PoniardRegressor(estimators=[LinearRegression(), Ridge()], metrics=None,
     preprocess=True, scaler=standard, numeric_imputer=simple,
     custom_preprocessor=None, numeric_threshold=0.1,
@@ -489,6 +490,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <p><code>setup</code> takes features and target as parameters, while <code>fit</code> does not accept any. This runs contrary to the established convention defined by scikit-learn where there is no setting up to do and <code>fit</code> takes the data as params.</p>
 <p>This is because Poniard does not only fit the models, but also infer features types and create the <code>preprocesor</code> based on these types. While this could all be stuffed inside <code>fit</code> (that was the case initially), having it separated allows the user to check whether Poniard’s assumptions are correct and adjust if needed before running <code>fit</code>, which can take long depending on how many models were passed to <code>estimators</code>, the cross validation strategy and the size of the dataset.</p>
 <hr>
+<p><a href="https://github.com/rxavier/poniard/blob/master/poniard/estimators/core.py#L203" target="_blank" style="float:right; font-size:smaller">source</a></p>
 <section id="poniardbaseestimator.setup" class="level3">
 <h3 class="anchored" data-anchor-id="poniardbaseestimator.setup">PoniardBaseEstimator.setup</h3>
 <blockquote class="blockquote">
@@ -529,11 +531,11 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 </section>
 <section id="an-example" class="level3">
 <h3 class="anchored" data-anchor-id="an-example">An example</h3>
-<p>Let’s load some random data and setup a <code>PoniardClassifier</code>, which inherits from <code>PoniardBaseEstimator</code>.</p>
-<div class="cell" data-execution_count="9">
+<p>Let’s load some random data and setup a <code>PoniardClassifier</code>, which inherits from <a href="https://rxavier.github.io/poniard/core.html#poniardbaseestimator"><code>PoniardBaseEstimator</code></a>.</p>
+<div class="cell">
 <div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> poniard <span class="im">import</span> PoniardClassifier</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<div class="cell" data-execution_count="10">
+<div class="cell">
 <div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>random.seed(<span class="dv">0</span>)</span>
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>rng <span class="op">=</span> np.random.default_rng(<span class="dv">0</span>)</span>
 <span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -543,7 +545,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>                     <span class="st">"rating"</span>: random.choices(<span class="bu">range</span>(<span class="dv">50</span>), k<span class="op">=</span><span class="dv">500</span>),</span>
 <span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>                     <span class="st">"target"</span>: random.choices([<span class="dv">0</span>, <span class="dv">1</span>], k<span class="op">=</span><span class="dv">500</span>)})</span>
 <span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a>data.head()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-display" data-execution_count="10">
+<div class="cell-output cell-output-display">
 
 <div>
 
@@ -605,7 +607,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 </div>
 </div>
 <p><code>setup</code> will conveniently output information about the data so it can be reviewed.</p>
-<div class="cell" data-execution_count="11">
+<div class="cell">
 <div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>X, y <span class="op">=</span> data.drop(<span class="st">"target"</span>, axis<span class="op">=</span><span class="dv">1</span>), data[<span class="st">"target"</span>]</span>
 <span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>pnd <span class="op">=</span> PoniardClassifier()</span>
 <span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>pnd.setup(X, y)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
@@ -655,7 +657,7 @@ Inferred feature types
 <pre><code>
 </code></pre>
 </div>
-<div class="cell-output cell-output-display" data-execution_count="11">
+<div class="cell-output cell-output-display">
 <pre><code>PoniardClassifier(estimators=None, metrics=['roc_auc', 'accuracy', 'precision', 'recall', 'f1'],
     preprocess=True, scaler=standard, numeric_imputer=simple,
     custom_preprocessor=None, numeric_threshold=50,
@@ -670,10 +672,10 @@ Inferred feature types
 <h3 class="anchored" data-anchor-id="attributes-available-after-setup">Attributes available after <code>setup</code></h3>
 <p>After passing data to Poniard estimators through <code>setup</code>, multiple attributes become available.</p>
 <p><code>inferred_types</code> is a <code>DataFrame</code> that sorts features in 4 categories (numeric, categorical_high, categorical_low and datetime) using some basic heuristics.</p>
-<p>These depend on the feature <code>dtypes</code>, and <code>numeric_threshold</code> and <code>cardinality_threshold</code> which are set during <code>PoniardBaseEstimator</code>’s construction.</p>
-<div class="cell" data-execution_count="12">
+<p>These depend on the feature <code>dtypes</code>, and <code>numeric_threshold</code> and <code>cardinality_threshold</code> which are set during <a href="https://rxavier.github.io/poniard/core.html#poniardbaseestimator"><code>PoniardBaseEstimator</code></a>’s construction.</p>
+<div class="cell">
 <div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>pnd.inferred_types</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-display" data-execution_count="12">
+<div class="cell-output cell-output-display">
 
 <div>
 
@@ -702,9 +704,9 @@ Inferred feature types
 </div>
 <p>The <code>preprocessor</code> in turn depends on <code>inferred_types</code>, and the <code>scaler</code>, <code>numeric_imputer</code> and <code>high_cardinality_encoder</code> parameters passed to the Poniard estimator init.</p>
 <p>As will be seen further on, this preprocessor can be modified significantly to fit multiple use cases and datasets.</p>
-<div class="cell" data-execution_count="13">
+<div class="cell">
 <div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>pnd.preprocessor</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-display" data-execution_count="13">
+<div class="cell-output cell-output-display">
 <style>#sk-container-id-1 {color: black;background-color: white;}#sk-container-id-1 pre{padding: 0;}#sk-container-id-1 div.sk-toggleable {background-color: white;}#sk-container-id-1 label.sk-toggleable__label {cursor: pointer;display: block;width: 100%;margin-bottom: 0;padding: 0.3em;box-sizing: border-box;text-align: center;}#sk-container-id-1 label.sk-toggleable__label-arrow:before {content: "▸";float: left;margin-right: 0.25em;color: #696969;}#sk-container-id-1 label.sk-toggleable__label-arrow:hover:before {color: black;}#sk-container-id-1 div.sk-estimator:hover label.sk-toggleable__label-arrow:before {color: black;}#sk-container-id-1 div.sk-toggleable__content {max-height: 0;max-width: 0;overflow: hidden;text-align: left;background-color: #f0f8ff;}#sk-container-id-1 div.sk-toggleable__content pre {margin: 0.2em;color: black;border-radius: 0.25em;background-color: #f0f8ff;}#sk-container-id-1 input.sk-toggleable__control:checked~div.sk-toggleable__content {max-height: 200px;max-width: 100%;overflow: auto;}#sk-container-id-1 input.sk-toggleable__control:checked~label.sk-toggleable__label-arrow:before {content: "▾";}#sk-container-id-1 div.sk-estimator input.sk-toggleable__control:checked~label.sk-toggleable__label {background-color: #d4ebff;}#sk-container-id-1 div.sk-label input.sk-toggleable__control:checked~label.sk-toggleable__label {background-color: #d4ebff;}#sk-container-id-1 input.sk-hidden--visually {border: 0;clip: rect(1px 1px 1px 1px);clip: rect(1px, 1px, 1px, 1px);height: 1px;margin: -1px;overflow: hidden;padding: 0;position: absolute;width: 1px;}#sk-container-id-1 div.sk-estimator {font-family: monospace;background-color: #f0f8ff;border: 1px dotted black;border-radius: 0.25em;box-sizing: border-box;margin-bottom: 0.5em;}#sk-container-id-1 div.sk-estimator:hover {background-color: #d4ebff;}#sk-container-id-1 div.sk-parallel-item::after {content: "";width: 100%;border-bottom: 1px solid gray;flex-grow: 1;}#sk-container-id-1 div.sk-label:hover label.sk-toggleable__label {background-color: #d4ebff;}#sk-container-id-1 div.sk-serial::before {content: "";position: absolute;border-left: 1px solid gray;box-sizing: border-box;top: 0;bottom: 0;left: 50%;z-index: 0;}#sk-container-id-1 div.sk-serial {display: flex;flex-direction: column;align-items: center;background-color: white;padding-right: 0.2em;padding-left: 0.2em;position: relative;}#sk-container-id-1 div.sk-item {position: relative;z-index: 1;}#sk-container-id-1 div.sk-parallel {display: flex;align-items: stretch;justify-content: center;background-color: white;position: relative;}#sk-container-id-1 div.sk-item::before, #sk-container-id-1 div.sk-parallel-item::before {content: "";position: absolute;border-left: 1px solid gray;box-sizing: border-box;top: 0;bottom: 0;left: 50%;z-index: -1;}#sk-container-id-1 div.sk-parallel-item {display: flex;flex-direction: column;z-index: 1;position: relative;background-color: white;}#sk-container-id-1 div.sk-parallel-item:first-child::after {align-self: flex-end;width: 50%;}#sk-container-id-1 div.sk-parallel-item:last-child::after {align-self: flex-start;width: 50%;}#sk-container-id-1 div.sk-parallel-item:only-child::after {width: 0;}#sk-container-id-1 div.sk-dashed-wrapped {border: 1px dashed gray;margin: 0 0.4em 0.5em 0.4em;box-sizing: border-box;padding-bottom: 0.4em;background-color: white;}#sk-container-id-1 div.sk-label label {font-family: monospace;font-weight: bold;display: inline-block;line-height: 1.2em;}#sk-container-id-1 div.sk-label-container {text-align: center;}#sk-container-id-1 div.sk-container {/* jupyter's `normalize.less` sets `[hidden] { display: none; }` but bootstrap.min.css set `[hidden] { display: none !important; }` so we also need the `!important` here to be able to override the default hidden behavior on the sphinx rendered scikit-learn.org. See: https://github.com/scikit-learn/scikit-learn/issues/21755 */display: inline-block !important;position: relative;}#sk-container-id-1 div.sk-text-repr-fallback {display: none;}</style><div id="sk-container-id-1" class="sk-top-container"><div class="sk-text-repr-fallback"><pre>Pipeline(steps=[('type_preprocessor',
                  ColumnTransformer(transformers=[('numeric_preprocessor',
                                                   Pipeline(steps=[('numeric_imputer',
@@ -783,30 +785,30 @@ Inferred feature types
 </div>
 </div>
 <p>Each estimator has a set of default <code>metrics</code>, but others can be passed during construction.</p>
-<div class="cell" data-execution_count="14">
+<div class="cell">
 <div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>pnd.metrics</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-display" data-execution_count="14">
+<div class="cell-output cell-output-display">
 <pre><code>['roc_auc', 'accuracy', 'precision', 'recall', 'f1']</code></pre>
 </div>
 </div>
 <p>Likewise, <code>cv</code> has sane defaults but can be modified accordingly.</p>
-<div class="cell" data-execution_count="15">
+<div class="cell">
 <div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>pnd.cv</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-display" data-execution_count="15">
+<div class="cell-output cell-output-display">
 <pre><code>StratifiedKFold(n_splits=5, random_state=0, shuffle=True)</code></pre>
 </div>
 </div>
 <p><code>target_info</code> lists information about <code>y</code>.</p>
-<div class="cell" data-execution_count="16">
+<div class="cell">
 <div class="sourceCode cell-code" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>pnd.target_info</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-display" data-execution_count="16">
+<div class="cell-output cell-output-display">
 <pre><code>{'type_': 'binary', 'ndim': 1, 'shape': (500,), 'nunique': 2}</code></pre>
 </div>
 </div>
 <p><code>pipelines</code> is a dict containing each pipeline which will be trained during <code>fit</code>. Each Poniard estimator has a limited set of default estimators.</p>
-<div class="cell" data-execution_count="17">
+<div class="cell">
 <div class="sourceCode cell-code" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>pnd.pipelines[<span class="st">"SVC"</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-display" data-execution_count="17">
+<div class="cell-output cell-output-display">
 <style>#sk-container-id-2 {color: black;background-color: white;}#sk-container-id-2 pre{padding: 0;}#sk-container-id-2 div.sk-toggleable {background-color: white;}#sk-container-id-2 label.sk-toggleable__label {cursor: pointer;display: block;width: 100%;margin-bottom: 0;padding: 0.3em;box-sizing: border-box;text-align: center;}#sk-container-id-2 label.sk-toggleable__label-arrow:before {content: "▸";float: left;margin-right: 0.25em;color: #696969;}#sk-container-id-2 label.sk-toggleable__label-arrow:hover:before {color: black;}#sk-container-id-2 div.sk-estimator:hover label.sk-toggleable__label-arrow:before {color: black;}#sk-container-id-2 div.sk-toggleable__content {max-height: 0;max-width: 0;overflow: hidden;text-align: left;background-color: #f0f8ff;}#sk-container-id-2 div.sk-toggleable__content pre {margin: 0.2em;color: black;border-radius: 0.25em;background-color: #f0f8ff;}#sk-container-id-2 input.sk-toggleable__control:checked~div.sk-toggleable__content {max-height: 200px;max-width: 100%;overflow: auto;}#sk-container-id-2 input.sk-toggleable__control:checked~label.sk-toggleable__label-arrow:before {content: "▾";}#sk-container-id-2 div.sk-estimator input.sk-toggleable__control:checked~label.sk-toggleable__label {background-color: #d4ebff;}#sk-container-id-2 div.sk-label input.sk-toggleable__control:checked~label.sk-toggleable__label {background-color: #d4ebff;}#sk-container-id-2 input.sk-hidden--visually {border: 0;clip: rect(1px 1px 1px 1px);clip: rect(1px, 1px, 1px, 1px);height: 1px;margin: -1px;overflow: hidden;padding: 0;position: absolute;width: 1px;}#sk-container-id-2 div.sk-estimator {font-family: monospace;background-color: #f0f8ff;border: 1px dotted black;border-radius: 0.25em;box-sizing: border-box;margin-bottom: 0.5em;}#sk-container-id-2 div.sk-estimator:hover {background-color: #d4ebff;}#sk-container-id-2 div.sk-parallel-item::after {content: "";width: 100%;border-bottom: 1px solid gray;flex-grow: 1;}#sk-container-id-2 div.sk-label:hover label.sk-toggleable__label {background-color: #d4ebff;}#sk-container-id-2 div.sk-serial::before {content: "";position: absolute;border-left: 1px solid gray;box-sizing: border-box;top: 0;bottom: 0;left: 50%;z-index: 0;}#sk-container-id-2 div.sk-serial {display: flex;flex-direction: column;align-items: center;background-color: white;padding-right: 0.2em;padding-left: 0.2em;position: relative;}#sk-container-id-2 div.sk-item {position: relative;z-index: 1;}#sk-container-id-2 div.sk-parallel {display: flex;align-items: stretch;justify-content: center;background-color: white;position: relative;}#sk-container-id-2 div.sk-item::before, #sk-container-id-2 div.sk-parallel-item::before {content: "";position: absolute;border-left: 1px solid gray;box-sizing: border-box;top: 0;bottom: 0;left: 50%;z-index: -1;}#sk-container-id-2 div.sk-parallel-item {display: flex;flex-direction: column;z-index: 1;position: relative;background-color: white;}#sk-container-id-2 div.sk-parallel-item:first-child::after {align-self: flex-end;width: 50%;}#sk-container-id-2 div.sk-parallel-item:last-child::after {align-self: flex-start;width: 50%;}#sk-container-id-2 div.sk-parallel-item:only-child::after {width: 0;}#sk-container-id-2 div.sk-dashed-wrapped {border: 1px dashed gray;margin: 0 0.4em 0.5em 0.4em;box-sizing: border-box;padding-bottom: 0.4em;background-color: white;}#sk-container-id-2 div.sk-label label {font-family: monospace;font-weight: bold;display: inline-block;line-height: 1.2em;}#sk-container-id-2 div.sk-label-container {text-align: center;}#sk-container-id-2 div.sk-container {/* jupyter's `normalize.less` sets `[hidden] { display: none; }` but bootstrap.min.css set `[hidden] { display: none !important; }` so we also need the `!important` here to be able to override the default hidden behavior on the sphinx rendered scikit-learn.org. See: https://github.com/scikit-learn/scikit-learn/issues/21755 */display: inline-block !important;position: relative;}#sk-container-id-2 div.sk-text-repr-fallback {display: none;}</style><div id="sk-container-id-2" class="sk-top-container"><div class="sk-text-repr-fallback"><pre>Pipeline(steps=[('preprocessor',
                  Pipeline(steps=[('type_preprocessor',
                                   ColumnTransformer(transformers=[('numeric_preprocessor',
@@ -916,12 +918,12 @@ Inferred feature types
 <section id="fit-and-get_results" class="level2">
 <h2 class="anchored" data-anchor-id="fit-and-get_results"><code>fit</code> and <code>get_results</code></h2>
 <p>Because features and target are passed to the Poniard estimator, <code>fit</code> does not take any parameters. Its main purpose is to run sklearn’s <code>cross_validate</code> function on each <code>pipeline</code>, scoring each <code>metrics</code> with the <code>cv</code> strategy, and store the results.</p>
-<div class="cell" data-execution_count="18">
+<div class="cell">
 <div class="sourceCode cell-code" id="cb21"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>pnd.fit()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stderr">
 <pre><code>Completed: 100%|██████████| 9/9 [00:15&lt;00:00,  1.69s/it]                     </code></pre>
 </div>
-<div class="cell-output cell-output-display" data-execution_count="18">
+<div class="cell-output cell-output-display">
 <pre><code>PoniardClassifier(estimators=None, metrics=['roc_auc', 'accuracy', 'precision', 'recall', 'f1'],
     preprocess=True, scaler=standard, numeric_imputer=simple,
     custom_preprocessor=None, numeric_threshold=50,
@@ -933,6 +935,7 @@ Inferred feature types
 </div>
 <p>After fitting <code>pipelines</code>, cross validated results can be accessed by running <code>get_results</code></p>
 <hr>
+<p><a href="https://github.com/rxavier/poniard/blob/master/poniard/estimators/core.py#L932" target="_blank" style="float:right; font-size:smaller">source</a></p>
 <section id="poniardbaseestimator.get_results" class="level3">
 <h3 class="anchored" data-anchor-id="poniardbaseestimator.get_results">PoniardBaseEstimator.get_results</h3>
 <blockquote class="blockquote">
@@ -982,9 +985,9 @@ Inferred feature types
 </tr>
 </tbody>
 </table>
-<div class="cell" data-execution_count="20">
+<div class="cell">
 <div class="sourceCode cell-code" id="cb25"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a>pnd.get_results()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-display" data-execution_count="20">
+<div class="cell-output cell-output-display">
 
 <div>
 
@@ -1097,10 +1100,10 @@ Inferred feature types
 </div>
 </div>
 </div>
-<div class="cell" data-execution_count="21">
+<div class="cell">
 <div class="sourceCode cell-code" id="cb26"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a>means, stds <span class="op">=</span> pnd.get_results(std<span class="op">=</span><span class="va">True</span>, return_train_scores<span class="op">=</span><span class="va">True</span>)</span>
 <span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a>stds</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-display" data-execution_count="21">
+<div class="cell-output cell-output-display">
 
 <div>
 
@@ -1264,17 +1267,18 @@ Inferred feature types
 </div>
 </div>
 <hr>
+<p><a href="https://github.com/rxavier/poniard/blob/master/poniard/estimators/core.py#L823" target="_blank" style="float:right; font-size:smaller">source</a></p>
 </section>
 <section id="poniardbaseestimator.reassign_types" class="level3">
 <h3 class="anchored" data-anchor-id="poniardbaseestimator.reassign_types">PoniardBaseEstimator.reassign_types</h3>
 <blockquote class="blockquote">
 <pre><code> PoniardBaseEstimator.reassign_types
-                                      (numeric:Union[List[Union[str,int]],
+                                      (numeric:Union[List[Union[int,str]],
                                       NoneType]=None, categorical_high:Uni
-                                      on[List[Union[str,int]],NoneType]=No
+                                      on[List[Union[int,str]],NoneType]=No
                                       ne, categorical_low:Union[List[Union
-                                      [str,int]],NoneType]=None, datetime:
-                                      Union[List[Union[str,int]],NoneType]
+                                      [int,str]],NoneType]=None, datetime:
+                                      Union[List[Union[int,str]],NoneType]
                                       =None)</code></pre>
 </blockquote>
 <p>Reassign feature types.</p>
