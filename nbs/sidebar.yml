@@ -11,7 +11,7 @@ website:
           - guide/03_plotting.ipynb
       - section: "Reference"
         contents:
-          - core.ipynb
+          - estimators.core.ipynb
           - classifier.ipynb
           - regressor.ipynb
           - plotting.ipynb
