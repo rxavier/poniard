@@ -1,0 +1,37 @@
+ipynb-filters: [nbdev_filter]
+
+project:
+  type: website
+  output-dir: _docs
+  preview:
+    port: 3000
+    browser: false
+
+format:
+  html:
+    theme: flatly
+    css: styles.css
+    toc: true
+    toc-depth: 4
+
+website:
+  title: "poniard"
+  site-url: "https://rxavier.github.io/poniard"
+  description: "Streamline scikit-learn model comparison."
+  twitter-card: true
+  open-graph: true
+  repo-branch: master
+  repo-url: "https://github.com/rxavier/poniard"
+  repo-actions: [issue]
+  navbar:
+    background: primary
+    search: true
+    right:
+      - icon: github
+        href: "https://github.com/rxavier/poniard"
+  sidebar:
+    style: "floating"
+
+metadata-files:
+  - sidebar.yml
+  - custom.yml
