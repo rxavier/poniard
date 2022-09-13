@@ -12,7 +12,7 @@ website:
       - section: "Reference"
         contents:
           - estimators.core.ipynb
-          - classifier.ipynb
-          - regressor.ipynb
+          - estimators.classifier.ipynb
+          - estimators.regressor.ipynb
           - plotting.ipynb
           - plugins.ipynb
