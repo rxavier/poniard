@@ -319,7 +319,7 @@ class PoniardPlotFactory:
 
         estimator_metrics = []
         for name in estimator_names:
-            y_pred = self._get_or_compute_prediction(name, type_of_prediction)
+            y_pred = self._poniard._get_or_compute_prediction(name, type_of_prediction)
             if type_of_prediction == "predict_proba":
                 y_pred = y_pred[:, 1]
             fpr, tpr, _ = roc_curve(y, y_pred, **kwargs)
@@ -385,7 +385,7 @@ class PoniardPlotFactory:
         if self._poniard.poniard_task == "regression":
             raise ValueError("Confusion matrix is not available for regressors.")
         y = self._poniard.y
-        y_pred = self._get_or_compute_prediction(estimator_name, "predict")
+        y_pred = self._poniard._get_or_compute_prediction(estimator_name, "predict")
         matrix = confusion_matrix(y, y_pred, **kwargs)
         fig = px.imshow(
             matrix,
@@ -481,7 +481,7 @@ class PoniardPlotFactory:
         data = []
         for name in estimator_names:
             y = np.array(y)
-            y_pred = self._get_or_compute_prediction(name, "predict")
+            y_pred = self._poniard._get_or_compute_prediction(name, "predict")
             if y.ndim == 1:
                 y = np.expand_dims(y, 1)
             if y_pred.ndim == 1:
@@ -552,7 +552,7 @@ class PoniardPlotFactory:
         data = []
         for name in estimator_names:
             y = np.array(y)
-            y_pred = self._get_or_compute_prediction(name, "predict")
+            y_pred = self._poniard._get_or_compute_prediction(name, "predict")
             if y.ndim == 1:
                 y = np.expand_dims(y, 1)
             if y_pred.ndim == 1:

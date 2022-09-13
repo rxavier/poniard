@@ -32,7 +32,7 @@ def test_ensemble(method, estimator_names, top_n, sort_by):
     results = reg.get_results()
     ensemble_class_name = method.capitalize() + "Regressor"
     ensemble = reg.get_estimator(ensemble_class_name)
-    ensemble_estimators = [x[0] for x in ensemble.estimators]
+    ensemble_estimators = [x[0] for x in ensemble[-1].estimators]
     assert results.shape[0] == 5
     assert "StackingRegressor" in results.index or "VotingRegressor" in results.index
     if estimator_names:
