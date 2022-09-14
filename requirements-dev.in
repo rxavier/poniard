@@ -10,5 +10,6 @@ sphinx-bootstrap-theme
 sphinx-toolbox
 nbsphinx
 ipykernel
+ipywidgets<8.0.0
 black
 pre-commit
