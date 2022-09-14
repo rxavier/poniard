@@ -829,6 +829,7 @@ class PoniardBaseEstimator(ABC):
         categorical_high: Optional[List[Union[str, int]]] = None,
         categorical_low: Optional[List[Union[str, int]]] = None,
         datetime: Optional[List[Union[str, int]]] = None,
+        keep_remainder: bool = True,
     ) -> PoniardBaseEstimator:
         """Reassign feature types.
 
@@ -842,18 +843,35 @@ class PoniardBaseEstimator(ABC):
             List of column names or indices. Default None.
         datetime :
             List of column names or indices. Default None.
+        keep_remainder :
+            Whether to keep features not specified in the method parameters as is or drop them
 
         Returns
         -------
         PoniardBaseEstimator
             self.
         """
-        assigned_types = {
-            "numeric": numeric or [],
-            "categorical_high": categorical_high or [],
-            "categorical_low": categorical_low or [],
-            "datetime": datetime or [],
-        }
+        numeric = numeric or []
+        categorical_high = categorical_high or []
+        categorical_low = categorical_low or []
+        datetime = datetime or []
+        if keep_remainder:
+            assigned_types = self._inferred_types.copy()
+            swapped = numeric + categorical_high + categorical_low + datetime
+            for k in self._inferred_types.keys():
+                assigned_types[k] = [x for x in assigned_types[k] if x not in swapped]
+            for k, new in zip(
+                assigned_types.keys(),
+                [numeric, categorical_high, categorical_low, datetime],
+            ):
+                assigned_types[k] = assigned_types[k] + new
+        else:
+            assigned_types = {
+                "numeric": numeric,
+                "categorical_high": categorical_high,
+                "categorical_low": categorical_low,
+                "datetime": datetime,
+            }
         self._inferred_types = assigned_types
         print("Assigned feature types", "----------------------", sep="\n")
         assigned_types_df = pd.DataFrame.from_dict(
