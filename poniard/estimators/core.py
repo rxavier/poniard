@@ -98,7 +98,8 @@ class PoniardBaseEstimator(ABC):
         :class:poniard.plot.plot_factory.PoniardPlotFactory instance specifying Plotly format
         options or None, which sets the default factory.
     cache_transformations :
-        Whether to cache transformations and set the `memory` parameter for Pipelines. This can speed up slow transformations as they are not recalculated for each estimator.
+        Whether to cache transformations and set the `memory` parameter for Pipelines.
+        This can speed up slow transformations as they are not recalculated for each estimator.
 
     Attributes
     ----------
@@ -214,18 +215,20 @@ class PoniardBaseEstimator(ABC):
         X: Union[pd.DataFrame, np.ndarray, List],
         y: Union[pd.DataFrame, np.ndarray, List],
     ) -> PoniardBaseEstimator:
-        """Orchestrator.
+        """Acts as an orchestrator for Poniard estimators by setting up everything
+        neeeded for `fit`.
 
-        Converts inputs to arrays if necessary, sets :attr:`metrics`,
-        :attr:`preprocessor`, attr:`cv` and :attr:`pipelines`.
+        Converts inputs to arrays if necessary, sets `metrics`, `preprocessor`,
+        `cv` and `pipelines`.
+
+        After running `setup`, both `X` and `y` will be held as attributes.
 
         Parameters
         ----------
         X :
             Features.
         y :
-            Target
-
+            Target.
         """
         self._run_plugin_method("on_setup_start")
         if not isinstance(X, (pd.DataFrame, pd.Series, np.ndarray)):
@@ -651,15 +654,6 @@ class PoniardBaseEstimator(ABC):
         score all :attr:`metrics` for every :attr:`preprocessor` | :attr:`pipelines`, using
         :attr:`cv` for cross validation.
 
-        After running :meth:`fit`, both :attr:`X` and :attr:`y` will be held as attributes.
-
-        Parameters
-        ----------
-        X :
-            Features.
-        y :
-            Target.
-
         Returns
         -------
         PoniardBaseEstimator
@@ -810,7 +804,7 @@ class PoniardBaseEstimator(ABC):
         self, estimator_names: Optional[Sequence[str]] = None
     ) -> Tuple[Dict[str, np.ndarray]]:
         """Get cross validated target predictions, probabilities and decision functions
-        where each sample belongs to all test sets.
+        where each sample belongs to a test set.
 
         Parameters
         ----------
@@ -819,9 +813,9 @@ class PoniardBaseEstimator(ABC):
 
         Returns
         -------
-        Dict
-            Dict where keys are estimator names and values are numpy arrays of prediction
-            probabilities.
+        Tuple[Dict]
+            Tuple of dicts where keys are estimator names and values are numpy arrays of
+            predictions.
         """
         return (
             self._predict(method="predict", estimator_names=estimator_names),
@@ -1097,7 +1091,7 @@ class PoniardBaseEstimator(ABC):
         Parameters
         ----------
         method :
-            Ensemble method. Either "stacking" or "voring". Default "stacking".
+            Ensemble method. Either "stacking" or "voting". Default "stacking".
         estimator_names :
             Names of estimators to include. Default None, which uses `top_n`
         top_n :
@@ -1223,7 +1217,7 @@ class PoniardBaseEstimator(ABC):
             Hyperparameter grid. Default None, which uses the grids available for default
             estimators.
         mode :
-            Type of search. Eithe "grid", "halving" or "random". Default "grid".
+            Type of search. Either "grid", "halving" or "random". Default "grid".
         tuned_estimator_name :
             Estimator name when adding to :attr:`pipelines`. Default None.
 
