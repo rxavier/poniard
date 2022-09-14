@@ -1000,7 +1000,23 @@ class PoniardBaseEstimator(ABC):
             new_estimators = estimators
         for new_estimator in new_estimators.values():
             self._pass_instance_attrs(new_estimator)
-        self.pipelines.update(new_estimators)
+        if self.preprocess:
+            self.pipelines.update(
+                {
+                    name: Pipeline(
+                        [("preprocessor", self.preprocessor), (name, estimator)],
+                        memory=self._memory,
+                    )
+                    for name, estimator in new_estimators.items()
+                }
+            )
+        else:
+            self.pipelines.update(
+                {
+                    name: Pipeline([(name, estimator)])
+                    for name, estimator in new_estimators.items()
+                }
+            )
         self._run_plugin_method("on_add_estimators")
         return self
 
