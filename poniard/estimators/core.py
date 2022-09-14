@@ -1117,6 +1117,8 @@ class PoniardBaseEstimator(ABC):
             Which metric to consider for ordering results. Default None, which uses the first metric.
         ensemble_name :
             Ensemble name when adding to :attr:`pipelines`. Default None.
+        kwargs :
+            Passed to the ensemble class constructor.
 
         Returns
         -------
@@ -1223,6 +1225,7 @@ class PoniardBaseEstimator(ABC):
         grid: Optional[Dict] = None,
         mode: str = "grid",
         tuned_estimator_name: Optional[str] = None,
+        **kwargs,
     ) -> Union[GridSearchCV, RandomizedSearchCV]:
         """Hyperparameter tuning for a single estimator.
 
@@ -1237,6 +1240,8 @@ class PoniardBaseEstimator(ABC):
             Type of search. Either "grid", "halving" or "random". Default "grid".
         tuned_estimator_name :
             Estimator name when adding to :attr:`pipelines`. Default None.
+        kwargs :
+            Passed to the tuner class constructor.
 
         Returns
         -------
@@ -1270,6 +1275,7 @@ class PoniardBaseEstimator(ABC):
                 verbose=self.verbose,
                 n_jobs=self.n_jobs,
                 random_state=self.random_state,
+                **kwargs,
             )
         elif mode == "halving":
             from sklearn.experimental import enable_halving_search_cv
@@ -1283,6 +1289,7 @@ class PoniardBaseEstimator(ABC):
                 verbose=self.verbose,
                 n_jobs=self.n_jobs,
                 random_state=self.random_state,
+                **kwargs,
             )
         else:
             search = GridSearchCV(
@@ -1292,6 +1299,7 @@ class PoniardBaseEstimator(ABC):
                 cv=self.cv,
                 verbose=self.verbose,
                 n_jobs=self.n_jobs,
+                **kwargs,
             )
         search.fit(X, y)
         tuned_estimator_name = tuned_estimator_name or f"{estimator_name}_tuned"
