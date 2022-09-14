@@ -45,7 +45,7 @@ from sklearn.exceptions import UndefinedMetricWarning
 
 from poniard.preprocessing import DatetimeEncoder, TargetEncoder
 from poniard.utils.stats import cramers_v
-from poniard.utils.hyperparameters import GRID
+from poniard.utils.hyperparameters import get_grid
 from poniard.utils.estimate import get_target_info, element_to_list_maybe
 from poniard.plot import PoniardPlotFactory
 
@@ -1260,7 +1260,7 @@ class PoniardBaseEstimator(ABC):
         estimator = clone(self.pipelines[estimator_name])
         if not grid:
             try:
-                grid = GRID[estimator_name]
+                grid = get_grid(estimator_name)
                 grid = {f"{estimator_name}__{k}": v for k, v in grid.items()}
             except KeyError:
                 raise NotImplementedError(

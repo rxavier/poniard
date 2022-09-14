@@ -62,3 +62,8 @@ GRID = {
         "colsample_bytree": [0.3, 0.4, 0.5, 0.7],
     },
 }
+
+
+def get_grid(model_name: str) -> dict:
+    """Obtain a default parameter grid."""
+    return GRID[model_name]
