@@ -1192,7 +1192,10 @@ class PoniardBaseEstimator(ABC):
         """
         if self.y.ndim > 1:
             raise ValueError("y must be a 1-dimensional array.")
-        raw_results = self.predict()
+        raw_results = {
+            name: self._get_or_compute_prediction(estimator_name=name, method="predict")
+            for name in self.pipelines.keys()
+        }
         results = raw_results.copy()
         for name, result in raw_results.items():
             if on_errors:
@@ -1402,6 +1405,15 @@ class PoniardBaseEstimator(ABC):
                 }
                 fetched_method(**matched_kwargs)
         return
+
+    def _get_or_compute_prediction(self, estimator_name: str, method: str):
+        """Get predictions (either predict, predict_proba or decision_function) for a given
+        estimator or compute if not available."""
+        try:
+            return self._experiment_results[estimator_name][method]
+        except KeyError:
+            self._predict(method=method, estimator_names=[estimator_name])
+            return self._experiment_results[estimator_name][method]
 
     def __repr__(self):
         return f"""{self.__class__.__name__}(estimators={self.estimators}, metrics={self.metrics},
