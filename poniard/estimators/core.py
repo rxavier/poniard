@@ -1070,7 +1070,7 @@ class PoniardBaseEstimator(ABC):
                 for k, v in self._experiment_results.items()
                 if k not in estimator_names
             }
-        self._process_long_results()
+            self._process_long_results()
         self._run_plugin_method("on_remove_estimators")
         return self
 
