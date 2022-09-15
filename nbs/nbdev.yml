@@ -1,0 +1,9 @@
+project:
+  output-dir: _docs
+
+website:
+  title: "poniard"
+  site-url: "https://rxavier.github.io/poniard"
+  description: "Streamline scikit-learn model comparison."
+  repo-branch: master
+  repo-url: "https://github.com/rxavier/poniard"

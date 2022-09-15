@@ -48,7 +48,7 @@ from sklearn.exceptions import UndefinedMetricWarning
 
 from ..preprocessing import DatetimeEncoder, TargetEncoder
 from ..utils.stats import cramers_v
-from ..utils.hyperparameters import GRID
+from ..utils.hyperparameters import get_grid
 from ..utils.estimate import get_target_info, element_to_list_maybe
 from ..plot import PoniardPlotFactory
 
@@ -826,6 +826,7 @@ class PoniardBaseEstimator(ABC):
         categorical_high: Optional[List[Union[str, int]]] = None,
         categorical_low: Optional[List[Union[str, int]]] = None,
         datetime: Optional[List[Union[str, int]]] = None,
+        keep_remainder: bool = True,
     ) -> PoniardBaseEstimator:
         """Reassign feature types.
 
@@ -839,18 +840,36 @@ class PoniardBaseEstimator(ABC):
             List of column names or indices. Default None.
         datetime :
             List of column names or indices. Default None.
+        keep_remainder :
+            Whether to keep features not specified in the method parameters
+            as is or drop them
 
         Returns
         -------
         PoniardBaseEstimator
             self.
         """
-        assigned_types = {
-            "numeric": numeric or [],
-            "categorical_high": categorical_high or [],
-            "categorical_low": categorical_low or [],
-            "datetime": datetime or [],
-        }
+        numeric = numeric or []
+        categorical_high = categorical_high or []
+        categorical_low = categorical_low or []
+        datetime = datetime or []
+        if keep_remainder:
+            assigned_types = self._inferred_types.copy()
+            swapped = numeric + categorical_high + categorical_low + datetime
+            for k in self._inferred_types.keys():
+                assigned_types[k] = [x for x in assigned_types[k] if x not in swapped]
+            for k, new in zip(
+                assigned_types.keys(),
+                [numeric, categorical_high, categorical_low, datetime],
+            ):
+                assigned_types[k] = assigned_types[k] + new
+        else:
+            assigned_types = {
+                "numeric": numeric,
+                "categorical_high": categorical_high,
+                "categorical_low": categorical_low,
+                "datetime": datetime,
+            }
         self._inferred_types = assigned_types
         print("Assigned feature types", "----------------------", sep="\n")
         assigned_types_df = pd.DataFrame.from_dict(
@@ -1051,7 +1070,7 @@ class PoniardBaseEstimator(ABC):
                 for k, v in self._experiment_results.items()
                 if k not in estimator_names
             }
-            self._process_long_results()
+        self._process_long_results()
         self._run_plugin_method("on_remove_estimators")
         return self
 
@@ -1185,8 +1204,10 @@ class PoniardBaseEstimator(ABC):
         """
         if self.y.ndim > 1:
             raise ValueError("y must be a 1-dimensional array.")
-        raw_results = {name: self._get_or_compute_prediction(estimator_name=name, method="predict")
-                       for name in self.pipelines.keys()}
+        raw_results = {
+            name: self._get_or_compute_prediction(estimator_name=name, method="predict")
+            for name in self.pipelines.keys()
+        }
         results = raw_results.copy()
         for name, result in raw_results.items():
             if on_errors:
@@ -1231,7 +1252,7 @@ class PoniardBaseEstimator(ABC):
             Hyperparameter grid. Default None, which uses the grids available for default
             estimators.
         mode :
-            Type of search. Eithe "grid", "halving" or "random". Default "grid".
+            Type of search. Either "grid", "halving" or "random". Default "grid".
         tuned_estimator_name :
             Estimator name when adding to `pipelines`. Default None.
         kwargs :
@@ -1246,7 +1267,7 @@ class PoniardBaseEstimator(ABC):
         estimator = clone(self.pipelines[estimator_name])
         if not grid:
             try:
-                grid = GRID[estimator_name]
+                grid = get_grid(estimator_name)
                 grid = {f"{estimator_name}__{k}": v for k, v in grid.items()}
             except KeyError:
                 raise NotImplementedError(

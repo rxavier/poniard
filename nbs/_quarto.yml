@@ -1,37 +1,38 @@
-ipynb-filters: [nbdev_filter]
-
 project:
   type: website
-  output-dir: _docs
-  preview:
-    port: 3000
-    browser: false
 
 format:
   html:
     theme: cosmo
     css: styles.css
     toc: true
-    toc-depth: 4
 
 website:
-  title: "poniard"
-  site-url: "https://rxavier.github.io/poniard"
-  description: "Streamline scikit-learn model comparison."
   twitter-card: true
   open-graph: true
-  repo-branch: master
-  repo-url: "https://github.com/rxavier/poniard"
   repo-actions: [issue]
   navbar:
     background: primary
     search: true
-    right:
-      - icon: github
-        href: "https://github.com/rxavier/poniard"
+    left:
+      - text: "Home"
   sidebar:
-    style: "floating"
+    style: floating
+    search: true
+    contents:
+      - index.ipynb
+      - section: Guide
+        contents:
+          - guide.getting_started.ipynb
+          - guide.main_parameters.ipynb
+          - guide.preprocessing.ipynb
+          - guide.plotting.ipynb
+      - section: Reference
+        contents:
+          - estimators.core.ipynb
+          - estimators.classifier.ipynb
+          - estimators.regressor.ipynb
+          - plotting.ipynb
+          - plugins.ipynb
 
-metadata-files: 
-  - sidebar.yml
-  - custom.yml
+metadata-files: [nbdev.yml]

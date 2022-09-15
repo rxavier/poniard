@@ -491,12 +491,12 @@ hopefully should lead to a “wisdom of crowds” kind of situation.
 ### Hyperparameter optimization
 
 The
-[`PoniardBaseEstimator.tune_estimator`](https://rxavier.github.io/poniard/estimators.core.html#tune_estimator)
+[`PoniardBaseEstimator.tune_estimator`](https://rxavier.github.io/poniard/estimators.core.html#poniardbaseestimator.tune_estimator)
 method can be used to optimize the hyperparameters of a given estimator,
 either by passing a grid of parameters or using the inbuilt ones
 available for default estimators. The tuned estimator will be added to
 the list of estimators and will be scored the next time
-[`PoniardBaseEstimator.fit`](https://rxavier.github.io/poniard/estimators.core.html#fit)
+[`PoniardBaseEstimator.fit`](https://rxavier.github.io/poniard/estimators.core.html#poniardbaseestimator.fit)
 is called.
 
 ``` python
