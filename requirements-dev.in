@@ -11,7 +11,7 @@ sphinx-toolbox
 nbsphinx
 jupyter
 ipywidgets<8.0.0
-black
+black[jupyter]
 pre-commit
 nbdev>=2.3.2
 -e file:.
