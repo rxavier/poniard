@@ -501,7 +501,7 @@ is called.
 
 ``` python
 pnd.tune_estimator("RandomForestClassifier", mode="random")
-pnd.fit() # This will only fit new estimators
+pnd.fit()  # This will only fit new estimators
 pnd.get_results()
 ```
 

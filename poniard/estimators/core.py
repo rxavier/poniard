@@ -210,7 +210,7 @@ class PoniardBaseEstimator(ABC):
 
         Converts inputs to arrays if necessary, sets `metrics`,
         `preprocessor`, `cv` and `pipelines`.
-        
+
         After running `PoniardBaseEstimator.setup`, both `X` and `y` will be held as attributes.
 
 
@@ -1412,7 +1412,7 @@ class PoniardBaseEstimator(ABC):
                 }
                 fetched_method(**matched_kwargs)
         return
-    
+
     def _get_or_compute_prediction(self, estimator_name: str, method: str):
         """Get predictions (either predict, predict_proba or decision_function) for a given
         estimator or compute if not available."""
