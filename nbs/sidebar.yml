@@ -5,9 +5,5 @@ website:
       - estimators.classifier.ipynb
       - estimators.core.ipynb
       - estimators.regressor.ipynb
-      - guide.getting_started.ipynb
-      - guide.main_parameters.ipynb
-      - guide.plotting.ipynb
-      - guide.preprocessing.ipynb
       - plotting.ipynb
       - plugins.ipynb
