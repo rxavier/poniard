@@ -6,5 +6,5 @@ repos:
 -   repo: https://github.com/fastai/nbdev
     rev: 2.3.4
     hooks:
-    - id: nbdev_clean
-    - id: nbdev_export
+    -   id: nbdev_clean
+    -   id: nbdev_export
