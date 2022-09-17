@@ -865,10 +865,10 @@ class PoniardBaseEstimator(ABC):
                 assigned_types[k] = assigned_types[k] + new
         else:
             assigned_types = {
-                "numeric": numeric,
-                "categorical_high": categorical_high,
-                "categorical_low": categorical_low,
-                "datetime": datetime,
+                "numeric": numeric or [],
+                "categorical_high": categorical_high or [],
+                "categorical_low": categorical_low or [],
+                "datetime": datetime or [],
             }
         self._inferred_types = assigned_types
         print("Assigned feature types", "----------------------", sep="\n")
