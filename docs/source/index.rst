@@ -16,6 +16,16 @@ Brief introduction.
    :maxdepth: 1
 
    README.md
+
+Example notebooks
+-----------------
+
+Get a feel of the library through usage examples that you can open in
+`Google Colab <https://research.google.com/colaboratory/>`_.
+
+.. toctree::
+   :maxdepth: 0
+
    examples.rst
 
 API documentation
