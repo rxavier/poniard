@@ -71,6 +71,7 @@ docutils==0.16
     #   nbsphinx
     #   recommonmark
     #   sphinx
+    #   sphinx-rtd-theme
     #   sphinx-tabs
     #   sphinx-toolbox
 domdf-python-tools==3.2.2.post1
@@ -110,20 +111,26 @@ iniconfig==1.1.1
     # via pytest
 ipykernel==6.13.0
     # via
-    #   -r requirements-dev.in
     #   ipywidgets
+    #   jupyter
+    #   jupyter-console
     #   notebook
+    #   qtconsole
 ipython==7.32.0
     # via
     #   black
     #   ipykernel
     #   ipywidgets
+    #   jupyter-console
 ipython-genutils==0.2.0
     # via
     #   ipywidgets
     #   notebook
+    #   qtconsole
 ipywidgets==7.7.2
-    # via -r requirements-dev.in
+    # via
+    #   -r requirements-dev.in
+    #   jupyter
 jedi==0.18.1
     # via ipython
 jinja2==3.1.1
@@ -135,17 +142,24 @@ jinja2==3.1.1
     #   sphinx-jinja2-compat
 jsonschema==4.4.0
     # via nbformat
+jupyter==1.0.0
+    # via -r requirements-dev.in
 jupyter-client==7.3.0
     # via
     #   ipykernel
+    #   jupyter-console
     #   nbclient
     #   notebook
+    #   qtconsole
+jupyter-console==6.4.4
+    # via jupyter
 jupyter-core==4.10.0
     # via
     #   jupyter-client
     #   nbconvert
     #   nbformat
     #   notebook
+    #   qtconsole
 jupyterlab-pygments==0.2.2
     # via nbconvert
 jupyterlab-widgets==1.1.1
@@ -177,6 +191,7 @@ nbclient==0.6.0
     # via nbconvert
 nbconvert==6.5.0
     # via
+    #   jupyter
     #   nbsphinx
     #   notebook
 nbformat==5.3.0
@@ -196,7 +211,9 @@ nest-asyncio==1.5.5
 nodeenv==1.6.0
     # via pre-commit
 notebook==6.4.12
-    # via widgetsnbextension
+    # via
+    #   jupyter
+    #   widgetsnbextension
 packaging==21.3
     # via
     #   deprecation
@@ -204,6 +221,7 @@ packaging==21.3
     #   ipykernel
     #   nbconvert
     #   pytest
+    #   qtpy
     #   sphinx
     #   tox
 pandocfilters==1.5.0
@@ -230,7 +248,9 @@ pre-commit==2.19.0
 prometheus-client==0.14.1
     # via notebook
 prompt-toolkit==3.0.29
-    # via ipython
+    # via
+    #   ipython
+    #   jupyter-console
 psutil==5.9.0
     # via ipykernel
 ptyprocess==0.7.0
@@ -246,7 +266,9 @@ pycparser==2.21
 pygments==2.12.0
     # via
     #   ipython
+    #   jupyter-console
     #   nbconvert
+    #   qtconsole
     #   sphinx
     #   sphinx-prompt
     #   sphinx-tabs
@@ -270,6 +292,11 @@ pyzmq==22.3.0
     # via
     #   jupyter-client
     #   notebook
+    #   qtconsole
+qtconsole==5.3.2
+    # via jupyter
+qtpy==2.2.0
+    # via qtconsole
 recommonmark==0.7.1
     # via -r requirements-dev.in
 requests==2.27.1
@@ -305,6 +332,7 @@ sphinx==4.5.0
     #   sphinx-autobuild
     #   sphinx-autodoc-typehints
     #   sphinx-prompt
+    #   sphinx-rtd-theme
     #   sphinx-tabs
     #   sphinx-toolbox
 sphinx-autobuild==2021.3.14
@@ -313,12 +341,12 @@ sphinx-autodoc-typehints==1.14.1
     # via
     #   -r requirements-dev.in
     #   sphinx-toolbox
-sphinx-bootstrap-theme==0.8.1
-    # via -r requirements-dev.in
 sphinx-jinja2-compat==0.1.2
     # via sphinx-toolbox
 sphinx-prompt==1.5.0
     # via sphinx-toolbox
+sphinx-rtd-theme==1.0.0
+    # via -r requirements-dev.in
 sphinx-tabs==3.2.0
     # via sphinx-toolbox
 sphinx-toolbox==2.18.2
@@ -377,6 +405,7 @@ traitlets==5.1.1
     #   nbformat
     #   nbsphinx
     #   notebook
+    #   qtconsole
 typing-extensions==4.2.0
     # via
     #   black
