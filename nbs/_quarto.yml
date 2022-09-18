@@ -20,7 +20,7 @@ website:
     contents:
       - index.ipynb
       - section: Guide
-        contents: guide
+        contents: guide/*.ipynb
       - section: Reference
         contents:
           - estimators.core.ipynb
