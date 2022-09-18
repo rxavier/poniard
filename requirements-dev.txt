@@ -382,8 +382,10 @@ typing-extensions==4.2.0
     #   black
     #   domdf-python-tools
     #   sphinx-toolbox
-urllib3==1.26.9
-    # via requests
+urllib3==1.26.12
+    # via
+    #   -r requirements-dev.in
+    #   requests
 virtualenv==20.14.1
     # via
     #   pre-commit
