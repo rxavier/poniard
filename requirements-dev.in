@@ -11,5 +11,5 @@ sphinx-toolbox
 nbsphinx
 ipykernel
 ipywidgets<8.0.0
-black
+black[jupyter]
 pre-commit
