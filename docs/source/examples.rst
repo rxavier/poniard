@@ -1,6 +1,3 @@
-Example notebooks
-=================
-
 .. toctree::
    :maxdepth: 0
 

@@ -6,9 +6,11 @@ sphinx
 sphinx-autobuild
 sphinx-autodoc-typehints
 recommonmark
-sphinx-bootstrap-theme
+sphinx-rtd-theme
 sphinx-toolbox
 nbsphinx
-ipykernel
-black
+jupyter
+ipywidgets<8.0.0
+black[jupyter]
 pre-commit
+urllib3>=1.26.11

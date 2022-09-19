@@ -45,7 +45,7 @@ from sklearn.exceptions import UndefinedMetricWarning
 
 from poniard.preprocessing import DatetimeEncoder, TargetEncoder
 from poniard.utils.stats import cramers_v
-from poniard.utils.hyperparameters import GRID
+from poniard.utils.hyperparameters import get_grid
 from poniard.utils.estimate import get_target_info, element_to_list_maybe
 from poniard.plot import PoniardPlotFactory
 
@@ -98,7 +98,8 @@ class PoniardBaseEstimator(ABC):
         :class:poniard.plot.plot_factory.PoniardPlotFactory instance specifying Plotly format
         options or None, which sets the default factory.
     cache_transformations :
-        Whether to cache transformations and set the `memory` parameter for Pipelines. This can speed up slow transformations as they are not recalculated for each estimator.
+        Whether to cache transformations and set the `memory` parameter for Pipelines.
+        This can speed up slow transformations as they are not recalculated for each estimator.
 
     Attributes
     ----------
@@ -214,18 +215,20 @@ class PoniardBaseEstimator(ABC):
         X: Union[pd.DataFrame, np.ndarray, List],
         y: Union[pd.DataFrame, np.ndarray, List],
     ) -> PoniardBaseEstimator:
-        """Orchestrator.
+        """Acts as an orchestrator for Poniard estimators by setting up everything
+        neeeded for `fit`.
 
-        Converts inputs to arrays if necessary, sets :attr:`metrics`,
-        :attr:`preprocessor`, attr:`cv` and :attr:`pipelines`.
+        Converts inputs to arrays if necessary, sets `metrics`, `preprocessor`,
+        `cv` and `pipelines`.
+
+        After running `setup`, both `X` and `y` will be held as attributes.
 
         Parameters
         ----------
         X :
             Features.
         y :
-            Target
-
+            Target.
         """
         self._run_plugin_method("on_setup_start")
         if not isinstance(X, (pd.DataFrame, pd.Series, np.ndarray)):
@@ -651,15 +654,6 @@ class PoniardBaseEstimator(ABC):
         score all :attr:`metrics` for every :attr:`preprocessor` | :attr:`pipelines`, using
         :attr:`cv` for cross validation.
 
-        After running :meth:`fit`, both :attr:`X` and :attr:`y` will be held as attributes.
-
-        Parameters
-        ----------
-        X :
-            Features.
-        y :
-            Target.
-
         Returns
         -------
         PoniardBaseEstimator
@@ -810,7 +804,7 @@ class PoniardBaseEstimator(ABC):
         self, estimator_names: Optional[Sequence[str]] = None
     ) -> Tuple[Dict[str, np.ndarray]]:
         """Get cross validated target predictions, probabilities and decision functions
-        where each sample belongs to all test sets.
+        where each sample belongs to a test set.
 
         Parameters
         ----------
@@ -819,9 +813,9 @@ class PoniardBaseEstimator(ABC):
 
         Returns
         -------
-        Dict
-            Dict where keys are estimator names and values are numpy arrays of prediction
-            probabilities.
+        Tuple[Dict]
+            Tuple of dicts where keys are estimator names and values are numpy arrays of
+            predictions.
         """
         return (
             self._predict(method="predict", estimator_names=estimator_names),
@@ -835,6 +829,7 @@ class PoniardBaseEstimator(ABC):
         categorical_high: Optional[List[Union[str, int]]] = None,
         categorical_low: Optional[List[Union[str, int]]] = None,
         datetime: Optional[List[Union[str, int]]] = None,
+        keep_remainder: bool = True,
     ) -> PoniardBaseEstimator:
         """Reassign feature types.
 
@@ -848,18 +843,35 @@ class PoniardBaseEstimator(ABC):
             List of column names or indices. Default None.
         datetime :
             List of column names or indices. Default None.
+        keep_remainder :
+            Whether to keep features not specified in the method parameters as is or drop them
 
         Returns
         -------
         PoniardBaseEstimator
             self.
         """
-        assigned_types = {
-            "numeric": numeric or [],
-            "categorical_high": categorical_high or [],
-            "categorical_low": categorical_low or [],
-            "datetime": datetime or [],
-        }
+        numeric = numeric or []
+        categorical_high = categorical_high or []
+        categorical_low = categorical_low or []
+        datetime = datetime or []
+        if keep_remainder:
+            assigned_types = self._inferred_types.copy()
+            swapped = numeric + categorical_high + categorical_low + datetime
+            for k in self._inferred_types.keys():
+                assigned_types[k] = [x for x in assigned_types[k] if x not in swapped]
+            for k, new in zip(
+                assigned_types.keys(),
+                [numeric, categorical_high, categorical_low, datetime],
+            ):
+                assigned_types[k] = assigned_types[k] + new
+        else:
+            assigned_types = {
+                "numeric": numeric,
+                "categorical_high": categorical_high,
+                "categorical_low": categorical_low,
+                "datetime": datetime,
+            }
         self._inferred_types = assigned_types
         print("Assigned feature types", "----------------------", sep="\n")
         assigned_types_df = pd.DataFrame.from_dict(
@@ -1006,7 +1018,23 @@ class PoniardBaseEstimator(ABC):
             new_estimators = estimators
         for new_estimator in new_estimators.values():
             self._pass_instance_attrs(new_estimator)
-        self.pipelines.update(new_estimators)
+        if self.preprocess:
+            self.pipelines.update(
+                {
+                    name: Pipeline(
+                        [("preprocessor", self.preprocessor), (name, estimator)],
+                        memory=self._memory,
+                    )
+                    for name, estimator in new_estimators.items()
+                }
+            )
+        else:
+            self.pipelines.update(
+                {
+                    name: Pipeline([(name, estimator)])
+                    for name, estimator in new_estimators.items()
+                }
+            )
         self._run_plugin_method("on_add_estimators")
         return self
 
@@ -1044,6 +1072,7 @@ class PoniardBaseEstimator(ABC):
                 for k, v in self._experiment_results.items()
                 if k not in estimator_names
             }
+            self._process_long_results()
         self._run_plugin_method("on_remove_estimators")
         return self
 
@@ -1097,7 +1126,7 @@ class PoniardBaseEstimator(ABC):
         Parameters
         ----------
         method :
-            Ensemble method. Either "stacking" or "voring". Default "stacking".
+            Ensemble method. Either "stacking" or "voting". Default "stacking".
         estimator_names :
             Names of estimators to include. Default None, which uses `top_n`
         top_n :
@@ -1106,6 +1135,8 @@ class PoniardBaseEstimator(ABC):
             Which metric to consider for ordering results. Default None, which uses the first metric.
         ensemble_name :
             Ensemble name when adding to :attr:`pipelines`. Default None.
+        kwargs :
+            Passed to the ensemble class constructor.
 
         Returns
         -------
@@ -1179,7 +1210,10 @@ class PoniardBaseEstimator(ABC):
         """
         if self.y.ndim > 1:
             raise ValueError("y must be a 1-dimensional array.")
-        raw_results = self.predict()
+        raw_results = {
+            name: self._get_or_compute_prediction(estimator_name=name, method="predict")
+            for name in self.pipelines.keys()
+        }
         results = raw_results.copy()
         for name, result in raw_results.items():
             if on_errors:
@@ -1212,6 +1246,7 @@ class PoniardBaseEstimator(ABC):
         grid: Optional[Dict] = None,
         mode: str = "grid",
         tuned_estimator_name: Optional[str] = None,
+        **kwargs,
     ) -> Union[GridSearchCV, RandomizedSearchCV]:
         """Hyperparameter tuning for a single estimator.
 
@@ -1223,9 +1258,11 @@ class PoniardBaseEstimator(ABC):
             Hyperparameter grid. Default None, which uses the grids available for default
             estimators.
         mode :
-            Type of search. Eithe "grid", "halving" or "random". Default "grid".
+            Type of search. Either "grid", "halving" or "random". Default "grid".
         tuned_estimator_name :
             Estimator name when adding to :attr:`pipelines`. Default None.
+        kwargs :
+            Passed to the tuner class constructor.
 
         Returns
         -------
@@ -1241,7 +1278,7 @@ class PoniardBaseEstimator(ABC):
         estimator = clone(self.pipelines[estimator_name])
         if not grid:
             try:
-                grid = GRID[estimator_name]
+                grid = get_grid(estimator_name)
                 grid = {f"{estimator_name}__{k}": v for k, v in grid.items()}
             except KeyError:
                 raise NotImplementedError(
@@ -1259,6 +1296,7 @@ class PoniardBaseEstimator(ABC):
                 verbose=self.verbose,
                 n_jobs=self.n_jobs,
                 random_state=self.random_state,
+                **kwargs,
             )
         elif mode == "halving":
             from sklearn.experimental import enable_halving_search_cv
@@ -1272,6 +1310,7 @@ class PoniardBaseEstimator(ABC):
                 verbose=self.verbose,
                 n_jobs=self.n_jobs,
                 random_state=self.random_state,
+                **kwargs,
             )
         else:
             search = GridSearchCV(
@@ -1281,6 +1320,7 @@ class PoniardBaseEstimator(ABC):
                 cv=self.cv,
                 verbose=self.verbose,
                 n_jobs=self.n_jobs,
+                **kwargs,
             )
         search.fit(X, y)
         tuned_estimator_name = tuned_estimator_name or f"{estimator_name}_tuned"
@@ -1383,6 +1423,15 @@ class PoniardBaseEstimator(ABC):
                 }
                 fetched_method(**matched_kwargs)
         return
+
+    def _get_or_compute_prediction(self, estimator_name: str, method: str):
+        """Get predictions (either predict, predict_proba or decision_function) for a given
+        estimator or compute if not available."""
+        try:
+            return self._experiment_results[estimator_name][method]
+        except KeyError:
+            self._predict(method=method, estimator_names=[estimator_name])
+            return self._experiment_results[estimator_name][method]
 
     def __repr__(self):
         return f"""{self.__class__.__name__}(estimators={self.estimators}, metrics={self.metrics},

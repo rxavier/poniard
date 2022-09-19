@@ -28,10 +28,12 @@ pip install git+https://github.com/rxavier/poniard.git@develop#egg=poniard
 
 Check the full docs at [Read The Docs](https://poniard.readthedocs.io/en/latest/index.html).
 
+
+
 # Usage/features
 
 ## Basics
-The API was designed with classic regression and classification tasks in mind, and it should also work with time series tasks provided an appropiate cross validation strategy is used (don't shuffle!)
+The API was designed with tabular regression and classification tasks in mind, and it should also work with time series tasks provided an appropiate cross validation strategy is used (don't shuffle!)
 
 The usual Poniard flow is:
 1. Define some estimators.
@@ -107,7 +109,7 @@ The `plugins` argument in Poniard estimators takes a plugin or list of plugins t
 
 This makes it easy for third parties to extend Poniard's functionality.
 
-Two plugins are baked into Poniard.
+Two plugins are baked into Poniard for now:
 1. Weights and Biases: logs your data to an artifact, plots, runs wandb scikit-learn analysis, saves model artifacts, etc.
 2. Pandas Profiling: generates an HTML report of the features and target. If the Weights and Biases plugin is present, also logs this report to the wandb run.
 

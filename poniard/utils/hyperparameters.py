@@ -2,9 +2,8 @@ import numpy as np
 
 GRID = {
     "LogisticRegression": {"C": [0.1, 1, 10, 100], "penalty": ["l1", "l2", "none"]},
-    "LinearSVC": {
-        "penalty": ["l1", "l2"],
-        "loss": ["hinge", "squared_hinge"],
+    "SVC": {
+        "kernel": ["linear", "rbf"],
         "C": [0.1, 1, 10, 100],
     },
     "KNeighborsClassifier": {
@@ -33,8 +32,8 @@ GRID = {
         "colsample_bytree": [0.3, 0.4, 0.5, 0.7],
     },
     "ElasticNet": {"alpha": [0.5, 1], "l1_ratio": np.arange(0.1, 1, 0.2)},
-    "LinearSVR": {
-        "loss": ["epsilon_insensitive", "squared_epsilon_insensitive"],
+    "SVR": {
+        "kernel": ["linear", "rbf"],
         "C": [0.1, 1, 10, 100],
     },
     "KNeighborsRegressor": {
@@ -63,3 +62,8 @@ GRID = {
         "colsample_bytree": [0.3, 0.4, 0.5, 0.7],
     },
 }
+
+
+def get_grid(model_name: str) -> dict:
+    """Obtain a default parameter grid."""
+    return GRID[model_name]

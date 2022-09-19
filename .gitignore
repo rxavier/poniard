@@ -136,3 +136,4 @@ pyvenv.cfg
 transformation_cache
 docs/source/*.ipynb
 docs/source/README.md
+requirements-plugins*
