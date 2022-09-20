@@ -821,7 +821,7 @@ class PoniardBaseEstimator(ABC):
         datetime: Optional[List[Union[str, int]]] = None,
         keep_remainder: bool = True,
     ) -> PoniardBaseEstimator:
-        """Reassign feature types.
+        """Reassign feature types. By default, leaves ommitted features as they were.
 
         Parameters
         ----------
