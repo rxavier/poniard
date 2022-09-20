@@ -10,8 +10,3 @@ repos:
     rev: 22.3.0
     hooks:
     -   id: black-jupyter
--   repo: https://github.com/fastai/nbdev
-    rev: 2.3.4
-    hooks:
-    -   id: nbdev_clean
-    -   id: nbdev_export
