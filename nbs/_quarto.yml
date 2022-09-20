@@ -16,21 +16,5 @@ website:
     search: true
   sidebar:
     style: floating
-    search: true
-    contents:
-      - index.ipynb
-      - section: Guide
-        contents:
-          - guide/00_getting_started.ipynb
-          - guide/01_main_parameters.ipynb
-          - guide/02_preprocessing.ipynb
-          - guide/03_plotting.ipynb
-      - section: Reference
-        contents:
-          - estimators.core.ipynb
-          - estimators.classifier.ipynb
-          - estimators.regressor.ipynb
-          - plotting.ipynb
-          - plugins.ipynb
 
-metadata-files: [nbdev.yml]
+metadata-files: [nbdev.yml, sidebar.yml]
