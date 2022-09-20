@@ -104,7 +104,8 @@ class PoniardBaseEstimator(ABC):
         :class:poniard.plot.plot_factory.PoniardPlotFactory instance specifying Plotly format
         options or None, which sets the default factory.
     cache_transformations :
-        Whether to cache transformations and set the `memory` parameter for Pipelines. This can speed up slow transformations as they are not recalculated for each estimator.
+        Whether to cache transformations and set the `memory` parameter for Pipelines. This can
+        speed up slow transformations as they are not recalculated for each estimator.
     """
 
     def __init__(
