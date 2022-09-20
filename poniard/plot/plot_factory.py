@@ -499,16 +499,6 @@ class PoniardPlotFactory:
                 )
         color = "Estimator" if len(estimator_names) > 1 else None
         symbol = "Target" if y.shape[1] > 1 else None
-        fig = px.scatter(
-            pd.concat(data),
-            x="Predicted",
-            y="Residuals",
-            color=color,
-            symbol=symbol,
-            title="Residuals vs predictions",
-        )
-        self._poniard._run_plugin_method("on_plot", figure=fig, name="residuals_plot")
-        return fig
         data = pd.concat(data)
         fig = px.scatter(
             data,
@@ -585,15 +575,6 @@ class PoniardPlotFactory:
             name=f"Residuals histogram plot with cross validated predictions",
         )
         return fig
-
-    def _get_or_compute_prediction(self, estimator_name: str, method: str):
-        """Get predictions (either predict, predict_proba or decision_function) for a given
-        estimator or compute if not available."""
-        try:
-            return self._poniard._experiment_results[estimator_name][method]
-        except KeyError:
-            self._poniard._predict(method=method, estimator_names=[estimator_name])
-            return self._poniard._experiment_results[estimator_name][method]
 
     def __repr__(self):
         return f"""{self.__class__.__name__}(template={self._template},

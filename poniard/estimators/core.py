@@ -219,8 +219,7 @@ class PoniardBaseEstimator(ABC):
         X :
             Features
         y :
-            Target
-
+            Target.
         """
         self._run_plugin_method("on_setup_start")
         if not isinstance(X, (pd.DataFrame, pd.Series, np.ndarray)):
@@ -645,13 +644,6 @@ class PoniardBaseEstimator(ABC):
         """This is the main Poniard method. It uses scikit-learn's `cross_validate` function to
         score all `metrics` for every `pipelines`, using `cv` for cross validation.
 
-        Parameters
-        ----------
-        X :
-            Features.
-        y :
-            Target.
-
         Returns
         -------
         PoniardBaseEstimator
@@ -801,7 +793,7 @@ class PoniardBaseEstimator(ABC):
         self, estimator_names: Optional[Sequence[str]] = None
     ) -> Tuple[Dict[str, np.ndarray]]:
         """Get cross validated target predictions, probabilities and decision functions
-        where each sample belongs to a single test set.
+        where each sample belongs to a test set.
 
         Parameters
         ----------
@@ -1252,7 +1244,7 @@ class PoniardBaseEstimator(ABC):
             Hyperparameter grid. Default None, which uses the grids available for default
             estimators.
         mode :
-            Type of search. Either "grid", "halving" or "random". Default "grid".
+            Type of search. Eitherr "grid", "halving" or "random". Default "grid".
         tuned_estimator_name :
             Estimator name when adding to `pipelines`. Default None.
         kwargs :

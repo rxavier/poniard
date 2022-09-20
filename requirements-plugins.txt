@@ -4,19 +4,16 @@
 #
 #    pip-compile requirements-plugins.in
 #
-attrs==21.4.0
+attrs==22.1.0
     # via
     #   -c requirements-dev.txt
     #   visions
 certifi==2022.9.14
     # via
-    #   -c requirements-dev.txt
     #   requests
     #   sentry-sdk
 charset-normalizer==2.1.1
-    # via
-    #   -c requirements-dev.txt
-    #   requests
+    # via requests
 click==8.1.3
     # via
     #   -c requirements-dev.txt
@@ -25,7 +22,7 @@ cycler==0.11.0
     # via matplotlib
 docker-pycreds==0.4.0
     # via wandb
-fonttools==4.33.2
+fonttools==4.37.3
     # via matplotlib
 gitdb==4.0.9
     # via gitpython
@@ -34,12 +31,10 @@ gitpython==3.1.27
 htmlmin==0.1.12
     # via pandas-profiling
 idna==3.4
-    # via
-    #   -c requirements-dev.txt
-    #   requests
-imagehash==4.2.1
+    # via requests
+imagehash==4.3.0
     # via visions
-jinja2==3.1.1
+jinja2==3.1.2
     # via
     #   -c requirements-dev.txt
     #   pandas-profiling
@@ -48,14 +43,13 @@ joblib==1.1.0
     #   -c requirements-dev.txt
     #   pandas-profiling
     #   phik
-kiwisolver==1.4.2
+kiwisolver==1.4.4
     # via matplotlib
 markupsafe==2.1.1
     # via
     #   -c requirements-dev.txt
     #   jinja2
-    #   pandas-profiling
-matplotlib==3.5.1
+matplotlib==3.5.3
     # via
     #   missingno
     #   pandas-profiling
@@ -67,7 +61,7 @@ multimethod==1.8
     # via
     #   pandas-profiling
     #   visions
-networkx==2.6.3
+networkx==2.8.6
     # via visions
 numpy==1.22.4 ; python_version >= "3.8"
     # via
@@ -77,45 +71,50 @@ numpy==1.22.4 ; python_version >= "3.8"
     #   missingno
     #   pandas
     #   pandas-profiling
+    #   patsy
     #   phik
     #   pywavelets
     #   scipy
     #   seaborn
+    #   statsmodels
     #   visions
 packaging==21.3
     # via
     #   -c requirements-dev.txt
     #   matplotlib
+    #   statsmodels
 pandas==1.3.5
     # via
     #   -c requirements-dev.txt
     #   pandas-profiling
     #   phik
     #   seaborn
+    #   statsmodels
     #   visions
-pandas-profiling==3.2.0
+pandas-profiling==3.3.0
     # via -r requirements-plugins.in
 pathtools==0.1.2
     # via wandb
+patsy==0.5.2
+    # via statsmodels
 phik==0.12.2
     # via pandas-profiling
-pillow==9.1.1
+pillow==9.2.0
     # via
-    #   -r requirements-plugins.in
     #   imagehash
     #   matplotlib
     #   visions
 promise==2.3
     # via wandb
-protobuf==3.20.1
+protobuf==3.20.2
     # via wandb
-psutil==5.9.0
+psutil==5.9.2
     # via
     #   -c requirements-dev.txt
     #   wandb
-pydantic==1.9.0
+pydantic==1.9.2
     # via pandas-profiling
-pyparsing==3.0.8
+pyparsing==3.0.9
     # via
     #   -c requirements-dev.txt
     #   matplotlib
@@ -125,12 +124,11 @@ python-dateutil==2.8.2
     #   -c requirements-dev.txt
     #   matplotlib
     #   pandas
-    #   wandb
 pytz==2021.3
     # via
     #   -c requirements-dev.txt
     #   pandas
-pywavelets==1.3.0
+pywavelets==1.4.1
     # via imagehash
 pyyaml==6.0
     # via
@@ -139,7 +137,6 @@ pyyaml==6.0
     #   wandb
 requests==2.28.1
     # via
-    #   -c requirements-dev.txt
     #   pandas-profiling
     #   wandb
 scipy==1.7.3
@@ -150,13 +147,14 @@ scipy==1.7.3
     #   pandas-profiling
     #   phik
     #   seaborn
+    #   statsmodels
 seaborn==0.11.2
     # via
     #   missingno
     #   pandas-profiling
-sentry-sdk==1.5.11
+sentry-sdk==1.9.8
     # via wandb
-setproctitle==1.2.3
+setproctitle==1.3.2
     # via wandb
 shortuuid==1.0.9
     # via wandb
@@ -164,12 +162,14 @@ six==1.16.0
     # via
     #   -c requirements-dev.txt
     #   docker-pycreds
-    #   imagehash
+    #   patsy
     #   promise
     #   python-dateutil
     #   wandb
 smmap==5.0.0
     # via gitdb
+statsmodels==0.13.2
+    # via pandas-profiling
 tangled-up-in-unicode==0.2.0
     # via
     #   pandas-profiling
@@ -178,7 +178,7 @@ tqdm==4.63.0
     # via
     #   -c requirements-dev.txt
     #   pandas-profiling
-typing-extensions==4.2.0
+typing-extensions==4.3.0
     # via
     #   -c requirements-dev.txt
     #   pydantic
@@ -187,9 +187,9 @@ urllib3==1.26.12
     #   -c requirements-dev.txt
     #   requests
     #   sentry-sdk
-visions[type_image_path]==0.7.4
+visions[type_image_path]==0.7.5
     # via pandas-profiling
-wandb==0.12.16
+wandb==0.13.3
     # via -r requirements-plugins.in
 
 # The following packages are considered to be unsafe in a requirements file:

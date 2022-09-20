@@ -319,7 +319,7 @@ pnd.fit()
         cardinality_threshold=20, cv=StratifiedKFold(n_splits=5, random_state=0, shuffle=True), verbose=0,
         random_state=0, n_jobs=None, plugins=None,
         plot_options=PoniardPlotFactory())
-                
+
 
 … and get a nice table showing the average of each metric in all folds
 for every model, including fit and score times (thanks, scikit-learn

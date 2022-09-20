@@ -2,16 +2,10 @@
 pytest
 tox
 tox-gh-actions
-sphinx
-sphinx-autobuild
-sphinx-autodoc-typehints
-recommonmark
-sphinx-bootstrap-theme
-sphinx-toolbox
-nbsphinx
 jupyter
 ipywidgets<8.0.0
 black[jupyter]
 pre-commit
-nbdev>=2.3.2
+urllib3>=1.26.11
+nbdev>=2.3.4
 -e file:.
