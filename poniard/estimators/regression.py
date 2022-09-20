@@ -79,21 +79,6 @@ class PoniardRegressor(PoniardBaseEstimator):
     cache_transformations :
         Whether to cache transformations and set the `memory` parameter for Pipelines. This can
         speed up slow transformations as they are not recalculated for each estimator.
-
-    Attributes
-    ----------
-    pipelines :
-        Pipelines used for scoring, generally composed by a preprocessor and an estimator.
-    preprocessor :
-        Pipeline that preprocesses the data.
-    metrics :
-        Metrics used for scoring estimators during fit and hyperparameter optimization.
-    cv :
-        Cross validation strategy.
-    target_info :
-        Dict containing information about the `y`.
-    inferred_types :
-        DataFrame mapping features to 1 of 4 types.
     """
 
     def __init__(
