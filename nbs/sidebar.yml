@@ -14,5 +14,5 @@ website:
             - estimators.core.ipynb
             - estimators.classification.ipynb
             - estimators.regression.ipynb
-            - plotting.ipynb
+            - plot.plot_factory.ipynb
             - plugins.ipynb

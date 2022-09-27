@@ -147,3 +147,4 @@ checklink/cookies.txt
 .quarto
 _docs/
 _proc/
+ptools.sh
