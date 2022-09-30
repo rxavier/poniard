@@ -431,6 +431,8 @@ class PoniardPlotFactory:
     ) -> Figure:
         """Plot partial dependence for a single feature of a single estimator.
 
+        In essence, visualize how the target changes within the feature's range.
+
         Only plots average partial dependence for all samples and not individual samples (ICE).
 
         Parameters

@@ -11,8 +11,15 @@ website:
             - guide/03_plotting.ipynb
         - section: Reference
           contents:
-            - estimators.core.ipynb
-            - estimators.classification.ipynb
-            - estimators.regression.ipynb
-            - plot.plot_factory.ipynb
-            - plugins.ipynb
+            - section: Estimators
+              contents:
+                - estimators.core.ipynb
+                - estimators.classification.ipynb
+                - estimators.regression.ipynb
+            - text: "Plots"
+              file: plot.plot_factory.ipynb
+            - section: Plugins
+              contents:
+                - plugins.core.ipynb
+                - plugins.wandb.ipynb
+                - plugins.pandas_profiling.ipynb
