@@ -62,7 +62,9 @@ setup(
             "ipywidgets<8.0.0",
             "black[jupyter]",
             "pre-commit",
-            "nbdev>=2.3.4",
+            "nbdev>=2.3.7",
+            "wandb",
+            "pandas-profiling",
         ]
     },
     include_package_data=True,
