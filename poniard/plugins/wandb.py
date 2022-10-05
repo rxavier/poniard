@@ -40,8 +40,12 @@ class WandBPlugin(BasePlugin):
 
     def build_config(self) -> dict:
         """Helper method that builds a config dict from the poniard instance."""
+        try:
+            estimators = list(self._poniard.estimators.values())
+        except AttributeError:
+            estimators = [x.__class__.__name__ for x in self._poniard._default_estimators]
         return {
-            "estimators": list(self._poniard.estimators.values()),
+            "estimators": estimators,
             "metrics": self._poniard.metrics,
             "cv": self._poniard.cv,
             "preprocess": self._poniard.preprocess,
@@ -157,7 +161,8 @@ class WandBPlugin(BasePlugin):
 
     def on_remove_estimators(self):
         """Log config and results table."""
-        self.on_fit_end()
+        if hasattr(self._poniard, "_means"):
+            self.on_fit_end()
         self.on_setup_end()
         return
 
