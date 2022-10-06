@@ -171,6 +171,9 @@ class PoniardBaseEstimator(ABC):
         self._init_plugins(plugins)
         self._init_plots(plot_options)
 
+        self._added_estimators = {}
+        self._removed_estimators = []
+
     def _init_plugins(self, plugins: Optional[Sequence[Any]] = None) -> None:
         self.plugins = element_to_list_maybe(plugins)
         if self.plugins:
@@ -594,6 +597,9 @@ class PoniardBaseEstimator(ABC):
                 estimator.__class__.__name__: estimator
                 for estimator in self._default_estimators
             }
+        # Take into account removed or added estimators.
+        estimators.update(self._added_estimators)
+        [estimators.pop(name) for name in self._removed_estimators]
         estimators = self._add_dummy_estimators(estimators)
 
         for estimator in estimators.values():
@@ -1009,6 +1015,7 @@ class PoniardBaseEstimator(ABC):
             new_estimators = estimators
         for new_estimator in new_estimators.values():
             self._pass_instance_attrs(new_estimator)
+        self._added_estimators.update(new_estimators)
         if self.preprocess:
             self.pipelines.update(
                 {
@@ -1049,6 +1056,7 @@ class PoniardBaseEstimator(ABC):
             Self.
         """
         estimator_names = element_to_list_maybe(estimator_names)
+        self._removed_estimators.extend(estimator_names)
         pruned_estimators = {
             k: v for k, v in self.pipelines.items() if k not in estimator_names
         }
