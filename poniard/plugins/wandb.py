@@ -43,7 +43,9 @@ class WandBPlugin(BasePlugin):
         try:
             estimators = list(self._poniard.estimators.values())
         except AttributeError:
-            estimators = [x.__class__.__name__ for x in self._poniard._default_estimators]
+            estimators = [
+                x.__class__.__name__ for x in self._poniard._default_estimators
+            ]
         return {
             "estimators": estimators,
             "metrics": self._poniard.metrics,
