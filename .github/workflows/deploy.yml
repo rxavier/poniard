@@ -1,7 +1,7 @@
 name: Deploy to GitHub Pages
 on:
   push:
-    branches: [ "main", "master", "experiment/nbdev"]
+    branches: [ "main", "master", "develop" ]
   workflow_dispatch:
 jobs:
   deploy:
