@@ -8,7 +8,7 @@ website:
             - guide/00_getting_started.ipynb
             - guide/01_main_parameters.ipynb
             - guide/02_preprocessing.ipynb
-            - guide/03_plotting.ipynb
+            - guide/03_end_to_end_example.ipynb
         - section: Reference
           contents:
             - section: Estimators
