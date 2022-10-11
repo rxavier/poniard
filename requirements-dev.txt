@@ -4,10 +4,8 @@
 #
 #    pip-compile requirements-dev.in
 #
-alabaster==0.7.12
-    # via sphinx
-apeye==1.2.0
-    # via sphinx-toolbox
+-e file:.
+    # via -r requirements-dev.in
 appnope==0.1.3
     # via
     #   ipykernel
@@ -16,109 +14,78 @@ argon2-cffi==21.3.0
     # via notebook
 argon2-cffi-bindings==21.2.0
     # via argon2-cffi
-attrs==21.4.0
+asttokens==2.0.8
+    # via
+    #   nbdev
+    #   stack-data
+astunparse==1.6.3
+    # via nbdev
+attrs==22.1.0
     # via
     #   jsonschema
     #   pytest
-autodocsumm==0.2.8
-    # via sphinx-toolbox
-babel==2.10.1
-    # via sphinx
 backcall==0.2.0
     # via ipython
 beautifulsoup4==4.11.1
-    # via
-    #   nbconvert
-    #   sphinx-toolbox
-black[jupyter]==22.3.0
-    # via -r requirements-dev.in
-bleach==5.0.0
     # via nbconvert
-cachecontrol[filecache]==0.12.11
-    # via sphinx-toolbox
-certifi==2021.10.8
-    # via requests
+black[jupyter]==22.8.0
+    # via -r requirements-dev.in
+bleach==5.0.1
+    # via nbconvert
 cffi==1.15.1
     # via argon2-cffi-bindings
 cfgv==3.3.1
     # via pre-commit
-charset-normalizer==2.0.12
-    # via requests
 click==8.1.3
     # via black
-colorama==0.4.4
-    # via sphinx-autobuild
-commonmark==0.9.1
-    # via recommonmark
-cssutils==2.4.0
-    # via dict2css
-debugpy==1.6.0
+debugpy==1.6.3
     # via ipykernel
 decorator==5.1.1
     # via ipython
 defusedxml==0.7.1
     # via nbconvert
-deprecation==2.1.0
-    # via deprecation-alias
-deprecation-alias==0.3.1
-    # via sphinx-toolbox
-dict2css==0.3.0
-    # via sphinx-toolbox
-distlib==0.3.4
+distlib==0.3.6
     # via virtualenv
-docutils==0.16
-    # via
-    #   nbsphinx
-    #   recommonmark
-    #   sphinx
-    #   sphinx-rtd-theme
-    #   sphinx-tabs
-    #   sphinx-toolbox
-domdf-python-tools==3.2.2.post1
-    # via
-    #   apeye
-    #   dict2css
-    #   sphinx-toolbox
 entrypoints==0.4
+    # via jupyter-client
+execnb==0.1.4
+    # via nbdev
+executing==1.0.0
+    # via stack-data
+fastcore==1.5.27
     # via
-    #   jupyter-client
-    #   nbconvert
-fastjsonschema==2.15.3
+    #   execnb
+    #   ghapi
+    #   nbdev
+fastjsonschema==2.16.2
     # via nbformat
-filelock==3.7.0
+filelock==3.8.0
     # via
     #   tox
     #   virtualenv
-html5lib==1.1
-    # via sphinx-toolbox
-identify==2.5.0
+ghapi==1.0.3
+    # via nbdev
+identify==2.5.5
     # via pre-commit
-idna==3.3
-    # via
-    #   apeye
-    #   requests
-imagesize==1.3.0
-    # via sphinx
-importlib-metadata==4.11.3
-    # via
-    #   domdf-python-tools
-    #   sphinx
-importlib-resources==5.7.1
+importlib-metadata==4.12.0
+    # via nbconvert
+importlib-resources==5.9.0
     # via
     #   jsonschema
     #   tox-gh-actions
 iniconfig==1.1.1
     # via pytest
-ipykernel==6.13.0
+ipykernel==6.15.3
     # via
     #   ipywidgets
     #   jupyter
     #   jupyter-console
     #   notebook
     #   qtconsole
-ipython==7.32.0
+ipython==8.5.0
     # via
     #   black
+    #   execnb
     #   ipykernel
     #   ipywidgets
     #   jupyter-console
@@ -133,18 +100,19 @@ ipywidgets==7.7.2
     #   jupyter
 jedi==0.18.1
     # via ipython
-jinja2==3.1.1
+jinja2==3.1.2
     # via
     #   nbconvert
-    #   nbsphinx
     #   notebook
-    #   sphinx
-    #   sphinx-jinja2-compat
-jsonschema==4.4.0
+joblib==1.1.0
+    # via
+    #   -c requirements.txt
+    #   scikit-learn
+jsonschema==4.16.0
     # via nbformat
 jupyter==1.0.0
     # via -r requirements-dev.in
-jupyter-client==7.3.0
+jupyter-client==7.3.5
     # via
     #   ipykernel
     #   jupyter-console
@@ -153,7 +121,7 @@ jupyter-client==7.3.0
     #   qtconsole
 jupyter-console==6.4.4
     # via jupyter
-jupyter-core==4.10.0
+jupyter-core==4.11.1
     # via
     #   jupyter-client
     #   nbconvert
@@ -164,132 +132,140 @@ jupyterlab-pygments==0.2.2
     # via nbconvert
 jupyterlab-widgets==1.1.1
     # via ipywidgets
-livereload==2.6.3
-    # via sphinx-autobuild
-lockfile==0.12.2
-    # via
-    #   cachecontrol
-    #   sphinx-toolbox
+lxml==4.9.1
+    # via nbconvert
 markupsafe==2.1.1
     # via
     #   jinja2
     #   nbconvert
-    #   sphinx-jinja2-compat
-matplotlib-inline==0.1.3
+matplotlib-inline==0.1.6
     # via
     #   ipykernel
     #   ipython
-mistune==0.8.4
+mistune==2.0.4
     # via nbconvert
-msgpack==1.0.3
-    # via cachecontrol
 mypy-extensions==0.4.3
     # via black
-natsort==8.1.0
-    # via domdf-python-tools
-nbclient==0.6.0
+nbclient==0.6.8
     # via nbconvert
-nbconvert==6.5.0
+nbconvert==7.0.0
     # via
     #   jupyter
-    #   nbsphinx
     #   notebook
-nbformat==5.3.0
+nbdev==2.3.7
+    # via -r requirements-dev.in
+nbformat==5.5.0
     # via
     #   nbclient
     #   nbconvert
-    #   nbsphinx
     #   notebook
-nbsphinx==0.8.9
-    # via -r requirements-dev.in
 nest-asyncio==1.5.5
     # via
     #   ipykernel
     #   jupyter-client
     #   nbclient
     #   notebook
-nodeenv==1.6.0
+nodeenv==1.7.0
     # via pre-commit
 notebook==6.4.12
     # via
     #   jupyter
     #   widgetsnbextension
+numpy==1.22.4 ; python_version >= "3.8"
+    # via
+    #   -c requirements.txt
+    #   pandas
+    #   poniard
+    #   scikit-learn
+    #   scipy
+    #   xgboost
 packaging==21.3
     # via
-    #   deprecation
-    #   deprecation-alias
+    #   fastcore
+    #   ghapi
     #   ipykernel
     #   nbconvert
     #   pytest
     #   qtpy
-    #   sphinx
     #   tox
+pandas==1.3.5
+    # via
+    #   -c requirements.txt
+    #   poniard
 pandocfilters==1.5.0
     # via nbconvert
 parso==0.8.3
     # via jedi
-pathspec==0.9.0
+pathspec==0.10.1
     # via black
 pexpect==4.8.0
     # via ipython
 pickleshare==0.7.5
     # via ipython
+pkgutil-resolve-name==1.3.10
+    # via jsonschema
 platformdirs==2.5.2
     # via
-    #   apeye
     #   black
     #   virtualenv
+plotly==5.7.0
+    # via
+    #   -c requirements.txt
+    #   poniard
 pluggy==1.0.0
     # via
     #   pytest
     #   tox
-pre-commit==2.19.0
+pre-commit==2.20.0
     # via -r requirements-dev.in
 prometheus-client==0.14.1
     # via notebook
-prompt-toolkit==3.0.29
+prompt-toolkit==3.0.31
     # via
     #   ipython
     #   jupyter-console
-psutil==5.9.0
+psutil==5.9.2
     # via ipykernel
 ptyprocess==0.7.0
     # via
     #   pexpect
     #   terminado
+pure-eval==0.2.2
+    # via stack-data
 py==1.11.0
     # via
     #   pytest
     #   tox
 pycparser==2.21
     # via cffi
-pygments==2.12.0
+pygments==2.13.0
     # via
     #   ipython
     #   jupyter-console
     #   nbconvert
     #   qtconsole
-    #   sphinx
-    #   sphinx-prompt
-    #   sphinx-tabs
-pyparsing==3.0.8
+pyparsing==3.0.9
     # via packaging
 pyrsistent==0.18.1
     # via jsonschema
-pytest==7.1.2
+pytest==7.1.3
     # via -r requirements-dev.in
 python-dateutil==2.8.2
     # via
     #   -c requirements.txt
     #   jupyter-client
+    #   pandas
 pytz==2021.3
     # via
     #   -c requirements.txt
-    #   babel
+    #   pandas
 pyyaml==6.0
-    # via pre-commit
-pyzmq==22.3.0
     # via
+    #   nbdev
+    #   pre-commit
+pyzmq==24.0.0
+    # via
+    #   ipykernel
     #   jupyter-client
     #   notebook
     #   qtconsole
@@ -297,102 +273,68 @@ qtconsole==5.3.2
     # via jupyter
 qtpy==2.2.0
     # via qtconsole
-recommonmark==0.7.1
-    # via -r requirements-dev.in
-requests==2.27.1
+scikit-learn==1.1.0 ; python_version >= "3.8"
     # via
-    #   apeye
-    #   cachecontrol
-    #   sphinx
-ruamel-yaml==0.17.21
-    # via sphinx-toolbox
-ruamel-yaml-clib==0.2.6
-    # via ruamel-yaml
+    #   -c requirements.txt
+    #   poniard
+scipy==1.7.3
+    # via
+    #   -c requirements.txt
+    #   scikit-learn
+    #   xgboost
 send2trash==1.8.0
     # via notebook
 six==1.16.0
     # via
     #   -c requirements.txt
+    #   asttokens
+    #   astunparse
     #   bleach
-    #   html5lib
-    #   livereload
+    #   plotly
     #   python-dateutil
     #   tox
-    #   virtualenv
-snowballstemmer==2.2.0
-    # via sphinx
 soupsieve==2.3.2.post1
     # via beautifulsoup4
-sphinx==4.5.0
+stack-data==0.5.0
+    # via ipython
+tenacity==8.0.1
     # via
-    #   -r requirements-dev.in
-    #   autodocsumm
-    #   nbsphinx
-    #   recommonmark
-    #   sphinx-autobuild
-    #   sphinx-autodoc-typehints
-    #   sphinx-prompt
-    #   sphinx-rtd-theme
-    #   sphinx-tabs
-    #   sphinx-toolbox
-sphinx-autobuild==2021.3.14
-    # via -r requirements-dev.in
-sphinx-autodoc-typehints==1.14.1
-    # via
-    #   -r requirements-dev.in
-    #   sphinx-toolbox
-sphinx-jinja2-compat==0.1.2
-    # via sphinx-toolbox
-sphinx-prompt==1.5.0
-    # via sphinx-toolbox
-sphinx-rtd-theme==1.0.0
-    # via -r requirements-dev.in
-sphinx-tabs==3.2.0
-    # via sphinx-toolbox
-sphinx-toolbox==2.18.2
-    # via -r requirements-dev.in
-sphinxcontrib-applehelp==1.0.2
-    # via sphinx
-sphinxcontrib-devhelp==1.0.2
-    # via sphinx
-sphinxcontrib-htmlhelp==2.0.0
-    # via sphinx
-sphinxcontrib-jsmath==1.0.1
-    # via sphinx
-sphinxcontrib-qthelp==1.0.3
-    # via sphinx
-sphinxcontrib-serializinghtml==1.1.5
-    # via sphinx
-tabulate==0.8.9
-    # via sphinx-toolbox
+    #   -c requirements.txt
+    #   plotly
 terminado==0.15.0
     # via notebook
+threadpoolctl==3.1.0
+    # via
+    #   -c requirements.txt
+    #   scikit-learn
 tinycss2==1.1.1
     # via nbconvert
 tokenize-rt==4.2.1
     # via black
 toml==0.10.2
-    # via
-    #   pre-commit
-    #   tox
+    # via pre-commit
 tomli==2.0.1
     # via
     #   black
     #   pytest
-tornado==6.1
+    #   tox
+tornado==6.2
     # via
     #   ipykernel
     #   jupyter-client
-    #   livereload
     #   notebook
     #   terminado
-tox==3.25.0
+tox==3.26.0
     # via
     #   -r requirements-dev.in
     #   tox-gh-actions
 tox-gh-actions==2.9.1
     # via -r requirements-dev.in
-traitlets==5.1.1
+tqdm==4.63.0
+    # via
+    #   -c requirements.txt
+    #   poniard
+traitlets==5.4.0
     # via
     #   ipykernel
     #   ipython
@@ -403,35 +345,37 @@ traitlets==5.1.1
     #   nbclient
     #   nbconvert
     #   nbformat
-    #   nbsphinx
     #   notebook
     #   qtconsole
-typing-extensions==4.2.0
-    # via
-    #   black
-    #   domdf-python-tools
-    #   sphinx-toolbox
+typing-extensions==4.3.0
+    # via black
 urllib3==1.26.12
-    # via
-    #   -r requirements-dev.in
-    #   requests
-virtualenv==20.14.1
+    # via -r requirements-dev.in
+virtualenv==20.16.5
     # via
     #   pre-commit
     #   tox
+watchdog==2.1.9
+    # via nbdev
 wcwidth==0.2.5
     # via prompt-toolkit
 webencodings==0.5.1
     # via
     #   bleach
-    #   html5lib
     #   tinycss2
+wheel==0.37.1
+    # via astunparse
 widgetsnbextension==3.6.1
     # via ipywidgets
-zipp==3.8.0
+xgboost==1.5.2
+    # via
+    #   -c requirements.txt
+    #   poniard
+zipp==3.8.1
     # via
     #   importlib-metadata
     #   importlib-resources
 
 # The following packages are considered to be unsafe in a requirements file:
+# pip
 # setuptools

@@ -1,0 +1,25 @@
+website:
+  sidebar:
+      search: true
+      contents:
+        - index.ipynb
+        - section: Guide
+          contents:
+            - guide/00_getting_started.ipynb
+            - guide/01_main_parameters.ipynb
+            - guide/02_preprocessing.ipynb
+            - guide/03_end_to_end_example.ipynb
+        - section: Reference
+          contents:
+            - section: Estimators
+              contents:
+                - estimators.core.ipynb
+                - estimators.classification.ipynb
+                - estimators.regression.ipynb
+            - text: "Plots"
+              file: plot.plot_factory.ipynb
+            - section: Plugins
+              contents:
+                - plugins.core.ipynb
+                - plugins.wandb.ipynb
+                - plugins.pandas_profiling.ipynb

@@ -136,3 +136,15 @@ pyvenv.cfg
 transformation_cache
 docs/source/*.ipynb
 docs/source/README.md
+
+/.quarto/
+token
+docs_src/.last_checked
+checklink/cookies.txt
+.gitconfig
+.deb
+.pkg
+.quarto
+_docs/
+_proc/
+ptools.sh
