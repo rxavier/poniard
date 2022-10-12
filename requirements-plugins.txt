@@ -38,7 +38,7 @@ jinja2==3.1.2
     # via
     #   -c requirements-dev.txt
     #   pandas-profiling
-joblib==1.1.0
+joblib==1.2.0
     # via
     #   -c requirements-dev.txt
     #   pandas-profiling
@@ -91,7 +91,7 @@ pandas==1.3.5
     #   seaborn
     #   statsmodels
     #   visions
-pandas-profiling==3.3.0
+pandas-profiling @ git+https://github.com/ydataai/pandas-profiling.git@v3.3.1.rc8
     # via -r requirements-plugins.in
 pathtools==0.1.2
     # via wandb
