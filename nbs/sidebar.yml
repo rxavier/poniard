@@ -16,6 +16,10 @@ website:
                 - estimators.core.ipynb
                 - estimators.classification.ipynb
                 - estimators.regression.ipynb
+            - section: Preprocessors
+              contents:
+                - preprocessing.categorical.ipynb
+                - preprocessing.datetime.ipynb
             - text: "Plots"
               file: plot.plot_factory.ipynb
             - section: Plugins
