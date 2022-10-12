@@ -319,7 +319,7 @@ pnd.fit()
         cardinality_threshold=20, cv=StratifiedKFold(n_splits=5, random_state=0, shuffle=True), verbose=0,
         random_state=0, n_jobs=None, plugins=None,
         plot_options=PoniardPlotFactory())
-
+                
 
 … and get a nice table showing the average of each metric in all folds
 for every model, including fit and score times (thanks, scikit-learn
@@ -364,8 +364,8 @@ pnd.get_results()
       <td>0.975411</td>
       <td>0.991549</td>
       <td>0.983351</td>
-      <td>0.065284</td>
-      <td>0.003677</td>
+      <td>0.028360</td>
+      <td>0.005732</td>
     </tr>
     <tr>
       <th>SVC</th>
@@ -374,8 +374,8 @@ pnd.get_results()
       <td>0.975111</td>
       <td>0.985955</td>
       <td>0.980477</td>
-      <td>0.011777</td>
-      <td>0.005631</td>
+      <td>0.013040</td>
+      <td>0.004722</td>
     </tr>
     <tr>
       <th>HistGradientBoostingClassifier</th>
@@ -384,8 +384,8 @@ pnd.get_results()
       <td>0.967263</td>
       <td>0.985955</td>
       <td>0.976433</td>
-      <td>0.777409</td>
-      <td>0.021532</td>
+      <td>1.020478</td>
+      <td>0.027311</td>
     </tr>
     <tr>
       <th>XGBClassifier</th>
@@ -394,8 +394,8 @@ pnd.get_results()
       <td>0.967554</td>
       <td>0.985915</td>
       <td>0.976469</td>
-      <td>0.051208</td>
-      <td>0.004141</td>
+      <td>0.050762</td>
+      <td>0.004651</td>
     </tr>
     <tr>
       <th>RandomForestClassifier</th>
@@ -404,8 +404,8 @@ pnd.get_results()
       <td>0.964647</td>
       <td>0.980282</td>
       <td>0.972192</td>
-      <td>0.109179</td>
-      <td>0.014232</td>
+      <td>0.077252</td>
+      <td>0.009106</td>
     </tr>
     <tr>
       <th>GaussianNB</th>
@@ -414,8 +414,8 @@ pnd.get_results()
       <td>0.940993</td>
       <td>0.949413</td>
       <td>0.944300</td>
-      <td>0.004181</td>
-      <td>0.010659</td>
+      <td>0.005811</td>
+      <td>0.004977</td>
     </tr>
     <tr>
       <th>KNeighborsClassifier</th>
@@ -424,8 +424,8 @@ pnd.get_results()
       <td>0.955018</td>
       <td>0.991628</td>
       <td>0.972746</td>
-      <td>0.006089</td>
-      <td>0.024895</td>
+      <td>0.002219</td>
+      <td>0.008544</td>
     </tr>
     <tr>
       <th>DecisionTreeClassifier</th>
@@ -434,8 +434,8 @@ pnd.get_results()
       <td>0.941672</td>
       <td>0.941080</td>
       <td>0.941054</td>
-      <td>0.008570</td>
-      <td>0.004119</td>
+      <td>0.006185</td>
+      <td>0.002790</td>
     </tr>
     <tr>
       <th>DummyClassifier</th>
@@ -444,8 +444,8 @@ pnd.get_results()
       <td>0.627418</td>
       <td>1.000000</td>
       <td>0.771052</td>
-      <td>0.001781</td>
-      <td>0.002371</td>
+      <td>0.001918</td>
+      <td>0.002624</td>
     </tr>
   </tbody>
 </table>
@@ -542,8 +542,8 @@ pnd.get_results()
       <td>0.975411</td>
       <td>0.991549</td>
       <td>0.983351</td>
-      <td>0.065284</td>
-      <td>0.003677</td>
+      <td>0.028360</td>
+      <td>0.005732</td>
     </tr>
     <tr>
       <th>SVC</th>
@@ -552,8 +552,8 @@ pnd.get_results()
       <td>0.975111</td>
       <td>0.985955</td>
       <td>0.980477</td>
-      <td>0.011777</td>
-      <td>0.005631</td>
+      <td>0.013040</td>
+      <td>0.004722</td>
     </tr>
     <tr>
       <th>HistGradientBoostingClassifier</th>
@@ -562,8 +562,8 @@ pnd.get_results()
       <td>0.967263</td>
       <td>0.985955</td>
       <td>0.976433</td>
-      <td>0.777409</td>
-      <td>0.021532</td>
+      <td>1.020478</td>
+      <td>0.027311</td>
     </tr>
     <tr>
       <th>XGBClassifier</th>
@@ -572,8 +572,8 @@ pnd.get_results()
       <td>0.967554</td>
       <td>0.985915</td>
       <td>0.976469</td>
-      <td>0.051208</td>
-      <td>0.004141</td>
+      <td>0.050762</td>
+      <td>0.004651</td>
     </tr>
     <tr>
       <th>RandomForestClassifier_tuned</th>
@@ -582,8 +582,8 @@ pnd.get_results()
       <td>0.961836</td>
       <td>0.974726</td>
       <td>0.968054</td>
-      <td>0.071919</td>
-      <td>0.008346</td>
+      <td>0.075797</td>
+      <td>0.008982</td>
     </tr>
     <tr>
       <th>RandomForestClassifier</th>
@@ -592,8 +592,8 @@ pnd.get_results()
       <td>0.964647</td>
       <td>0.980282</td>
       <td>0.972192</td>
-      <td>0.109179</td>
-      <td>0.014232</td>
+      <td>0.077252</td>
+      <td>0.009106</td>
     </tr>
     <tr>
       <th>GaussianNB</th>
@@ -602,8 +602,8 @@ pnd.get_results()
       <td>0.940993</td>
       <td>0.949413</td>
       <td>0.944300</td>
-      <td>0.004181</td>
-      <td>0.010659</td>
+      <td>0.005811</td>
+      <td>0.004977</td>
     </tr>
     <tr>
       <th>KNeighborsClassifier</th>
@@ -612,8 +612,8 @@ pnd.get_results()
       <td>0.955018</td>
       <td>0.991628</td>
       <td>0.972746</td>
-      <td>0.006089</td>
-      <td>0.024895</td>
+      <td>0.002219</td>
+      <td>0.008544</td>
     </tr>
     <tr>
       <th>DecisionTreeClassifier</th>
@@ -622,8 +622,8 @@ pnd.get_results()
       <td>0.941672</td>
       <td>0.941080</td>
       <td>0.941054</td>
-      <td>0.008570</td>
-      <td>0.004119</td>
+      <td>0.006185</td>
+      <td>0.002790</td>
     </tr>
     <tr>
       <th>DummyClassifier</th>
@@ -632,8 +632,8 @@ pnd.get_results()
       <td>0.627418</td>
       <td>1.000000</td>
       <td>0.771052</td>
-      <td>0.001781</td>
-      <td>0.002371</td>
+      <td>0.001918</td>
+      <td>0.002624</td>
     </tr>
   </tbody>
 </table>
@@ -644,15 +644,17 @@ pnd.get_results()
 The `plot` accessor provides several plotting methods based on the
 attached Poniard estimator instance. These Plotly plots are based on a
 default template, but can be modified by passing a different
-`PoniardPlotFactory` to the Poniard `plot_options` argument.
+[`PoniardPlotFactory`](https://rxavier.github.io/poniard/plot.plot_factory.html#poniardplotfactory)
+to the Poniard `plot_options` argument.
 
 ### Plugin system
 
 The `plugins` argument in Poniard estimators takes a plugin or list of
-plugins that subclass `BasePlugin`. These plugins have access to the
-Poniard estimator instance and hook onto different sections of the
-process, for example, on setup start, on fit end, on remove estimator,
-etc.
+plugins that subclass
+[`BasePlugin`](https://rxavier.github.io/poniard/plugins.core.html#baseplugin).
+These plugins have access to the Poniard estimator instance and hook
+onto different sections of the process, for example, on setup start, on
+fit end, on remove estimator, etc.
 
 This makes it easy for third parties to extend Poniard’s functionality.
 
