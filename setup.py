@@ -65,7 +65,7 @@ setup(
             "pre-commit",
             "nbdev>=2.3.7",
             "wandb",
-            "pandas-profiling @ git+https://github.com/ydataai/pandas-profiling.git@v3.3.1.rc8",
+            "pandas-profiling",
         ]
     },
     include_package_data=True,
