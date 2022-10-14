@@ -593,12 +593,3 @@ class PoniardPlotFactory:
             name=f"Residuals histogram plot with cross validated predictions",
         )
         return fig
-
-    def __repr__(self):
-        return f"""{self.__class__.__name__}(template={self._template},
-    discrete_colors={self._discrete_colors}, font_family={self._font_family},
-    font_color={self._font_color})
-    """
-
-    def __str__(self):
-        return f"""{self.__class__.__name__}()"""
