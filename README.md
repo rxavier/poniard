@@ -12,10 +12,15 @@ Poniard
 > thrusting knife ([Wikipedia](https://en.wikipedia.org/wiki/Poignard)).
 
 Poniard is a scikit-learn companion library that streamlines the process
-of fitting different machine learning models and comparing them. It is
-meant to measure how “challenging” a problem/dataset is, which types of
-models work well for the task, and help decide which algorithm to
-choose.
+of fitting different machine learning models and comparing them.
+
+It can be used to provide quick answers to questions like these: \* What
+is the reasonable range of scores for this task? \* Is a simple and
+explainable linear model enough or should I work with forests and
+gradient boosters? \* Are the features good enough as is or should I
+work on feature engineering? \* How much can hyperparemeter tuning
+improve metrics? \* Do I need to work on a custom preprocessing
+strategy?
 
 This is not meant to be end to end solution, and you definitely should
 keep on working on your models after you are done with Poniard.
@@ -329,20 +334,6 @@ for every model, including fit and score times (thanks, scikit-learn
 pnd.get_results()
 ```
 
-<div>
-<style scoped>
-    .dataframe tbody tr th:only-of-type {
-        vertical-align: middle;
-    }
-
-    .dataframe tbody tr th {
-        vertical-align: top;
-    }
-
-    .dataframe thead th {
-        text-align: right;
-    }
-</style>
 <table border="1" class="dataframe">
   <thead>
     <tr style="text-align: right;">
@@ -364,8 +355,8 @@ pnd.get_results()
       <td>0.975411</td>
       <td>0.991549</td>
       <td>0.983351</td>
-      <td>0.028360</td>
-      <td>0.005732</td>
+      <td>0.012594</td>
+      <td>0.004843</td>
     </tr>
     <tr>
       <th>SVC</th>
@@ -374,8 +365,8 @@ pnd.get_results()
       <td>0.975111</td>
       <td>0.985955</td>
       <td>0.980477</td>
-      <td>0.013040</td>
-      <td>0.004722</td>
+      <td>0.012787</td>
+      <td>0.004670</td>
     </tr>
     <tr>
       <th>HistGradientBoostingClassifier</th>
@@ -384,8 +375,8 @@ pnd.get_results()
       <td>0.967263</td>
       <td>0.985955</td>
       <td>0.976433</td>
-      <td>1.020478</td>
-      <td>0.027311</td>
+      <td>0.629406</td>
+      <td>0.020246</td>
     </tr>
     <tr>
       <th>XGBClassifier</th>
@@ -394,8 +385,8 @@ pnd.get_results()
       <td>0.967554</td>
       <td>0.985915</td>
       <td>0.976469</td>
-      <td>0.050762</td>
-      <td>0.004651</td>
+      <td>0.049646</td>
+      <td>0.004199</td>
     </tr>
     <tr>
       <th>RandomForestClassifier</th>
@@ -404,8 +395,8 @@ pnd.get_results()
       <td>0.964647</td>
       <td>0.980282</td>
       <td>0.972192</td>
-      <td>0.077252</td>
-      <td>0.009106</td>
+      <td>0.072604</td>
+      <td>0.008286</td>
     </tr>
     <tr>
       <th>GaussianNB</th>
@@ -414,8 +405,8 @@ pnd.get_results()
       <td>0.940993</td>
       <td>0.949413</td>
       <td>0.944300</td>
-      <td>0.005811</td>
-      <td>0.004977</td>
+      <td>0.005015</td>
+      <td>0.006831</td>
     </tr>
     <tr>
       <th>KNeighborsClassifier</th>
@@ -424,8 +415,8 @@ pnd.get_results()
       <td>0.955018</td>
       <td>0.991628</td>
       <td>0.972746</td>
-      <td>0.002219</td>
-      <td>0.008544</td>
+      <td>0.002585</td>
+      <td>0.013569</td>
     </tr>
     <tr>
       <th>DecisionTreeClassifier</th>
@@ -434,8 +425,8 @@ pnd.get_results()
       <td>0.941672</td>
       <td>0.941080</td>
       <td>0.941054</td>
-      <td>0.006185</td>
-      <td>0.002790</td>
+      <td>0.005604</td>
+      <td>0.002427</td>
     </tr>
     <tr>
       <th>DummyClassifier</th>
@@ -444,12 +435,11 @@ pnd.get_results()
       <td>0.627418</td>
       <td>1.000000</td>
       <td>0.771052</td>
-      <td>0.001918</td>
-      <td>0.002624</td>
+      <td>0.001752</td>
+      <td>0.002329</td>
     </tr>
   </tbody>
 </table>
-</div>
 
 Alternatively, you can also get a nice plot of your different metrics by
 using the `PoniardBaseEstimator.plot.metrics` method.
@@ -505,22 +495,6 @@ pnd.fit()  # This will only fit new estimators
 pnd.get_results()
 ```
 
-      0%|          | 0/1 [00:00<?, ?it/s]
-
-<div>
-<style scoped>
-    .dataframe tbody tr th:only-of-type {
-        vertical-align: middle;
-    }
-
-    .dataframe tbody tr th {
-        vertical-align: top;
-    }
-
-    .dataframe thead th {
-        text-align: right;
-    }
-</style>
 <table border="1" class="dataframe">
   <thead>
     <tr style="text-align: right;">
@@ -542,8 +516,8 @@ pnd.get_results()
       <td>0.975411</td>
       <td>0.991549</td>
       <td>0.983351</td>
-      <td>0.028360</td>
-      <td>0.005732</td>
+      <td>0.012594</td>
+      <td>0.004843</td>
     </tr>
     <tr>
       <th>SVC</th>
@@ -552,8 +526,8 @@ pnd.get_results()
       <td>0.975111</td>
       <td>0.985955</td>
       <td>0.980477</td>
-      <td>0.013040</td>
-      <td>0.004722</td>
+      <td>0.012787</td>
+      <td>0.004670</td>
     </tr>
     <tr>
       <th>HistGradientBoostingClassifier</th>
@@ -562,8 +536,8 @@ pnd.get_results()
       <td>0.967263</td>
       <td>0.985955</td>
       <td>0.976433</td>
-      <td>1.020478</td>
-      <td>0.027311</td>
+      <td>0.629406</td>
+      <td>0.020246</td>
     </tr>
     <tr>
       <th>XGBClassifier</th>
@@ -572,8 +546,8 @@ pnd.get_results()
       <td>0.967554</td>
       <td>0.985915</td>
       <td>0.976469</td>
-      <td>0.050762</td>
-      <td>0.004651</td>
+      <td>0.049646</td>
+      <td>0.004199</td>
     </tr>
     <tr>
       <th>RandomForestClassifier_tuned</th>
@@ -582,8 +556,8 @@ pnd.get_results()
       <td>0.961836</td>
       <td>0.974726</td>
       <td>0.968054</td>
-      <td>0.075797</td>
-      <td>0.008982</td>
+      <td>0.071381</td>
+      <td>0.008178</td>
     </tr>
     <tr>
       <th>RandomForestClassifier</th>
@@ -592,8 +566,8 @@ pnd.get_results()
       <td>0.964647</td>
       <td>0.980282</td>
       <td>0.972192</td>
-      <td>0.077252</td>
-      <td>0.009106</td>
+      <td>0.072604</td>
+      <td>0.008286</td>
     </tr>
     <tr>
       <th>GaussianNB</th>
@@ -602,8 +576,8 @@ pnd.get_results()
       <td>0.940993</td>
       <td>0.949413</td>
       <td>0.944300</td>
-      <td>0.005811</td>
-      <td>0.004977</td>
+      <td>0.005015</td>
+      <td>0.006831</td>
     </tr>
     <tr>
       <th>KNeighborsClassifier</th>
@@ -612,8 +586,8 @@ pnd.get_results()
       <td>0.955018</td>
       <td>0.991628</td>
       <td>0.972746</td>
-      <td>0.002219</td>
-      <td>0.008544</td>
+      <td>0.002585</td>
+      <td>0.013569</td>
     </tr>
     <tr>
       <th>DecisionTreeClassifier</th>
@@ -622,8 +596,8 @@ pnd.get_results()
       <td>0.941672</td>
       <td>0.941080</td>
       <td>0.941054</td>
-      <td>0.006185</td>
-      <td>0.002790</td>
+      <td>0.005604</td>
+      <td>0.002427</td>
     </tr>
     <tr>
       <th>DummyClassifier</th>
@@ -632,12 +606,11 @@ pnd.get_results()
       <td>0.627418</td>
       <td>1.000000</td>
       <td>0.771052</td>
-      <td>0.001918</td>
-      <td>0.002624</td>
+      <td>0.001752</td>
+      <td>0.002329</td>
     </tr>
   </tbody>
 </table>
-</div>
 
 ### Plotting
 
