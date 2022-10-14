@@ -65,7 +65,7 @@ setup(
             "pre-commit",
             "nbdev>=2.3.7",
             "wandb",
-            "pandas-profiling",
+            "pandas-profiling>=3.3.0",
         ]
     },
     include_package_data=True,
