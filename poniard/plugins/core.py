@@ -10,6 +10,8 @@ from abc import ABC
 from plotly.graph_objs._figure import Figure
 from sklearn.base import BaseEstimator
 
+from ..utils.utils import get_kwargs, non_default_repr
+
 if TYPE_CHECKING:
     from poniard.estimators.core import PoniardBaseEstimator
 
@@ -18,6 +20,7 @@ class BasePlugin(ABC):
     """Base plugin class. New plugins should inherit from this class."""
 
     def __init__(self):
+        self._init_params = get_kwargs(back=True)
         self._poniard: Optional["PoniardBaseEstimator"] = None
 
     def on_setup_start(self):
@@ -80,3 +83,6 @@ class BasePlugin(ABC):
             return self._poniard.plugins[plugin_names.index(plugin_cls_name)]
         else:
             return False
+
+    def __repr__(self):
+        return non_default_repr(self)

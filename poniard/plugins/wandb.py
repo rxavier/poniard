@@ -34,6 +34,7 @@ class WandBPlugin(BasePlugin):
     def __init__(
         self, project: Optional[str] = None, entity: Optional[str] = None, **kwargs
     ):
+        super().__init__()
         self.project = project
         self.entity = entity
         self.run = wandb.init(project=project, entity=entity, **kwargs)

@@ -51,8 +51,7 @@ setup(
         "pandas>=1.3.5",
         "numpy>=1.22.0; python_version >= '3.8'",
         "plotly",
-        "tqdm",
-        "joblib>=1.2.0",  # Due to vuinerability for previous versions
+        "tqdm",  # Due to vuinerability for previous versions
     ],
     extras_require={
         "dev": [
@@ -65,7 +64,7 @@ setup(
             "pre-commit",
             "nbdev>=2.3.7",
             "wandb",
-            "pandas-profiling",
+            "pandas-profiling>=3.3.0",
         ]
     },
     include_package_data=True,
