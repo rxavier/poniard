@@ -14,8 +14,8 @@ sync-fix-m1:
 	arch -arm64 pip-sync requirements.txt requirements-dev.txt requirements-plugins.txt --pip-args "--no-cache-dir --force-reinstall"
 latest-nbdev:
 	pip install git+https://github.com/fastai/nbdev.git --upgrade
-exec:
-	for f in `find nbs -name '*.ipynb' -not -name '*checkpoint*'`; do \
+exec-guides:
+	for f in `find nbs/guide -name '*.ipynb' -not -name '*checkpoint*'`; do \
 		echo $$f && exec_nb $$f --dest $$f; \
 	done
 exec-modules:
