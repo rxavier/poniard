@@ -50,7 +50,7 @@ from ..preprocessing import DatetimeEncoder, TargetEncoder
 from ..utils.stats import cramers_v
 from ..utils.hyperparameters import get_grid
 from ..utils.estimate import get_target_info, element_to_list_maybe
-from ..utils.utils import get_kwargs, get_non_default_params
+from ..utils.utils import get_kwargs, non_default_repr
 from ..plot import PoniardPlotFactory
 
 # %% auto 0
@@ -1427,14 +1427,7 @@ class PoniardBaseEstimator(ABC):
             return self._experiment_results[estimator_name][method]
 
     def __repr__(self):
-        non_default_params = get_non_default_params(self.__class__, self._init_params)
-        params_string = ", ".join(
-            [
-                f"{k}={v}" if not isinstance(v, str) else f"{k}='{v}'"
-                for k, v in non_default_params.items()
-            ]
-        )
-        return f"""{self.__class__.__name__}({params_string})"""
+        return non_default_repr(self)
 
     def __add__(
         self,

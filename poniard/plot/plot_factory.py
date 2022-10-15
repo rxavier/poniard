@@ -18,6 +18,7 @@ from plotly.graph_objs._figure import Figure
 if TYPE_CHECKING:
     from poniard.estimators.core import PoniardBaseEstimator
 from ..utils.estimate import element_to_list_maybe
+from ..utils.utils import get_kwargs, non_default_repr
 
 # %% ../../nbs/plot.plot_factory.ipynb 5
 class PoniardPlotFactory:
@@ -45,6 +46,7 @@ class PoniardPlotFactory:
         font_family: str = "Helvetica",
         font_color: str = "#8C8C8C",
     ):
+        self._init_params = get_kwargs()
         self._template = template
         self._discrete_colors = discrete_colors
         self._font_family = font_family
@@ -593,3 +595,6 @@ class PoniardPlotFactory:
             name=f"Residuals histogram plot with cross validated predictions",
         )
         return fig
+
+    def __repr__(self):
+        return non_default_repr(self)

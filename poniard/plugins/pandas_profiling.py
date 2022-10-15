@@ -38,6 +38,7 @@ class PandasProfilingPlugin(BasePlugin):
         html_path: Union[str, Path] = None,
         **kwargs
     ):
+        super().__init__()
         self.title = title
         self.explorative = explorative
         self.minimal = minimal
