@@ -54,11 +54,6 @@ class WandBPlugin(BasePlugin):
             "preprocess": self._poniard.preprocess,
             "preprocessor": self._poniard.preprocessor,
             "custom_preprocessor": self._poniard.custom_preprocessor,
-            "numeric_imputer": self._poniard.numeric_imputer,
-            "scaler": self._poniard.scaler,
-            "numeric_threshold": self._poniard.numeric_threshold,
-            "cardinality_threshold": self._poniard.cardinality_threshold,
-            "high_cardinality_encoder": self._poniard.high_cardinality_encoder,
             "verbosity": self._poniard.verbose,
             "n_jobs": self._poniard.n_jobs,
             "random_state": self._poniard.random_state,
@@ -87,7 +82,10 @@ class WandBPlugin(BasePlugin):
 
     def on_infer_types(self):
         """Log the inferred types dataframe as a table."""
-        table = wandb.Table(dataframe=self._poniard.inferred_types)
+        feature_types = pd.DataFrame.from_dict(
+            self._poniard._poniard_preprocessor.feature_types, orient="index"
+        ).T.fillna("")
+        table = wandb.Table(dataframe=feature_types)
         wandb.log({"Inferred types": table})
         return
 

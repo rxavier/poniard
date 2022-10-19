@@ -18,6 +18,7 @@ website:
                 - estimators.regression.ipynb
             - section: Preprocessors
               contents:
+                - preprocessing.core.ipynb
                 - preprocessing.categorical.ipynb
                 - preprocessing.datetime.ipynb
             - text: "Plots"

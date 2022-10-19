@@ -349,8 +349,8 @@ pnd.get_results()
       <td>0.975411</td>
       <td>0.991549</td>
       <td>0.983351</td>
-      <td>0.006384</td>
-      <td>0.004307</td>
+      <td>0.114221</td>
+      <td>0.005899</td>
     </tr>
     <tr>
       <th>SVC</th>
@@ -359,8 +359,8 @@ pnd.get_results()
       <td>0.975111</td>
       <td>0.985955</td>
       <td>0.980477</td>
-      <td>0.014951</td>
-      <td>0.003119</td>
+      <td>0.015518</td>
+      <td>0.004890</td>
     </tr>
     <tr>
       <th>HistGradientBoostingClassifier</th>
@@ -369,8 +369,8 @@ pnd.get_results()
       <td>0.967263</td>
       <td>0.985955</td>
       <td>0.976433</td>
-      <td>0.485832</td>
-      <td>0.019794</td>
+      <td>1.042502</td>
+      <td>0.026918</td>
     </tr>
     <tr>
       <th>XGBClassifier</th>
@@ -379,8 +379,8 @@ pnd.get_results()
       <td>0.967554</td>
       <td>0.985915</td>
       <td>0.976469</td>
-      <td>0.049917</td>
-      <td>0.003516</td>
+      <td>0.051051</td>
+      <td>0.004656</td>
     </tr>
     <tr>
       <th>RandomForestClassifier</th>
@@ -389,8 +389,8 @@ pnd.get_results()
       <td>0.964647</td>
       <td>0.980282</td>
       <td>0.972192</td>
-      <td>0.073579</td>
-      <td>0.008674</td>
+      <td>0.076433</td>
+      <td>0.009257</td>
     </tr>
     <tr>
       <th>GaussianNB</th>
@@ -399,8 +399,8 @@ pnd.get_results()
       <td>0.940993</td>
       <td>0.949413</td>
       <td>0.944300</td>
-      <td>0.001976</td>
-      <td>0.003919</td>
+      <td>0.004267</td>
+      <td>0.009856</td>
     </tr>
     <tr>
       <th>KNeighborsClassifier</th>
@@ -409,8 +409,8 @@ pnd.get_results()
       <td>0.955018</td>
       <td>0.991628</td>
       <td>0.972746</td>
-      <td>0.002964</td>
-      <td>0.021620</td>
+      <td>0.002806</td>
+      <td>0.029980</td>
     </tr>
     <tr>
       <th>DecisionTreeClassifier</th>
@@ -419,8 +419,8 @@ pnd.get_results()
       <td>0.941672</td>
       <td>0.941080</td>
       <td>0.941054</td>
-      <td>0.005010</td>
-      <td>0.002273</td>
+      <td>0.006392</td>
+      <td>0.002856</td>
     </tr>
     <tr>
       <th>DummyClassifier</th>
@@ -429,8 +429,8 @@ pnd.get_results()
       <td>0.627418</td>
       <td>1.000000</td>
       <td>0.771052</td>
-      <td>0.001688</td>
-      <td>0.002320</td>
+      <td>0.001956</td>
+      <td>0.002572</td>
     </tr>
   </tbody>
 </table>
@@ -482,129 +482,6 @@ available for default estimators. The tuned estimator will be added to
 the list of estimators and will be scored the next time
 [`PoniardBaseEstimator.fit`](https://rxavier.github.io/poniard/estimators.core.html#poniardbaseestimator.fit)
 is called.
-
-``` python
-pnd.tune_estimator("RandomForestClassifier", mode="random")
-pnd.fit()  # This will only fit new estimators
-pnd.get_results()
-```
-
-<table border="1" class="dataframe">
-  <thead>
-    <tr style="text-align: right;">
-      <th></th>
-      <th>test_roc_auc</th>
-      <th>test_accuracy</th>
-      <th>test_precision</th>
-      <th>test_recall</th>
-      <th>test_f1</th>
-      <th>fit_time</th>
-      <th>score_time</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <th>LogisticRegression</th>
-      <td>0.995456</td>
-      <td>0.978916</td>
-      <td>0.975411</td>
-      <td>0.991549</td>
-      <td>0.983351</td>
-      <td>0.006384</td>
-      <td>0.004307</td>
-    </tr>
-    <tr>
-      <th>SVC</th>
-      <td>0.994139</td>
-      <td>0.975408</td>
-      <td>0.975111</td>
-      <td>0.985955</td>
-      <td>0.980477</td>
-      <td>0.014951</td>
-      <td>0.003119</td>
-    </tr>
-    <tr>
-      <th>HistGradientBoostingClassifier</th>
-      <td>0.994128</td>
-      <td>0.970129</td>
-      <td>0.967263</td>
-      <td>0.985955</td>
-      <td>0.976433</td>
-      <td>0.485832</td>
-      <td>0.019794</td>
-    </tr>
-    <tr>
-      <th>XGBClassifier</th>
-      <td>0.994123</td>
-      <td>0.970129</td>
-      <td>0.967554</td>
-      <td>0.985915</td>
-      <td>0.976469</td>
-      <td>0.049917</td>
-      <td>0.003516</td>
-    </tr>
-    <tr>
-      <th>RandomForestClassifier_tuned</th>
-      <td>0.992696</td>
-      <td>0.959618</td>
-      <td>0.961836</td>
-      <td>0.974726</td>
-      <td>0.968054</td>
-      <td>0.071821</td>
-      <td>0.008250</td>
-    </tr>
-    <tr>
-      <th>RandomForestClassifier</th>
-      <td>0.992264</td>
-      <td>0.964881</td>
-      <td>0.964647</td>
-      <td>0.980282</td>
-      <td>0.972192</td>
-      <td>0.073579</td>
-      <td>0.008674</td>
-    </tr>
-    <tr>
-      <th>GaussianNB</th>
-      <td>0.988730</td>
-      <td>0.929700</td>
-      <td>0.940993</td>
-      <td>0.949413</td>
-      <td>0.944300</td>
-      <td>0.001976</td>
-      <td>0.003919</td>
-    </tr>
-    <tr>
-      <th>KNeighborsClassifier</th>
-      <td>0.980610</td>
-      <td>0.964881</td>
-      <td>0.955018</td>
-      <td>0.991628</td>
-      <td>0.972746</td>
-      <td>0.002964</td>
-      <td>0.021620</td>
-    </tr>
-    <tr>
-      <th>DecisionTreeClassifier</th>
-      <td>0.920983</td>
-      <td>0.926223</td>
-      <td>0.941672</td>
-      <td>0.941080</td>
-      <td>0.941054</td>
-      <td>0.005010</td>
-      <td>0.002273</td>
-    </tr>
-    <tr>
-      <th>DummyClassifier</th>
-      <td>0.500000</td>
-      <td>0.627418</td>
-      <td>0.627418</td>
-      <td>1.000000</td>
-      <td>0.771052</td>
-      <td>0.001688</td>
-      <td>0.002320</td>
-    </tr>
-  </tbody>
-</table>
 
 ### Plotting
 
