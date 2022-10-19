@@ -9,6 +9,7 @@ from sklearn.pipeline import make_pipeline, Pipeline
 from sklearn.feature_selection import SelectKBest, f_regression
 
 from poniard import PoniardClassifier, PoniardRegressor
+from poniard.preprocessing import PoniardPreprocessor
 
 
 @pytest.mark.parametrize(
@@ -92,12 +93,15 @@ def test_preprocessing_classifier(
     high_cardinality_encoder,
     include_preprocessor,
 ):
-    estimator = PoniardClassifier(
-        estimators=[LogisticRegression()],
-        preprocess=preprocess,
+    preprocessor = PoniardPreprocessor(
         scaler=scaler,
         numeric_imputer=numeric_imputer,
         high_cardinality_encoder=high_cardinality_encoder,
+    )
+    estimator = PoniardClassifier(
+        estimators=[LogisticRegression()],
+        preprocess=preprocess,
+        custom_preprocessor=preprocessor,
         cv=2,
         random_state=0,
     )

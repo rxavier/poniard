@@ -19,6 +19,7 @@ from sklearn.datasets import (
 )
 
 from poniard import PoniardClassifier, PoniardRegressor
+from poniard.preprocessing import PoniardPreprocessor
 
 
 @pytest.mark.parametrize(
@@ -174,24 +175,23 @@ def test_type_inference():
     for col in x.columns:
         x.loc[x.sample(frac=0.1).index, col] = np.nan
     y = pd.Series([0, 0, 0, 1, 1, 1, 0, 0, 1, 1])
+    preprocessor = PoniardPreprocessor(cardinality_threshold=0.3)
     clf = PoniardClassifier(
         estimators=[LogisticRegression()],
         cv=3,
+        custom_preprocessor=preprocessor,
         random_state=0,
-        cardinality_threshold=0.3,
     )
     clf.setup(x, y)
     clf.fit()
     assert all(
-        x in clf._inferred_types["numeric"] for x in ["numeric", "high_cardinality_int"]
+        x in clf.feature_types["numeric"] for x in ["numeric", "high_cardinality_int"]
     )
     assert all(
-        x in clf._inferred_types["categorical_high"] for x in ["high_cardinality_str"]
+        x in clf.feature_types["categorical_high"] for x in ["high_cardinality_str"]
     )
     assert all(
-        x in clf._inferred_types["categorical_low"]
+        x in clf.feature_types["categorical_low"]
         for x in ["low_cardinality_str", "low_cardinality_int"]
     )
-    assert all(
-        x in clf._inferred_types["datetime"] for x in ["datetime_H", "datetime_D"]
-    )
+    assert all(x in clf.feature_types["datetime"] for x in ["datetime_H", "datetime_D"])

@@ -44,23 +44,9 @@ class PoniardClassifier(PoniardBaseEstimator):
     preprocess : bool, optional
         If True, impute missing values, standard scale numeric data and one-hot or ordinal
         encode categorical data.
-    scaler :
-        Numeric scaler method. Either "standard", "minmax", "robust" or scikit-learn Transformer.
-    high_cardinality_encoder :
-        Encoder for categorical features with high cardinality. Either "target" or "ordinal",
-        or scikit-learn Transformer.
-    numeric_imputer :
-        Imputation method. Either "simple", "iterative" or scikit-learn Transformer.
     custom_preprocessor :
         Preprocessor used instead of the default preprocessing pipeline. It must be able to be
         included directly in a scikit-learn Pipeline.
-    numeric_threshold :
-        Number features with unique values above a certain threshold will be treated as numeric. If
-        float, the threshold is `numeric_threshold * samples`.
-    cardinality_threshold :
-        Non-number features with cardinality above a certain threshold will be treated as
-        ordinal encoded instead of one-hot encoded. If float, the threshold is
-        `cardinality_threshold * samples`.
     cv :
         Cross validation strategy. Either an integer, a scikit-learn cross validation object,
         or an iterable.
@@ -77,9 +63,6 @@ class PoniardClassifier(PoniardBaseEstimator):
     plot_options :
         :class:poniard.plot.plot_factory.PoniardPlotFactory instance specifying Plotly format
         options or None, which sets the default factory.
-    cache_transformations :
-        Whether to cache transformations and set the `memory` parameter for Pipelines. This can
-        speed up slow transformations as they are not recalculated for each estimator.
     """
 
     def __init__(
@@ -89,37 +72,25 @@ class PoniardClassifier(PoniardBaseEstimator):
         ] = None,
         metrics: Optional[Union[str, Dict[str, Callable], Sequence[str]]] = None,
         preprocess: bool = True,
-        scaler: Optional[Union[str, TransformerMixin]] = None,
-        high_cardinality_encoder: Optional[Union[str, TransformerMixin]] = None,
-        numeric_imputer: Optional[Union[str, TransformerMixin]] = None,
         custom_preprocessor: Union[None, Pipeline, TransformerMixin] = None,
-        numeric_threshold: Union[int, float] = 0.1,
-        cardinality_threshold: Union[int, float] = 20,
         cv: Union[int, BaseCrossValidator, BaseShuffleSplit, Sequence] = None,
         verbose: int = 0,
         random_state: Optional[int] = None,
         n_jobs: Optional[int] = None,
         plugins: Optional[Sequence[Any]] = None,
         plot_options: Optional[PoniardPlotFactory] = None,
-        cache_transformations: bool = False,
     ):
         super().__init__(
             estimators=estimators,
             metrics=metrics,
             preprocess=preprocess,
-            scaler=scaler,
-            high_cardinality_encoder=high_cardinality_encoder,
-            numeric_imputer=numeric_imputer,
-            numeric_threshold=numeric_threshold,
             custom_preprocessor=custom_preprocessor,
-            cardinality_threshold=cardinality_threshold,
             cv=cv,
             verbose=verbose,
             random_state=random_state,
             n_jobs=n_jobs,
             plugins=plugins,
             plot_options=plot_options,
-            cache_transformations=cache_transformations,
         )
 
     @property
