@@ -1090,10 +1090,6 @@ class PoniardBaseEstimator(ABC):
         means = melted.groupby(["Model", "Metric"])["Score"].mean().reset_index()
         means["Type"] = "Mean"
         melted = pd.concat([melted, means])
-        melted["Model"] = melted["Model"].str.replace(
-            "Classifier|Regressor", "", regex=True
-        )
-
         self._long_results = melted
         return
 

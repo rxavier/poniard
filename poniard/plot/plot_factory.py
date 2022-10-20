@@ -98,7 +98,9 @@ class PoniardPlotFactory:
         Figure
             Plotly strip or bar plot.
         """
-        results = self._poniard._long_results
+        results = self._poniard._long_results.str.replace(
+            "Classifier|Regressor", "", regex=True
+        )
         results = results.loc[~results["Metric"].isin(["fit_time", "score_time"])]
         if only_test:
             results = results.loc[results["Metric"].str.contains("test", case=False)]
@@ -179,7 +181,9 @@ class PoniardPlotFactory:
         """
         if not metric:
             metric = self._poniard._first_scorer(sklearn_scorer=False)
-        results = self._poniard._long_results
+        results = self._poniard._long_results.str.replace(
+            "Classifier|Regressor", "", regex=True
+        )
         results = results.loc[
             (results["Type"] == "Mean") & (results["Metric"].str.contains(metric))
         ]
