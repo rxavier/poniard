@@ -59,6 +59,10 @@ class BasePlugin(ABC):
         """Called when an estimator is selected."""
         pass
 
+    def on_analyze_estimator(self, estimator: BaseEstimator, name: str):
+        """Called when an estimator is analyzed."""
+        pass
+
     def on_add_estimators(self):
         """Called after adding an estimator."""
         pass

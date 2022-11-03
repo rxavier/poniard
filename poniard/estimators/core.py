@@ -36,6 +36,7 @@ from sklearn.model_selection import (
     RandomizedSearchCV,
 )
 from sklearn.exceptions import UndefinedMetricWarning
+from plotly.graph_objs._figure import Figure
 
 from ..utils.stats import cramers_v
 from ..utils.hyperparameters import get_grid
@@ -844,6 +845,34 @@ class PoniardBaseEstimator(ABC):
             "on_get_estimator", estimator=model, name=estimator_name
         )
         return model
+
+    def analyze_estimator(
+        self, estimator_name: str, height: int = 800, width: int = 800
+    ) -> Figure:
+        """Get 4 plots depicting estimator performance.
+
+        By default, orders estimators according to the first metric.
+
+        Parameters
+        ----------
+        estimator_name :
+            Name of estimator to analyze.
+        height :
+            Height of output `Figure`.
+        width :
+            Width of output `Figure`.
+
+        Returns
+        -------
+        Plotly Figure
+            Figure
+        """
+        self._run_plugin_method(
+            "on_analyze_estimator",
+            estimator=self.get_estimator(estimator_name),
+            name=estimator_name,
+        )
+        return self.plot._full_estimator_analysis(estimator_name, height, width)
 
     def build_ensemble(
         self,

@@ -14,6 +14,7 @@ import numpy as np
 from sklearn.metrics import roc_curve, auc, confusion_matrix
 from sklearn.inspection import partial_dependence, permutation_importance
 from plotly.graph_objs._figure import Figure
+from plotly.subplots import make_subplots
 
 if TYPE_CHECKING:
     from poniard.estimators.core import PoniardBaseEstimator
@@ -98,7 +99,7 @@ class PoniardPlotFactory:
         Figure
             Plotly strip or bar plot.
         """
-        results = self._poniard._long_results.str.replace(
+        results = self._poniard._long_results.replace(
             "Classifier|Regressor", "", regex=True
         )
         results = results.loc[~results["Metric"].isin(["fit_time", "score_time"])]
@@ -181,7 +182,7 @@ class PoniardPlotFactory:
         """
         if not metric:
             metric = self._poniard._first_scorer(sklearn_scorer=False)
-        results = self._poniard._long_results.str.replace(
+        results = self._poniard._long_results.replace(
             "Classifier|Regressor", "", regex=True
         )
         results = results.loc[
@@ -599,6 +600,111 @@ class PoniardPlotFactory:
             name=f"Residuals histogram plot with cross validated predictions",
         )
         return fig
+
+    def _full_estimator_analysis(
+        self, estimator_name: str, height: int = 800, width: int = 800
+    ) -> Figure:
+        main_scorer = self._poniard._first_scorer(sklearn_scorer=False)
+        sorted_means = self._poniard._long_results.query(
+            f"Metric == 'test_{main_scorer}' & Type=='Mean'"
+        ).sort_values(ascending=False, by="Score")
+        estimator_position = sorted_means.set_index("Model").index.get_loc(
+            estimator_name
+        )
+        if estimator_position == 0:
+            better_estimator_name = None
+            worse_estimator_name = sorted_means.iloc[1, 0]
+        elif estimator_position == len(self._poniard.pipelines) - 1:
+            better_estimator_name = sorted_means.iloc[
+                len(self._poniard.pipelines) - 2, 0
+            ]
+            worse_estimator_name = None
+        else:
+            better_estimator_name = sorted_means.iloc[estimator_position - 1, 0]
+            worse_estimator_name = sorted_means.iloc[estimator_position + 1, 0]
+        estimator_names = [
+            x
+            for x in [estimator_name, better_estimator_name, worse_estimator_name]
+            if x
+        ]
+
+        metrics = self._poniard.get_results()
+        metric_rankings = metrics.loc[:, ~metrics.columns.str.contains("time")].rank(
+            ascending=True
+        )
+        time_rankings = metrics.loc[:, metrics.columns.str.contains("time")].rank(
+            ascending=False
+        )
+        rankings = pd.concat([metric_rankings, time_rankings], axis=1)
+        rank = px.bar(rankings.loc[estimator_name, :], text_auto=True)
+        rank_title = f"Metrics rank (best={len(self._poniard.pipelines)})"
+        rank.update_layout(dict(xaxis_title=None, yaxis_title="Rank"), showlegend=False)
+
+        if self._poniard.target_info["type_"] == "binary":
+            task_1_fig = self._poniard.plot.roc_curve(estimator_names=estimator_names)
+            task_1_title = "ROC curve w/ CV predictions"
+            task_2_fig = self._poniard.plot.confusion_matrix(
+                estimator_name=estimator_name
+            )
+            task_2_title = "Confusion matrix w/ CV predictions"
+            task_2_fig.update_layout(coloraxis_showscale=False)
+        else:
+            task_1_fig = self._poniard.plot.residuals_histogram(
+                estimator_names=estimator_names
+            )
+            task_1_title = "Residuals histogram w/ CV predictions"
+            task_2_fig = self._poniard.plot.residuals(estimator_names=estimator_names)
+            task_2_title = "Residuals plot w/ CV predictions"
+
+        importance_fig = self._poniard.plot.permutation_importance(
+            estimator_name=estimator_name
+        )
+
+        plot_array = make_subplots(
+            rows=2,
+            cols=2,
+            subplot_titles=(
+                rank_title,
+                task_1_title,
+                task_2_title,
+                "Feature importance",
+            ),
+        )
+        figures = [rank, task_1_fig, task_2_fig, importance_fig]
+
+        row = 1
+        col = 1
+        for i, figure in enumerate(figures):
+            for trace in range(len(figure["data"])):
+                plot_array.append_trace(figure["data"][trace], row=row, col=col)
+            if col == 2:
+                row += 1
+                col -= 1
+            else:
+                col += 1
+        plot_array.update_layout(
+            title_text=f"{estimator_name} analysis (better={better_estimator_name}, worse={worse_estimator_name})",
+            height=height,
+            width=width,
+        )
+        plot_array.update_layout(
+            coloraxis={
+                "colorbar": {"title": {"text": "Count"}},
+                "colorscale": [
+                    [0.0, "rgb(247,251,255)"],
+                    [0.125, "rgb(222,235,247)"],
+                    [0.25, "rgb(198,219,239)"],
+                    [0.375, "rgb(158,202,225)"],
+                    [0.5, "rgb(107,174,214)"],
+                    [0.625, "rgb(66,146,198)"],
+                    [0.75, "rgb(33,113,181)"],
+                    [0.875, "rgb(8,81,156)"],
+                    [1.0, "rgb(8,48,107)"],
+                ],
+                "showscale": False,
+            }
+        )
+        return plot_array
 
     def __repr__(self):
         return non_default_repr(self)
