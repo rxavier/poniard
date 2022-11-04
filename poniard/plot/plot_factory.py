@@ -640,9 +640,15 @@ class PoniardPlotFactory:
         rank_title = f"Metrics rank (best={len(self._poniard.pipelines)})"
         rank.update_layout(dict(xaxis_title=None, yaxis_title="Rank"), showlegend=False)
 
-        if self._poniard.target_info["type_"] == "binary":
-            task_1_fig = self._poniard.plot.roc_curve(estimator_names=estimator_names)
-            task_1_title = "ROC curve w/ CV predictions"
+        if self._poniard.poniard_task == "classification":
+            if self._poniard.target_info["type_"] == "binary":
+                task_1_fig = self._poniard.plot.roc_curve(
+                    estimator_names=estimator_names
+                )
+                task_1_title = "ROC curve w/ CV predictions"
+            else:
+                task_1_fig = self._poniard.plot.metrics(metrics=main_scorer, kind="bar")
+                task_1_title = f"{main_scorer} scores"
             task_2_fig = self._poniard.plot.confusion_matrix(
                 estimator_name=estimator_name
             )

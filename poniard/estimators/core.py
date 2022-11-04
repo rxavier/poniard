@@ -2,6 +2,7 @@
 
 # %% ../../nbs/estimators.core.ipynb 3
 from __future__ import annotations
+import re
 import warnings
 import itertools
 import inspect
@@ -11,6 +12,7 @@ from typing import List, Optional, Union, Callable, Dict, Tuple, Any, Sequence, 
 import pandas as pd
 import numpy as np
 import joblib
+import plotly.graph_objects as go
 
 try:
     import ipywidgets
@@ -849,7 +851,7 @@ class PoniardBaseEstimator(ABC):
     def analyze_estimator(
         self, estimator_name: str, height: int = 800, width: int = 800
     ) -> Figure:
-        """Get 4 plots depicting estimator performance.
+        """Print a selection of metrics and plots for a given estimator.
 
         By default, orders estimators according to the first metric.
 
@@ -872,6 +874,37 @@ class PoniardBaseEstimator(ABC):
             estimator=self.get_estimator(estimator_name),
             name=estimator_name,
         )
+
+        table = self.get_results(return_train_scores=True).loc[[estimator_name]]
+        title_fixer = lambda x: re.sub("test_|train_|_", " ", x).strip().title()
+        test_table = table.loc[:, ~table.columns.str.startswith("train")].rename(
+            columns=title_fixer
+        )
+        train_table = (
+            table.loc[:, table.columns.str.startswith("train")]
+            .assign(fit_time=".", score_time=".")
+            .rename(columns=title_fixer)
+        )
+        table = pd.concat([test_table, train_table])
+        table.insert(0, "Split", ["Test", "Train"])
+
+        fig = go.Figure(
+            data=[
+                go.Table(
+                    header=dict(
+                        values=list(table.columns), align="center", font_size=15
+                    ),
+                    cells=dict(
+                        values=[table[col] for col in table.columns],
+                        align="center",
+                        font_size=12,
+                        format=[None] + [".3f"] * table.shape[1],
+                    ),
+                )
+            ]
+        )
+        fig.update_layout(width=800, height=150, margin={k: 10 for k in "tblr"})
+        fig.show()
         return self.plot._full_estimator_analysis(estimator_name, height, width)
 
     def build_ensemble(
