@@ -2,6 +2,7 @@
 
 # %% ../../nbs/estimators.core.ipynb 3
 from __future__ import annotations
+import os
 import re
 import warnings
 import itertools
@@ -11,7 +12,6 @@ from typing import List, Optional, Union, Callable, Dict, Tuple, Any, Sequence, 
 
 import pandas as pd
 import numpy as np
-import joblib
 import plotly.graph_objects as go
 
 try:
@@ -136,6 +136,7 @@ class PoniardBaseEstimator(ABC):
         self.n_jobs = n_jobs
 
         self._memory = None
+        self._tqdm_leave = os.getenv("PONIARD_TQDM_LEAVE", "False") == "True"
 
         self._init_plugins(plugins)
         self._init_plots(plot_options)
@@ -177,6 +178,7 @@ class PoniardBaseEstimator(ABC):
         self,
         X: Union[pd.DataFrame, np.ndarray, List],
         y: Union[pd.DataFrame, np.ndarray, List],
+        show_info: bool = True,
     ) -> PoniardBaseEstimator:
         """Acts as an orchestrator for Poniard estimators by setting up everything neeeded
         for `PoniardBaseEstimator.fit`.
@@ -193,6 +195,8 @@ class PoniardBaseEstimator(ABC):
             Features
         y :
             Target.
+        show_info :
+            Whether to print information about the target, metrics and type inference.
         """
         self._run_plugin_method("on_setup_start")
         if not isinstance(X, (pd.DataFrame, pd.Series, np.ndarray)):
@@ -201,34 +205,18 @@ class PoniardBaseEstimator(ABC):
             y = np.array(y)
         self.X = X
         self.y = y
+        self.show_info = show_info
         self._run_plugin_method("on_setup_data")
-
         self.target_info = get_target_info(self.y, self.poniard_task)
-        print("Target info", "-----------", sep="\n")
-        print(
-            f"Type: {self.target_info['type_']}",
-            f"Shape: {self.target_info['shape']}",
-            f"Unique values: {self.target_info['nunique']}",
-            sep="\n",
-            end="\n\n",
-        )
         if self.target_info["type_"] == "multiclass-multioutput":
             raise NotImplementedError(
                 "multiclass-multioutput targets are not supported as "
                 "no sklearn metrics support them."
             )
-
         if self.metrics:
             self.metrics = element_to_list_maybe(self.metrics)
         else:
             self.metrics = self._build_metrics()
-        print(
-            "Main metric",
-            "-----------",
-            self._first_scorer(sklearn_scorer=False),
-            sep="\n",
-            end="\n\n",
-        )
 
         if self.preprocess:
             if self.custom_preprocessor and not isinstance(
@@ -238,8 +226,10 @@ class PoniardBaseEstimator(ABC):
             else:
                 self.preprocessor = self._build_preprocessor()
             self._pass_instance_attrs(self.preprocessor)
-
         self._run_plugin_method("on_setup_preprocessor")
+
+        if self.show_info:
+            self._print_setup_info()
 
         self.pipelines = self._build_pipelines()
 
@@ -248,9 +238,71 @@ class PoniardBaseEstimator(ABC):
         self._run_plugin_method("on_setup_end")
         return self
 
-    def _build_preprocessor(
-        self, assigned_types: Optional[Dict[str, List[Union[str, int]]]] = None
-    ) -> Pipeline:
+    def _print_setup_info(self):
+        type_ = self.target_info["type_"]
+        shape = self.target_info["shape"]
+        nunique = self.target_info["nunique"]
+        main_metric = self._first_scorer(sklearn_scorer=False)
+        if hasattr(self, "_poniard_preprocessor"):
+            num_thresh = self._poniard_preprocessor.numeric_threshold
+            cat_thresh = self._poniard_preprocessor.cardinality_threshold
+        try:
+            from IPython.display import display, HTML
+
+            display(
+                HTML(
+                    f"""
+                         <h2>Setup info</h2>
+                         <h3>Target</h3>
+                             <p><b>Type:</b> {type_}</p>
+                             <p><b>Shape:</b> {shape}</p>
+                             <p><b>Unique values:</b> {nunique}</p>
+                             <h3>Metrics</h3>
+                             <b>Main metric:</b> {main_metric}
+                             """
+                )
+            )
+            if hasattr(self, "_poniard_preprocessor"):
+                display(
+                    HTML(
+                        f""" <h3>Feature type inference</h3>
+                                <p><b>Minimum unique values to consider a number-like feature numeric:</b> {num_thresh}</p>
+                                <p><b>Minimum unique values to consider a categorical feature high cardinality:</b> {cat_thresh}</p>
+                                <p><b>Inferred feature types:</b></p>
+                                {self._poniard_preprocessor.inferred_types_df.to_html()}"""
+                    )
+                )
+        except ImportError:
+            print("Target info", "-----------", sep="\n")
+            print(
+                f"Type: {type_}",
+                f"Shape: {shape}",
+                f"Unique values: {nunique}",
+                sep="\n",
+                end="\n\n",
+            )
+
+            print(
+                "Main metric",
+                "-----------",
+                main_metric,
+                sep="\n",
+                end="\n\n",
+            )
+            if hasattr(self, "_poniard_preprocessor"):
+                print(
+                    "Thresholds",
+                    "----------",
+                    f"Minimum unique values to consider a feature numeric: {num_thresh}",
+                    f"Minimum unique values to consider a categorical high cardinality: {cat_thresh}",
+                    sep="\n",
+                    end="\n\n",
+                )
+                print("Inferred feature types", "----------------------", sep="\n")
+                print(self._poniard_preprocessor.inferred_types_df)
+        return
+
+    def _build_preprocessor(self) -> Pipeline:
         """Build default preprocessor using `PoniardPreprocessor`.
 
         The preprocessor imputes missing values, scales numeric features and encodes categorical
@@ -405,7 +457,7 @@ class PoniardBaseEstimator(ABC):
             for name, pipeline in self.pipelines.items()
             if id(pipeline) not in self._fitted_pipeline_ids
         }
-        pbar = tqdm(filtered_pipelines.items())
+        pbar = tqdm(filtered_pipelines.items(), leave=self._tqdm_leave)
         for i, (name, pipeline) in enumerate(pbar):
             pbar.set_description(f"{name}")
             with warnings.catch_warnings():
@@ -449,7 +501,7 @@ class PoniardBaseEstimator(ABC):
         if not estimator_names:
             estimator_names = [estimator for estimator in self.pipelines.keys()]
         results = {}
-        pbar = tqdm(estimator_names)
+        pbar = tqdm(estimator_names, leave=self._tqdm_leave)
         for i, name in enumerate(pbar):
             pbar.set_description(f"{name}")
             pipeline = self.pipelines[name]
@@ -649,18 +701,24 @@ class PoniardBaseEstimator(ABC):
                 "categorical_low": categorical_low or [],
                 "datetime": datetime or [],
             }
-        print("Assigned feature types", "----------------------", sep="\n")
-        assigned_types_df = pd.DataFrame.from_dict(
-            assigned_types, orient="index"
-        ).T.fillna("")
-        try:
-            # Try to print the table nicely
-            from IPython.display import display, HTML
+        if self.show_info:
+            assigned_types_df = pd.DataFrame.from_dict(
+                assigned_types, orient="index"
+            ).T.fillna("")
 
-            display(HTML(assigned_types_df.to_html()))
-            print("\n")
-        except ImportError:
-            print(assigned_types_df)
+            try:
+                # Try to print the table nicely
+                from IPython.display import display, HTML
+
+                display(
+                    HTML(
+                        f"""<p><b>Assigned feature types:</b></p>
+                            {assigned_types_df.to_html()}"""
+                    )
+                )
+            except ImportError:
+                print("Assigned feature types", "----------------------", sep="\n")
+                print(assigned_types_df)
 
         self.feature_types = assigned_types
         self._poniard_preprocessor.feature_types = assigned_types

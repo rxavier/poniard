@@ -63,36 +63,30 @@ Poniard provides sane defaults for 1, 2 and 3, so in most cases you can
 just do…
 
 ``` python
-from poniard import PoniardClassifier
-from sklearn.datasets import load_breast_cancer
+from poniard import PoniardRegressor
+from sklearn.datasets import load_diabetes
 ```
 
 ``` python
-X, y = load_breast_cancer(return_X_y=True, as_frame=True)
-pnd = PoniardClassifier(random_state=0)
+X, y = load_diabetes(return_X_y=True, as_frame=True)
+pnd = PoniardRegressor(random_state=0)
 pnd.setup(X, y)
 pnd.fit()
 ```
 
-    Target info
-    -----------
-    Type: binary
-    Shape: (569,)
-    Unique values: 2
-
-    Main metric
-    -----------
-    roc_auc
-
-    Thresholds
-    ----------
-    Minimum unique values to consider a feature numeric: 56
-    Minimum unique values to consider a categorical high cardinality: 20
-
-    Inferred feature types
-    ----------------------
-
-<table border="1" class="dataframe">
+                         <h2>Setup info</h2>
+                         <h3>Target</h3>
+                             <p><b>Type:</b> continuous</p>
+                             <p><b>Shape:</b> (442,)</p>
+                             <p><b>Unique values:</b> 214</p>
+                             <h3>Metrics</h3>
+                             <b>Main metric:</b> neg_mean_squared_error
+                             
+ <h3>Feature type inference</h3>
+                                <p><b>Minimum unique values to consider a number-like feature numeric:</b> 44</p>
+                                <p><b>Minimum unique values to consider a categorical feature high cardinality:</b> 20</p>
+                                <p><b>Inferred feature types:</b></p>
+                                <table border="1" class="dataframe">
   <thead>
     <tr style="text-align: right;">
       <th></th>
@@ -105,210 +99,63 @@ pnd.fit()
   <tbody>
     <tr>
       <th>0</th>
-      <td>mean radius</td>
+      <td>age</td>
       <td></td>
-      <td></td>
+      <td>sex</td>
       <td></td>
     </tr>
     <tr>
       <th>1</th>
-      <td>mean texture</td>
+      <td>bmi</td>
       <td></td>
       <td></td>
       <td></td>
     </tr>
     <tr>
       <th>2</th>
-      <td>mean perimeter</td>
+      <td>bp</td>
       <td></td>
       <td></td>
       <td></td>
     </tr>
     <tr>
       <th>3</th>
-      <td>mean area</td>
+      <td>s1</td>
       <td></td>
       <td></td>
       <td></td>
     </tr>
     <tr>
       <th>4</th>
-      <td>mean smoothness</td>
+      <td>s2</td>
       <td></td>
       <td></td>
       <td></td>
     </tr>
     <tr>
       <th>5</th>
-      <td>mean compactness</td>
+      <td>s3</td>
       <td></td>
       <td></td>
       <td></td>
     </tr>
     <tr>
       <th>6</th>
-      <td>mean concavity</td>
+      <td>s4</td>
       <td></td>
       <td></td>
       <td></td>
     </tr>
     <tr>
       <th>7</th>
-      <td>mean concave points</td>
+      <td>s5</td>
       <td></td>
       <td></td>
       <td></td>
     </tr>
     <tr>
       <th>8</th>
-      <td>mean symmetry</td>
-      <td></td>
-      <td></td>
-      <td></td>
-    </tr>
-    <tr>
-      <th>9</th>
-      <td>mean fractal dimension</td>
-      <td></td>
-      <td></td>
-      <td></td>
-    </tr>
-    <tr>
-      <th>10</th>
-      <td>radius error</td>
-      <td></td>
-      <td></td>
-      <td></td>
-    </tr>
-    <tr>
-      <th>11</th>
-      <td>texture error</td>
-      <td></td>
-      <td></td>
-      <td></td>
-    </tr>
-    <tr>
-      <th>12</th>
-      <td>perimeter error</td>
-      <td></td>
-      <td></td>
-      <td></td>
-    </tr>
-    <tr>
-      <th>13</th>
-      <td>area error</td>
-      <td></td>
-      <td></td>
-      <td></td>
-    </tr>
-    <tr>
-      <th>14</th>
-      <td>smoothness error</td>
-      <td></td>
-      <td></td>
-      <td></td>
-    </tr>
-    <tr>
-      <th>15</th>
-      <td>compactness error</td>
-      <td></td>
-      <td></td>
-      <td></td>
-    </tr>
-    <tr>
-      <th>16</th>
-      <td>concavity error</td>
-      <td></td>
-      <td></td>
-      <td></td>
-    </tr>
-    <tr>
-      <th>17</th>
-      <td>concave points error</td>
-      <td></td>
-      <td></td>
-      <td></td>
-    </tr>
-    <tr>
-      <th>18</th>
-      <td>symmetry error</td>
-      <td></td>
-      <td></td>
-      <td></td>
-    </tr>
-    <tr>
-      <th>19</th>
-      <td>fractal dimension error</td>
-      <td></td>
-      <td></td>
-      <td></td>
-    </tr>
-    <tr>
-      <th>20</th>
-      <td>worst radius</td>
-      <td></td>
-      <td></td>
-      <td></td>
-    </tr>
-    <tr>
-      <th>21</th>
-      <td>worst texture</td>
-      <td></td>
-      <td></td>
-      <td></td>
-    </tr>
-    <tr>
-      <th>22</th>
-      <td>worst perimeter</td>
-      <td></td>
-      <td></td>
-      <td></td>
-    </tr>
-    <tr>
-      <th>23</th>
-      <td>worst area</td>
-      <td></td>
-      <td></td>
-      <td></td>
-    </tr>
-    <tr>
-      <th>24</th>
-      <td>worst smoothness</td>
-      <td></td>
-      <td></td>
-      <td></td>
-    </tr>
-    <tr>
-      <th>25</th>
-      <td>worst compactness</td>
-      <td></td>
-      <td></td>
-      <td></td>
-    </tr>
-    <tr>
-      <th>26</th>
-      <td>worst concavity</td>
-      <td></td>
-      <td></td>
-      <td></td>
-    </tr>
-    <tr>
-      <th>27</th>
-      <td>worst concave points</td>
-      <td></td>
-      <td></td>
-      <td></td>
-    </tr>
-    <tr>
-      <th>28</th>
-      <td>worst symmetry</td>
-      <td></td>
-      <td></td>
-      <td></td>
-    </tr>
-    <tr>
-      <th>29</th>
-      <td>worst fractal dimension</td>
+      <td>s6</td>
       <td></td>
       <td></td>
       <td></td>
@@ -318,7 +165,7 @@ pnd.fit()
 
       0%|          | 0/9 [00:00<?, ?it/s]
 
-    PoniardClassifier(random_state=0)
+    PoniardRegressor(random_state=0)
 
 … and get a nice table showing the average of each metric in all folds
 for every model, including fit and score times (thanks, scikit-learn
@@ -332,105 +179,95 @@ pnd.get_results()
   <thead>
     <tr style="text-align: right;">
       <th></th>
-      <th>test_roc_auc</th>
-      <th>test_accuracy</th>
-      <th>test_precision</th>
-      <th>test_recall</th>
-      <th>test_f1</th>
+      <th>test_neg_mean_squared_error</th>
+      <th>test_neg_mean_absolute_percentage_error</th>
+      <th>test_neg_median_absolute_error</th>
+      <th>test_r2</th>
       <th>fit_time</th>
       <th>score_time</th>
     </tr>
   </thead>
   <tbody>
     <tr>
-      <th>LogisticRegression</th>
-      <td>0.995456</td>
-      <td>0.978916</td>
-      <td>0.975411</td>
-      <td>0.991549</td>
-      <td>0.983351</td>
-      <td>0.114221</td>
-      <td>0.005899</td>
+      <th>LinearRegression</th>
+      <td>-2977.598515</td>
+      <td>-0.396566</td>
+      <td>-39.009146</td>
+      <td>0.489155</td>
+      <td>0.005265</td>
+      <td>0.001960</td>
     </tr>
     <tr>
-      <th>SVC</th>
-      <td>0.994139</td>
-      <td>0.975408</td>
-      <td>0.975111</td>
-      <td>0.985955</td>
-      <td>0.980477</td>
-      <td>0.015518</td>
-      <td>0.004890</td>
+      <th>ElasticNet</th>
+      <td>-3159.017211</td>
+      <td>-0.422912</td>
+      <td>-42.619546</td>
+      <td>0.460740</td>
+      <td>0.003509</td>
+      <td>0.001755</td>
     </tr>
     <tr>
-      <th>HistGradientBoostingClassifier</th>
-      <td>0.994128</td>
-      <td>0.970129</td>
-      <td>0.967263</td>
-      <td>0.985955</td>
-      <td>0.976433</td>
-      <td>1.042502</td>
-      <td>0.026918</td>
+      <th>RandomForestRegressor</th>
+      <td>-3431.823331</td>
+      <td>-0.419956</td>
+      <td>-42.203000</td>
+      <td>0.414595</td>
+      <td>0.101435</td>
+      <td>0.004821</td>
     </tr>
     <tr>
-      <th>XGBClassifier</th>
-      <td>0.994123</td>
-      <td>0.970129</td>
-      <td>0.967554</td>
-      <td>0.985915</td>
-      <td>0.976469</td>
-      <td>0.051051</td>
-      <td>0.004656</td>
+      <th>HistGradientBoostingRegressor</th>
+      <td>-3544.069433</td>
+      <td>-0.407417</td>
+      <td>-40.396390</td>
+      <td>0.391633</td>
+      <td>0.334695</td>
+      <td>0.009266</td>
     </tr>
     <tr>
-      <th>RandomForestClassifier</th>
-      <td>0.992264</td>
-      <td>0.964881</td>
-      <td>0.964647</td>
-      <td>0.980282</td>
-      <td>0.972192</td>
-      <td>0.076433</td>
-      <td>0.009257</td>
+      <th>KNeighborsRegressor</th>
+      <td>-3615.195398</td>
+      <td>-0.418674</td>
+      <td>-38.980000</td>
+      <td>0.379625</td>
+      <td>0.003038</td>
+      <td>0.002083</td>
     </tr>
     <tr>
-      <th>GaussianNB</th>
-      <td>0.988730</td>
-      <td>0.929700</td>
-      <td>0.940993</td>
-      <td>0.949413</td>
-      <td>0.944300</td>
-      <td>0.004267</td>
-      <td>0.009856</td>
+      <th>XGBRegressor</th>
+      <td>-3923.488860</td>
+      <td>-0.426471</td>
+      <td>-39.031309</td>
+      <td>0.329961</td>
+      <td>0.055696</td>
+      <td>0.002855</td>
     </tr>
     <tr>
-      <th>KNeighborsClassifier</th>
-      <td>0.980610</td>
-      <td>0.964881</td>
-      <td>0.955018</td>
-      <td>0.991628</td>
-      <td>0.972746</td>
-      <td>0.002806</td>
-      <td>0.029980</td>
+      <th>LinearSVR</th>
+      <td>-4268.314411</td>
+      <td>-0.374296</td>
+      <td>-43.388592</td>
+      <td>0.271443</td>
+      <td>0.003470</td>
+      <td>0.001721</td>
     </tr>
     <tr>
-      <th>DecisionTreeClassifier</th>
-      <td>0.920983</td>
-      <td>0.926223</td>
-      <td>0.941672</td>
-      <td>0.941080</td>
-      <td>0.941054</td>
-      <td>0.006392</td>
-      <td>0.002856</td>
+      <th>DummyRegressor</th>
+      <td>-5934.577616</td>
+      <td>-0.621540</td>
+      <td>-61.775921</td>
+      <td>-0.000797</td>
+      <td>0.003010</td>
+      <td>0.001627</td>
     </tr>
     <tr>
-      <th>DummyClassifier</th>
-      <td>0.500000</td>
-      <td>0.627418</td>
-      <td>0.627418</td>
-      <td>1.000000</td>
-      <td>0.771052</td>
-      <td>0.001956</td>
-      <td>0.002572</td>
+      <th>DecisionTreeRegressor</th>
+      <td>-6728.423034</td>
+      <td>-0.591906</td>
+      <td>-59.700000</td>
+      <td>-0.145460</td>
+      <td>0.004179</td>
+      <td>0.001667</td>
     </tr>
   </tbody>
 </table>
