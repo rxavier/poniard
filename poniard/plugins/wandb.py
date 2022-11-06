@@ -118,7 +118,7 @@ class WandBPlugin(BasePlugin):
             )
         return
 
-    def on_get_estimator(self, estimator: BaseEstimator, name: str):
+    def on_analyze_estimator(self, estimator: BaseEstimator, name: str):
         """Log fitted estimator as an artifact."""
         X, y = self._poniard.X, self._poniard.y
         saved_model_path = Path(wandb.run.dir, f"{name}.joblib")

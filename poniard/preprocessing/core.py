@@ -7,6 +7,7 @@ from typing import Union, Optional, Tuple, List, TYPE_CHECKING
 
 import pandas as pd
 import numpy as np
+import joblib
 from sklearn.preprocessing import (
     StandardScaler,
     MinMaxScaler,
@@ -349,14 +350,7 @@ class PoniardPreprocessor:
             self.cardinality_threshold = int(self.cardinality_threshold * X.shape[0])
         if not isinstance(self.numeric_threshold, int):
             self.numeric_threshold = int(self.numeric_threshold * X.shape[0])
-        print(
-            "Thresholds",
-            "----------",
-            f"Minimum unique values to consider a feature numeric: {self.numeric_threshold}",
-            f"Minimum unique values to consider a categorical high cardinality: {self.cardinality_threshold}",
-            sep="\n",
-            end="\n\n",
-        )
+
         if isinstance(X, pd.DataFrame):
             datetime = X.select_dtypes(
                 include=["datetime64[ns]", "datetimetz"]
@@ -398,18 +392,9 @@ class PoniardPreprocessor:
             "categorical_low": categorical_low,
             "datetime": datetime,
         }
-        print("Inferred feature types", "----------------------", sep="\n")
         self.inferred_types_df = pd.DataFrame.from_dict(
             self.feature_types, orient="index"
         ).T.fillna("")
-        try:
-            # Try to print the table nicely
-            from IPython.display import display, HTML
-
-            display(HTML(self.inferred_types_df.to_html()))
-            print("\n")
-        except ImportError:
-            print(self.inferred_types_df)
         self._run_plugin_method_maybe("on_infer_types")
         return numeric, categorical_high, categorical_low, datetime
 
