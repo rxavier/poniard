@@ -28,3 +28,6 @@ website:
                 - plugins.core.ipynb
                 - plugins.wandb.ipynb
                 - plugins.pandas_profiling.ipynb
+            - section: Error analysis
+              contents:
+                - error_analysis.error_analysis.ipynb
