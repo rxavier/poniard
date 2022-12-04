@@ -336,7 +336,7 @@ class ErrorAnalyzer:
         if self._has_poniard:
             y = self._poniard.y
         y = pd.DataFrame(y)
-        y_errors = y.iloc[errors_idx]
+        y_errors = y.loc[errors_idx]
 
         if type_of_target in ["binary", "multiclass", "multilabel-indicator"]:
             target_names = y.columns.tolist()
