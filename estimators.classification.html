@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.2.280">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="description" content="PoniardClassifier inherits from PoniardBaseEstimator, which sets up most of the funcionality, so you should probably read the those docs first.">
+
+<title>Poniard - Classifier</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1.6em;
+  vertical-align: middle;
+}
+</style>
+
+
+<script src="site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="site_libs/quarto-nav/headroom.min.js"></script>
+<script src="site_libs/clipboard/clipboard.min.js"></script>
+<script src="site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="site_libs/quarto-search/fuse.min.js"></script>
+<script src="site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="./">
+<script src="site_libs/quarto-html/quarto.js"></script>
+<script src="site_libs/quarto-html/popper.min.js"></script>
+<script src="site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="site_libs/quarto-html/anchor.min.js"></script>
+<link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 20,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit"
+  }
+}</script>
+
+
+<link rel="stylesheet" href="styles.css">
+<meta property="og:title" content="Poniard - Classifier">
+<meta property="og:description" content="`PoniardClassifier` inherits from `PoniardBaseEstimator`, which sets up most of the funcionality, so you should probably read the [those docs](estimators.core.ipynb) first.">
+<meta property="og:site-name" content="Poniard">
+<meta name="twitter:title" content="Poniard - Classifier">
+<meta name="twitter:description" content="`PoniardClassifier` inherits from `PoniardBaseEstimator`, which sets up most of the funcionality, so you should probably read the [those docs](estimators.core.ipynb) first.">
+<meta name="twitter:card" content="summary">
+</head>
+
+<body class="nav-sidebar floating nav-fixed">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg navbar-dark ">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container">
+    <a class="navbar-brand" href="./index.html">
+    <span class="navbar-title">Poniard</span>
+    </a>
+  </div>
+          <div id="quarto-search" class="" title="Search"></div>
+      </div> <!-- /container-fluid -->
+    </nav>
+  <nav class="quarto-secondary-nav" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+    <div class="container-fluid d-flex justify-content-between">
+      <h1 class="quarto-secondary-nav-title">Classifier</h1>
+      <button type="button" class="quarto-btn-toggle btn" aria-label="Show secondary navigation">
+        <i class="bi bi-chevron-right"></i>
+      </button>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse sidebar-navigation floating overflow-auto">
+      <div class="mt-2 flex-shrink-0 align-items-center">
+        <div class="sidebar-search">
+        <div id="quarto-search" class="" title="Search"></div>
+        </div>
+      </div>
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./index.html" class="sidebar-item-text sidebar-link">Poniard</a>
+  </div>
+</li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" aria-expanded="true">Guide</a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" aria-expanded="true">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./guide/getting_started.html" class="sidebar-item-text sidebar-link">Getting started</a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./guide/main_parameters.html" class="sidebar-item-text sidebar-link">Main parameters</a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./guide/preprocessing.html" class="sidebar-item-text sidebar-link">Preprocessing</a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./guide/end_to_end_example.html" class="sidebar-item-text sidebar-link">A slightly more complex case study</a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" aria-expanded="true">Reference</a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" aria-expanded="true">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" aria-expanded="true">Estimators</a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" aria-expanded="true">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth2 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./estimators.core.html" class="sidebar-item-text sidebar-link">Base estimator</a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./estimators.classification.html" class="sidebar-item-text sidebar-link active">Classifier</a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./estimators.regression.html" class="sidebar-item-text sidebar-link">Regressor</a>
+  </div>
+</li>
+      </ul>
+  </li>
+          <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" aria-expanded="false">Preprocessors</a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" aria-expanded="false">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-4" class="collapse list-unstyled sidebar-section depth2 ">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./preprocessing.core.html" class="sidebar-item-text sidebar-link">Poniard Preprocessor</a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./preprocessing.categorical.html" class="sidebar-item-text sidebar-link">Categorical preprocessors</a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./preprocessing.datetime.html" class="sidebar-item-text sidebar-link">Datetime preprocessors</a>
+  </div>
+</li>
+      </ul>
+  </li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./plot.plot_factory.html" class="sidebar-item-text sidebar-link">Plots</a>
+  </div>
+</li>
+          <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" aria-expanded="false">Plugins</a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" aria-expanded="false">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-5" class="collapse list-unstyled sidebar-section depth2 ">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./plugins.core.html" class="sidebar-item-text sidebar-link">Base plugin</a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./plugins.wandb.html" class="sidebar-item-text sidebar-link">Weights and Biases</a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./plugins.pandas_profiling.html" class="sidebar-item-text sidebar-link">Pandas Profiling</a>
+  </div>
+</li>
+      </ul>
+  </li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./error_analysis.error_analysis.html" class="sidebar-item-text sidebar-link">Error analysis</a>
+  </div>
+</li>
+      </ul>
+  </li>
+    </ul>
+    </div>
+</nav>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#poniardclassifier" id="toc-poniardclassifier" class="nav-link active" data-scroll-target="#poniardclassifier">PoniardClassifier</a></li>
+  <li><a href="#poniardclassifier._build_cv" id="toc-poniardclassifier._build_cv" class="nav-link" data-scroll-target="#poniardclassifier._build_cv">PoniardClassifier._build_cv</a></li>
+  <li><a href="#poniardclassifier._build_metrics" id="toc-poniardclassifier._build_metrics" class="nav-link" data-scroll-target="#poniardclassifier._build_metrics">PoniardClassifier._build_metrics</a></li>
+  <li><a href="#poniardclassifier._default_estimators" id="toc-poniardclassifier._default_estimators" class="nav-link" data-scroll-target="#poniardclassifier._default_estimators">PoniardClassifier._default_estimators</a></li>
+  </ul>
+<div class="toc-actions"><div><i class="bi bi-github"></i></div><div class="action-links"><p><a href="https://github.com/rxavier/poniard/issues/new" class="toc-action">Report an issue</a></p></div></div></nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title d-none d-lg-block">Classifier</h1>
+</div>
+
+<div>
+  <div class="description">
+    <code>PoniardClassifier</code> inherits from <code>PoniardBaseEstimator</code>, which sets up most of the funcionality, so you should probably read the <a href="./estimators.core.html">those docs</a> first.
+  </div>
+</div>
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+</header>
+
+<!-- WARNING: THIS FILE WAS AUTOGENERATED! DO NOT EDIT! -->
+<hr>
+<p><a href="https://github.com/rxavier/poniard/blob/master/poniard/estimators/classification.py#L29" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="poniardclassifier" class="level3">
+<h3 class="anchored" data-anchor-id="poniardclassifier">PoniardClassifier</h3>
+<blockquote class="blockquote">
+<pre><code> PoniardClassifier (estimators:Union[Dict[str,sklearn.base.ClassifierMixin
+                    ],Sequence[sklearn.base.ClassifierMixin],NoneType]=Non
+                    e, metrics:Union[str,Dict[str,Callable],Sequence[str],
+                    NoneType]=None, preprocess:bool=True, custom_preproces
+                    sor:Union[NoneType,sklearn.pipeline.Pipeline,sklearn.b
+                    ase.TransformerMixin]=None, cv:Union[int,sklearn.model
+                    _selection._split.BaseCrossValidator,sklearn.model_sel
+                    ection._split.BaseShuffleSplit,Sequence]=None,
+                    verbose:int=0, random_state:Optional[int]=None,
+                    n_jobs:Optional[int]=None,
+                    plugins:Optional[Sequence[Any]]=None, plot_options:Opt
+                    ional[poniard.plot.plot_factory.PoniardPlotFactory]=No
+                    ne)</code></pre>
+</blockquote>
+<p>Cross validate multiple classifiers, rank them, fine tune them and ensemble them.</p>
+<p>PoniardClassifier takes a list/dict of scikit-learn estimators and compares their performance on a list/dict of scikit-learn metrics using a predefined scikit-learn cross-validation strategy.</p>
+<table class="table">
+<colgroup>
+<col style="width: 6%">
+<col style="width: 25%">
+<col style="width: 34%">
+<col style="width: 34%">
+</colgroup>
+<thead>
+<tr class="header">
+<th></th>
+<th><strong>Type</strong></th>
+<th><strong>Default</strong></th>
+<th><strong>Details</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>estimators</td>
+<td>typing.Union[typing.Dict[str, sklearn.base.ClassifierMixin], typing.Sequence[sklearn.base.ClassifierMixin], NoneType]</td>
+<td>None</td>
+<td>Estimators to evaluate.</td>
+</tr>
+<tr class="even">
+<td>metrics</td>
+<td>typing.Union[str, typing.Dict[str, typing.Callable], typing.Sequence[str], NoneType]</td>
+<td>None</td>
+<td>Metrics to compute for each estimator. This is more restrictive than sklearn’s scoring<br>parameter, as it does not allow callable scorers. Single strings are cast to lists<br>automatically.</td>
+</tr>
+<tr class="odd">
+<td>preprocess</td>
+<td>bool</td>
+<td>True</td>
+<td>If True, impute missing values, standard scale numeric data and one-hot or ordinal<br>encode categorical data.</td>
+</tr>
+<tr class="even">
+<td>custom_preprocessor</td>
+<td>typing.Union[NoneType, sklearn.pipeline.Pipeline, sklearn.base.TransformerMixin]</td>
+<td>None</td>
+<td>Preprocessor used instead of the default preprocessing pipeline. It must be able to be<br>included directly in a scikit-learn Pipeline.</td>
+</tr>
+<tr class="odd">
+<td>cv</td>
+<td>typing.Union[int, sklearn.model_selection._split.BaseCrossValidator, sklearn.model_selection._split.BaseShuffleSplit, typing.Sequence]</td>
+<td>None</td>
+<td>Cross validation strategy. Either an integer, a scikit-learn cross validation object,<br>or an iterable.</td>
+</tr>
+<tr class="even">
+<td>verbose</td>
+<td>int</td>
+<td>0</td>
+<td>Verbosity level. Propagated to every scikit-learn function and estimator.</td>
+</tr>
+<tr class="odd">
+<td>random_state</td>
+<td>typing.Optional[int]</td>
+<td>None</td>
+<td>RNG. Propagated to every scikit-learn function and estimator. The default None sets<br>random_state to 0 so that cross_validate results are comparable.</td>
+</tr>
+<tr class="even">
+<td>n_jobs</td>
+<td>typing.Optional[int]</td>
+<td>None</td>
+<td>Controls parallel processing. -1 uses all cores. Propagated to every scikit-learn<br>function.</td>
+</tr>
+<tr class="odd">
+<td>plugins</td>
+<td>typing.Optional[typing.Sequence[typing.Any]]</td>
+<td>None</td>
+<td>Plugin instances that run in set moments of setup, fit and plotting.</td>
+</tr>
+<tr class="even">
+<td>plot_options</td>
+<td>typing.Optional[poniard.plot.plot_factory.PoniardPlotFactory]</td>
+<td>None</td>
+<td>:class:poniard.plot.plot_factory.PoniardPlotFactory instance specifying Plotly format<br>options or None, which sets the default factory.</td>
+</tr>
+</tbody>
+</table>
+<p><a href="https://rxavier.github.io/poniard/estimators.classification.html#poniardclassifier"><code>PoniardClassifier</code></a> implements <a href="https://rxavier.github.io/poniard/estimators.classification.html#poniardclassifier._build_cv"><code>PoniardClassifier._build_cv</code></a>, <a href="https://rxavier.github.io/poniard/estimators.classification.html#poniardclassifier._build_metrics"><code>PoniardClassifier._build_metrics</code></a> and <a href="https://rxavier.github.io/poniard/estimators.classification.html#poniardclassifier._default_estimators"><code>PoniardClassifier._default_estimators</code></a>.</p>
+<hr>
+<p><a href="https://github.com/rxavier/poniard/blob/master/poniard/estimators/classification.py#L151" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="poniardclassifier._build_cv" class="level3">
+<h3 class="anchored" data-anchor-id="poniardclassifier._build_cv">PoniardClassifier._build_cv</h3>
+<blockquote class="blockquote">
+<pre><code> PoniardClassifier._build_cv ()</code></pre>
+</blockquote>
+<hr>
+<p><a href="https://github.com/rxavier/poniard/blob/master/poniard/estimators/classification.py#L123" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="poniardclassifier._build_metrics" class="level3">
+<h3 class="anchored" data-anchor-id="poniardclassifier._build_metrics">PoniardClassifier._build_metrics</h3>
+<blockquote class="blockquote">
+<pre><code> PoniardClassifier._build_metrics ()</code></pre>
+</blockquote>
+<p>Build metrics.</p>
+<hr>
+<p><a href="https://github.com/rxavier/poniard/blob/master/poniard/estimators/classification.py#L97" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="poniardclassifier._default_estimators" class="level3">
+<h3 class="anchored" data-anchor-id="poniardclassifier._default_estimators">PoniardClassifier._default_estimators</h3>
+<blockquote class="blockquote">
+<pre><code> PoniardClassifier._default_estimators ()</code></pre>
+</blockquote>
+
+
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const clipboard = new window.ClipboardJS('.code-copy-button', {
+    target: function(trigger) {
+      return trigger.previousElementSibling;
+    }
+  });
+  clipboard.on('success', function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  });
+  function tippyHover(el, contentFn) {
+    const config = {
+      allowHTML: true,
+      content: contentFn,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start'
+    };
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      return note.innerHTML;
+    });
+  }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+</body></html>

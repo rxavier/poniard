@@ -1,0 +1,833 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.2.280">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="description" content="Streamline scikit-learn model comparison.">
+
+<title>Poniard</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1.6em;
+  vertical-align: middle;
+}
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+    color: #aaaaaa;
+  }
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code span.at { color: #7d9029; } /* Attribute */
+code span.bn { color: #40a070; } /* BaseN */
+code span.bu { color: #008000; } /* BuiltIn */
+code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code span.ch { color: #4070a0; } /* Char */
+code span.cn { color: #880000; } /* Constant */
+code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code span.dt { color: #902000; } /* DataType */
+code span.dv { color: #40a070; } /* DecVal */
+code span.er { color: #ff0000; font-weight: bold; } /* Error */
+code span.ex { } /* Extension */
+code span.fl { color: #40a070; } /* Float */
+code span.fu { color: #06287e; } /* Function */
+code span.im { color: #008000; font-weight: bold; } /* Import */
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code span.op { color: #666666; } /* Operator */
+code span.ot { color: #007020; } /* Other */
+code span.pp { color: #bc7a00; } /* Preprocessor */
+code span.sc { color: #4070a0; } /* SpecialChar */
+code span.ss { color: #bb6688; } /* SpecialString */
+code span.st { color: #4070a0; } /* String */
+code span.va { color: #19177c; } /* Variable */
+code span.vs { color: #4070a0; } /* VerbatimString */
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+</style>
+
+
+<script src="site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="site_libs/quarto-nav/headroom.min.js"></script>
+<script src="site_libs/clipboard/clipboard.min.js"></script>
+<script src="site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="site_libs/quarto-search/fuse.min.js"></script>
+<script src="site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="./">
+<script src="site_libs/quarto-html/quarto.js"></script>
+<script src="site_libs/quarto-html/popper.min.js"></script>
+<script src="site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="site_libs/quarto-html/anchor.min.js"></script>
+<link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 20,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit"
+  }
+}</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" integrity="sha512-c3Nl8+7g4LMSTdrm621y7kf9v3SDPnhxLNhcjFJbKECVnmZHTdo+IRO05sNLTH/D3vA6u1X32ehoLC7WFVdheg==" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js" integrity="sha512-bLT0Qm9VnAYZDflyKcBaQ2gg0hSYNQrJ8RilYldYQ1FxQYoCLtUjuuRuZo+fjqhx/qtq/1itJ0C2ejDxltZVFg==" crossorigin="anonymous"></script>
+<script type="application/javascript">define('jquery', [],function() {return window.jQuery;})</script>
+<script src="https://unpkg.com/@jupyter-widgets/html-manager@*/dist/embed-amd.js" crossorigin="anonymous"></script>
+
+
+<link rel="stylesheet" href="styles.css">
+<meta property="og:title" content="Poniard">
+<meta property="og:description" content="Streamline scikit-learn model comparison.">
+<meta property="og:site-name" content="Poniard">
+<meta name="twitter:title" content="Poniard">
+<meta name="twitter:description" content="Streamline scikit-learn model comparison.">
+<meta name="twitter:card" content="summary">
+</head>
+
+<body class="nav-sidebar floating nav-fixed">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg navbar-dark ">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container">
+    <a class="navbar-brand" href="./index.html">
+    <span class="navbar-title">Poniard</span>
+    </a>
+  </div>
+          <div id="quarto-search" class="" title="Search"></div>
+      </div> <!-- /container-fluid -->
+    </nav>
+  <nav class="quarto-secondary-nav" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+    <div class="container-fluid d-flex justify-content-between">
+      <h1 class="quarto-secondary-nav-title">Poniard</h1>
+      <button type="button" class="quarto-btn-toggle btn" aria-label="Show secondary navigation">
+        <i class="bi bi-chevron-right"></i>
+      </button>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse sidebar-navigation floating overflow-auto">
+      <div class="mt-2 flex-shrink-0 align-items-center">
+        <div class="sidebar-search">
+        <div id="quarto-search" class="" title="Search"></div>
+        </div>
+      </div>
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./index.html" class="sidebar-item-text sidebar-link active">Poniard</a>
+  </div>
+</li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" aria-expanded="true">Guide</a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" aria-expanded="true">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./guide/getting_started.html" class="sidebar-item-text sidebar-link">Getting started</a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./guide/main_parameters.html" class="sidebar-item-text sidebar-link">Main parameters</a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./guide/preprocessing.html" class="sidebar-item-text sidebar-link">Preprocessing</a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./guide/end_to_end_example.html" class="sidebar-item-text sidebar-link">A slightly more complex case study</a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" aria-expanded="true">Reference</a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" aria-expanded="true">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" aria-expanded="false">Estimators</a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" aria-expanded="false">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth2 ">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./estimators.core.html" class="sidebar-item-text sidebar-link">Base estimator</a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./estimators.classification.html" class="sidebar-item-text sidebar-link">Classifier</a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./estimators.regression.html" class="sidebar-item-text sidebar-link">Regressor</a>
+  </div>
+</li>
+      </ul>
+  </li>
+          <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" aria-expanded="false">Preprocessors</a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" aria-expanded="false">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-4" class="collapse list-unstyled sidebar-section depth2 ">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./preprocessing.core.html" class="sidebar-item-text sidebar-link">Poniard Preprocessor</a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./preprocessing.categorical.html" class="sidebar-item-text sidebar-link">Categorical preprocessors</a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./preprocessing.datetime.html" class="sidebar-item-text sidebar-link">Datetime preprocessors</a>
+  </div>
+</li>
+      </ul>
+  </li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./plot.plot_factory.html" class="sidebar-item-text sidebar-link">Plots</a>
+  </div>
+</li>
+          <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" aria-expanded="false">Plugins</a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" aria-expanded="false">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-5" class="collapse list-unstyled sidebar-section depth2 ">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./plugins.core.html" class="sidebar-item-text sidebar-link">Base plugin</a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./plugins.wandb.html" class="sidebar-item-text sidebar-link">Weights and Biases</a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./plugins.pandas_profiling.html" class="sidebar-item-text sidebar-link">Pandas Profiling</a>
+  </div>
+</li>
+      </ul>
+  </li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./error_analysis.error_analysis.html" class="sidebar-item-text sidebar-link">Error analysis</a>
+  </div>
+</li>
+      </ul>
+  </li>
+    </ul>
+    </div>
+</nav>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#introduction" id="toc-introduction" class="nav-link active" data-scroll-target="#introduction">Introduction</a></li>
+  <li><a href="#installation" id="toc-installation" class="nav-link" data-scroll-target="#installation">Installation</a></li>
+  <li><a href="#documentation" id="toc-documentation" class="nav-link" data-scroll-target="#documentation">Documentation</a></li>
+  <li><a href="#usagefeatures" id="toc-usagefeatures" class="nav-link" data-scroll-target="#usagefeatures">Usage/features</a>
+  <ul class="collapse">
+  <li><a href="#basics" id="toc-basics" class="nav-link" data-scroll-target="#basics">Basics</a></li>
+  <li><a href="#type-inference" id="toc-type-inference" class="nav-link" data-scroll-target="#type-inference">Type inference</a></li>
+  <li><a href="#ensembles" id="toc-ensembles" class="nav-link" data-scroll-target="#ensembles">Ensembles</a></li>
+  <li><a href="#hyperparameter-optimization" id="toc-hyperparameter-optimization" class="nav-link" data-scroll-target="#hyperparameter-optimization">Hyperparameter optimization</a></li>
+  <li><a href="#plotting" id="toc-plotting" class="nav-link" data-scroll-target="#plotting">Plotting</a></li>
+  <li><a href="#plugin-system" id="toc-plugin-system" class="nav-link" data-scroll-target="#plugin-system">Plugin system</a></li>
+  </ul></li>
+  <li><a href="#design-philosophy" id="toc-design-philosophy" class="nav-link" data-scroll-target="#design-philosophy">Design philosophy</a>
+  <ul class="collapse">
+  <li><a href="#not-another-dependency" id="toc-not-another-dependency" class="nav-link" data-scroll-target="#not-another-dependency">Not another dependency</a></li>
+  <li><a href="#we-dont-do-that-here-automl" id="toc-we-dont-do-that-here-automl" class="nav-link" data-scroll-target="#we-dont-do-that-here-automl">We don’t do that here (AutoML)</a></li>
+  <li><a href="#opinionated-with-a-few-exceptions" id="toc-opinionated-with-a-few-exceptions" class="nav-link" data-scroll-target="#opinionated-with-a-few-exceptions">Opinionated with a few exceptions</a></li>
+  <li><a href="#cross-validate-all-the-things" id="toc-cross-validate-all-the-things" class="nav-link" data-scroll-target="#cross-validate-all-the-things">Cross validate all the things</a></li>
+  <li><a href="#use-baselines" id="toc-use-baselines" class="nav-link" data-scroll-target="#use-baselines">Use baselines</a></li>
+  <li><a href="#fast-ttfm-time-to-first-model" id="toc-fast-ttfm-time-to-first-model" class="nav-link" data-scroll-target="#fast-ttfm-time-to-first-model">Fast TTFM (time to first model)</a></li>
+  </ul></li>
+  <li><a href="#similar-projects" id="toc-similar-projects" class="nav-link" data-scroll-target="#similar-projects">Similar projects</a></li>
+  </ul>
+<div class="toc-actions"><div><i class="bi bi-github"></i></div><div class="action-links"><p><a href="https://github.com/rxavier/poniard/issues/new" class="toc-action">Report an issue</a></p></div></div></nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title d-none d-lg-block">Poniard</h1>
+</div>
+
+<div>
+  <div class="description">
+    Streamline scikit-learn model comparison.
+  </div>
+</div>
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+</header>
+
+<!-- WARNING: THIS FILE WAS AUTOGENERATED! DO NOT EDIT! -->
+<p align="center">
+<img src="https://raw.githubusercontent.com/rxavier/poniard/main/logo.png" alt="Poniard logo" title="Poniard" width="50%">
+</p>
+<section id="introduction" class="level2">
+<h2 class="anchored" data-anchor-id="introduction">Introduction</h2>
+<blockquote class="blockquote">
+<p>A poniard /ˈpɒnjərd/ or poignard (Fr.) is a long, lightweight thrusting knife (<a href="https://en.wikipedia.org/wiki/Poignard">Wikipedia</a>).</p>
+</blockquote>
+<p>Poniard is a scikit-learn companion library that streamlines the process of fitting different machine learning models and comparing them.</p>
+<p>It can be used to provide quick answers to questions like these: * What is the reasonable range of scores for this task? * Is a simple and explainable linear model enough or should I work with forests and gradient boosters? * Are the features good enough as is or should I work on feature engineering? * How much can hyperparemeter tuning improve metrics? * Do I need to work on a custom preprocessing strategy?</p>
+<p>This is not meant to be end to end solution, and you definitely should keep on working on your models after you are done with Poniard.</p>
+<p>The core functionality has been tested to work on Python 3.7 through 3.10 on Linux systems, and from 3.8 to 3.10 on macOS.</p>
+</section>
+<section id="installation" class="level2">
+<h2 class="anchored" data-anchor-id="installation">Installation</h2>
+<p>Stable version:</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">pip</span> install poniard</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Dev version with most up to date changes:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="ex">pip</span> install git+https://github.com/rxavier/poniard.git@develop#egg=poniard</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</section>
+<section id="documentation" class="level2">
+<h2 class="anchored" data-anchor-id="documentation">Documentation</h2>
+<p>Check the full <a href="https://rxavier.github.io/poniard">Quarto docs</a>, including guides and API reference.</p>
+</section>
+<section id="usagefeatures" class="level2">
+<h2 class="anchored" data-anchor-id="usagefeatures">Usage/features</h2>
+<section id="basics" class="level3">
+<h3 class="anchored">Basics</h3>
+<p>The API was designed with tabular tasks in mind, but it should also work with time series tasks provided an appropiate cross validation strategy is used (don’t shuffle!)</p>
+<p>The usual Poniard flow is: 1. Define some estimators. 2. Define some metrics. 3. Define a cross validation strategy. 4. Fit everything. 5. Print the results.</p>
+<p>Poniard provides sane defaults for 1, 2 and 3, so in most cases you can just do…</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> poniard <span class="im">import</span> PoniardRegressor</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.datasets <span class="im">import</span> load_diabetes</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>X, y <span class="op">=</span> load_diabetes(return_X_y<span class="op">=</span><span class="va">True</span>, as_frame<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>pnd <span class="op">=</span> PoniardRegressor(random_state<span class="op">=</span><span class="dv">0</span>)</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>pnd.setup(X, y)</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>pnd.fit()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+
+                         <h2 class="anchored" data-anchor-id="basics">Setup info</h2>
+                         <h3 class="anchored">Target</h3>
+                             <p><b>Type:</b> continuous</p>
+                             <p><b>Shape:</b> (442,)</p>
+                             <p><b>Unique values:</b> 214</p>
+                             <h3 class="anchored">Metrics</h3>
+                             <b>Main metric:</b> neg_mean_squared_error
+                             
+</div>
+<div class="cell-output cell-output-display">
+
+ <h3 class="anchored">Feature type inference</h3>
+                                <p><b>Minimum unique values to consider a number-like feature numeric:</b> 44</p>
+                                <p><b>Minimum unique values to consider a categorical feature high cardinality:</b> 20</p>
+                                <p><b>Inferred feature types:</b></p>
+                                <table class="dataframe table table-sm table-striped">
+  <thead>
+    <tr>
+      <th></th>
+      <th>numeric</th>
+      <th>categorical_high</th>
+      <th>categorical_low</th>
+      <th>datetime</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>age</td>
+      <td></td>
+      <td>sex</td>
+      <td></td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>bmi</td>
+      <td></td>
+      <td></td>
+      <td></td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>bp</td>
+      <td></td>
+      <td></td>
+      <td></td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>s1</td>
+      <td></td>
+      <td></td>
+      <td></td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>s2</td>
+      <td></td>
+      <td></td>
+      <td></td>
+    </tr>
+    <tr>
+      <th>5</th>
+      <td>s3</td>
+      <td></td>
+      <td></td>
+      <td></td>
+    </tr>
+    <tr>
+      <th>6</th>
+      <td>s4</td>
+      <td></td>
+      <td></td>
+      <td></td>
+    </tr>
+    <tr>
+      <th>7</th>
+      <td>s5</td>
+      <td></td>
+      <td></td>
+      <td></td>
+    </tr>
+    <tr>
+      <th>8</th>
+      <td>s6</td>
+      <td></td>
+      <td></td>
+      <td></td>
+    </tr>
+  </tbody>
+</table>
+</div>
+<div class="cell-output cell-output-display">
+<script type="application/vnd.jupyter.widget-view+json">
+{"model_id":"","version_major":2,"version_minor":0}
+</script>
+</div>
+<div class="cell-output cell-output-display">
+<pre><code>PoniardRegressor(random_state=0)</code></pre>
+</div>
+</div>
+<p>… and get a nice table showing the average of each metric in all folds for every model, including fit and score times (thanks, scikit-learn <code>cross_validate</code> function!)</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>pnd.get_results()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="cell-output cell-output-display">
+
+<table class="dataframe table table-sm table-striped">
+  <thead>
+    <tr>
+      <th></th>
+      <th>test_neg_mean_squared_error</th>
+      <th>test_neg_mean_absolute_percentage_error</th>
+      <th>test_neg_median_absolute_error</th>
+      <th>test_r2</th>
+      <th>fit_time</th>
+      <th>score_time</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>LinearRegression</th>
+      <td>-2977.598515</td>
+      <td>-0.396566</td>
+      <td>-39.009146</td>
+      <td>0.489155</td>
+      <td>0.005265</td>
+      <td>0.001960</td>
+    </tr>
+    <tr>
+      <th>ElasticNet</th>
+      <td>-3159.017211</td>
+      <td>-0.422912</td>
+      <td>-42.619546</td>
+      <td>0.460740</td>
+      <td>0.003509</td>
+      <td>0.001755</td>
+    </tr>
+    <tr>
+      <th>RandomForestRegressor</th>
+      <td>-3431.823331</td>
+      <td>-0.419956</td>
+      <td>-42.203000</td>
+      <td>0.414595</td>
+      <td>0.101435</td>
+      <td>0.004821</td>
+    </tr>
+    <tr>
+      <th>HistGradientBoostingRegressor</th>
+      <td>-3544.069433</td>
+      <td>-0.407417</td>
+      <td>-40.396390</td>
+      <td>0.391633</td>
+      <td>0.334695</td>
+      <td>0.009266</td>
+    </tr>
+    <tr>
+      <th>KNeighborsRegressor</th>
+      <td>-3615.195398</td>
+      <td>-0.418674</td>
+      <td>-38.980000</td>
+      <td>0.379625</td>
+      <td>0.003038</td>
+      <td>0.002083</td>
+    </tr>
+    <tr>
+      <th>XGBRegressor</th>
+      <td>-3923.488860</td>
+      <td>-0.426471</td>
+      <td>-39.031309</td>
+      <td>0.329961</td>
+      <td>0.055696</td>
+      <td>0.002855</td>
+    </tr>
+    <tr>
+      <th>LinearSVR</th>
+      <td>-4268.314411</td>
+      <td>-0.374296</td>
+      <td>-43.388592</td>
+      <td>0.271443</td>
+      <td>0.003470</td>
+      <td>0.001721</td>
+    </tr>
+    <tr>
+      <th>DummyRegressor</th>
+      <td>-5934.577616</td>
+      <td>-0.621540</td>
+      <td>-61.775921</td>
+      <td>-0.000797</td>
+      <td>0.003010</td>
+      <td>0.001627</td>
+    </tr>
+    <tr>
+      <th>DecisionTreeRegressor</th>
+      <td>-6728.423034</td>
+      <td>-0.591906</td>
+      <td>-59.700000</td>
+      <td>-0.145460</td>
+      <td>0.004179</td>
+      <td>0.001667</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+</div>
+<p>Alternatively, you can also get a nice plot of your different metrics by using the <code>PoniardBaseEstimator.plot.metrics</code> method.</p>
+</section>
+<section id="type-inference" class="level3">
+<h3 class="anchored" data-anchor-id="type-inference">Type inference</h3>
+<p>Poniard uses some basic heuristics to infer the data types.</p>
+<p>Float and integer columns are defined as numeric if the number of unique values is greater than indicated by the <code>categorical_threshold</code> parameter.</p>
+<p>String/object/categorical columns are assumed to be categorical.</p>
+<p>Datetime features are processed separately with a custom encoder.</p>
+<p>For categorical features, high and low cardinality is defined by the <code>cardinality_threshold</code> parameter. Only low cardinality categorical features are one-hot encoded.</p>
+</section>
+<section id="ensembles" class="level3">
+<h3 class="anchored" data-anchor-id="ensembles">Ensembles</h3>
+<p>Poniard makes it easy to combine various estimators in stacking or voting ensembles. The base esimators can be selected according to their performance (top-n) or chosen by their names.</p>
+<p>Poniard also reports how similar the predictions of the estimators are, so ensembles with different base estimators can be built. A basic correlation table of the cross-validated predictions is built for regression tasks, while <a href="https://en.wikipedia.org/wiki/Cram%C3%A9r%27s_V">Cramér’s V</a> is used for classification.</p>
+<p>By default, it computes this similarity of prediction errors instead of the actual predictions; this helps in building ensembles with good scoring estimators and uncorrelated errors, which in principle and hopefully should lead to a “wisdom of crowds” kind of situation.</p>
+</section>
+<section id="hyperparameter-optimization" class="level3">
+<h3 class="anchored" data-anchor-id="hyperparameter-optimization">Hyperparameter optimization</h3>
+<p>The <a href="https://rxavier.github.io/poniard/estimators.core.html#poniardbaseestimator.tune_estimator"><code>PoniardBaseEstimator.tune_estimator</code></a> method can be used to optimize the hyperparameters of a given estimator, either by passing a grid of parameters or using the inbuilt ones available for default estimators. The tuned estimator will be added to the list of estimators and will be scored the next time <a href="https://rxavier.github.io/poniard/estimators.core.html#poniardbaseestimator.fit"><code>PoniardBaseEstimator.fit</code></a> is called.</p>
+</section>
+<section id="plotting" class="level3">
+<h3 class="anchored" data-anchor-id="plotting">Plotting</h3>
+<p>The <code>plot</code> accessor provides several plotting methods based on the attached Poniard estimator instance. These Plotly plots are based on a default template, but can be modified by passing a different <a href="https://rxavier.github.io/poniard/plot.plot_factory.html#poniardplotfactory"><code>PoniardPlotFactory</code></a> to the Poniard <code>plot_options</code>&nbsp;argument.</p>
+</section>
+<section id="plugin-system" class="level3">
+<h3 class="anchored" data-anchor-id="plugin-system">Plugin system</h3>
+<p>The <code>plugins</code> argument in Poniard estimators takes a plugin or list of plugins that subclass <a href="https://rxavier.github.io/poniard/plugins.core.html#baseplugin"><code>BasePlugin</code></a>. These plugins have access to the Poniard estimator instance and hook onto different sections of the process, for example, on setup start, on fit end, on remove estimator, etc.</p>
+<p>This makes it easy for third parties to extend Poniard’s functionality.</p>
+<p>Two plugins are baked into Poniard. 1. Weights and Biases: logs your data, plots, runs wandb scikit-learn analysis, saves model artifacts, etc. 2. Pandas Profiling: generates an HTML report of the features and target. If the Weights and Biases plugin is present, also logs this report to the wandb run.</p>
+<p>The requirements for these plugins are not included in the base Poniard dependencies, so you can safely ignore them if you don’t intend to use them.</p>
+</section>
+</section>
+<section id="design-philosophy" class="level2">
+<h2 class="anchored" data-anchor-id="design-philosophy">Design philosophy</h2>
+<section id="not-another-dependency" class="level3">
+<h3 class="anchored" data-anchor-id="not-another-dependency">Not another dependency</h3>
+<p>We try very hard to avoid cluttering the environment with stuff you won’t use outside of this library. Poniard’s dependencies are:</p>
+<ol type="1">
+<li>scikit-learn (duh)</li>
+<li>pandas</li>
+<li>XGBoost</li>
+<li>Plotly</li>
+<li>tqdm</li>
+<li>That’s it!</li>
+</ol>
+<p>Apart from <code>tqdm</code> and possibly <code>Plotly</code>, all dependencies most likely were going to be installed anyway, so Poniard’s added footprint should be small.</p>
+</section>
+<section id="we-dont-do-that-here-automl" class="level3">
+<h3 class="anchored" data-anchor-id="we-dont-do-that-here-automl">We don’t do that here (AutoML)</h3>
+<p>Poniard tries not to take control away from the user. As such, it is not designed to perform 2 hours of feature engineering and selection, try every model under the sun together with endless ensembles and select the top performing model according to some metric.</p>
+<p>Instead, it strives to abstract away some of the boilerplate code needed to fit and compare a number of models and allows the user to decide what to do with the results.</p>
+<p>Poniard can be your first stab at a prediction problem, but it definitely shouldn’t be your last one.</p>
+</section>
+<section id="opinionated-with-a-few-exceptions" class="level3">
+<h3 class="anchored" data-anchor-id="opinionated-with-a-few-exceptions">Opinionated with a few exceptions</h3>
+<p>While some parameters can be modified to control how variable type inference and preprocessing are performed, the API is designed to prevent parameter proliferation.</p>
+</section>
+<section id="cross-validate-all-the-things" class="level3">
+<h3 class="anchored" data-anchor-id="cross-validate-all-the-things">Cross validate all the things</h3>
+<p>Everything in Poniard is run with cross validation by default, and in fact no relevant functionality can be used without cross validation.</p>
+</section>
+<section id="use-baselines" class="level3">
+<h3 class="anchored" data-anchor-id="use-baselines">Use baselines</h3>
+<p>A dummy estimator is always included in model comparisons so you can gauge whether your model is better than a dumb strategy.</p>
+</section>
+<section id="fast-ttfm-time-to-first-model" class="level3">
+<h3 class="anchored" data-anchor-id="fast-ttfm-time-to-first-model">Fast TTFM (time to first model)</h3>
+<p>Preprocessing tries to ensure that your models run successfully without significant data munging. By default, Poniard imputes missing data and one-hot encodes or target encodes (depending on cardinality) inferred categorical variables, which in most cases is enough for scikit-learn algorithms to fit without complaints. Additionally, it scales numeric data and drops features with a single unique value.</p>
+</section>
+</section>
+<section id="similar-projects" class="level2">
+<h2 class="anchored" data-anchor-id="similar-projects">Similar projects</h2>
+<p>Poniard is not a groundbreaking idea, and a number of libraries follow a similar approach.</p>
+<p><strong><a href="https://github.com/tvdboom/ATOM">ATOM</a></strong> is perhaps the most similar library to Poniard, albeit with a different approach to the API.</p>
+<p><strong><a href="https://github.com/shankarpandala/lazypredict">LazyPredict</a></strong> is similar in that it runs multiple estimators and provides results for various metrics. Unlike Poniard, by default it tries most scikit-learn estimators, and is not based on cross validation.</p>
+<p><strong><a href="https://github.com/pycaret/pycaret">PyCaret</a></strong> is a whole other beast that includes model explainability, deployment, plotting, NLP, anomaly detection, etc., which leads to a list of dependencies several times larger than Poniard’s, and a more complicated API.</p>
+
+
+</section>
+
+</main> <!-- /main -->
+<script type="application/vnd.jupyter.widget-state+json">
+{"state":{},"version_major":2,"version_minor":0}
+</script>
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const clipboard = new window.ClipboardJS('.code-copy-button', {
+    target: function(trigger) {
+      return trigger.previousElementSibling;
+    }
+  });
+  clipboard.on('success', function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  });
+  function tippyHover(el, contentFn) {
+    const config = {
+      allowHTML: true,
+      content: contentFn,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start'
+    };
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      return note.innerHTML;
+    });
+  }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+</body></html>

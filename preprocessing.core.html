@@ -1,0 +1,952 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.2.280">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="description" content="Preprocessing data based on input types.">
+
+<title>Poniard - Poniard Preprocessor</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1.6em;
+  vertical-align: middle;
+}
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+    color: #aaaaaa;
+  }
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code span.at { color: #7d9029; } /* Attribute */
+code span.bn { color: #40a070; } /* BaseN */
+code span.bu { color: #008000; } /* BuiltIn */
+code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code span.ch { color: #4070a0; } /* Char */
+code span.cn { color: #880000; } /* Constant */
+code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code span.dt { color: #902000; } /* DataType */
+code span.dv { color: #40a070; } /* DecVal */
+code span.er { color: #ff0000; font-weight: bold; } /* Error */
+code span.ex { } /* Extension */
+code span.fl { color: #40a070; } /* Float */
+code span.fu { color: #06287e; } /* Function */
+code span.im { color: #008000; font-weight: bold; } /* Import */
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code span.op { color: #666666; } /* Operator */
+code span.ot { color: #007020; } /* Other */
+code span.pp { color: #bc7a00; } /* Preprocessor */
+code span.sc { color: #4070a0; } /* SpecialChar */
+code span.ss { color: #bb6688; } /* SpecialString */
+code span.st { color: #4070a0; } /* String */
+code span.va { color: #19177c; } /* Variable */
+code span.vs { color: #4070a0; } /* VerbatimString */
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+</style>
+
+
+<script src="site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="site_libs/quarto-nav/headroom.min.js"></script>
+<script src="site_libs/clipboard/clipboard.min.js"></script>
+<script src="site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="site_libs/quarto-search/fuse.min.js"></script>
+<script src="site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="./">
+<script src="site_libs/quarto-html/quarto.js"></script>
+<script src="site_libs/quarto-html/popper.min.js"></script>
+<script src="site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="site_libs/quarto-html/anchor.min.js"></script>
+<link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 20,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit"
+  }
+}</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" integrity="sha512-c3Nl8+7g4LMSTdrm621y7kf9v3SDPnhxLNhcjFJbKECVnmZHTdo+IRO05sNLTH/D3vA6u1X32ehoLC7WFVdheg==" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js" integrity="sha512-bLT0Qm9VnAYZDflyKcBaQ2gg0hSYNQrJ8RilYldYQ1FxQYoCLtUjuuRuZo+fjqhx/qtq/1itJ0C2ejDxltZVFg==" crossorigin="anonymous"></script>
+<script type="application/javascript">define('jquery', [],function() {return window.jQuery;})</script>
+<script src="https://unpkg.com/@jupyter-widgets/html-manager@*/dist/embed-amd.js" crossorigin="anonymous"></script>
+
+
+<link rel="stylesheet" href="styles.css">
+<meta property="og:title" content="Poniard - Poniard Preprocessor">
+<meta property="og:description" content="Preprocessing data based on input types.">
+<meta property="og:site-name" content="Poniard">
+<meta name="twitter:title" content="Poniard - Poniard Preprocessor">
+<meta name="twitter:description" content="Preprocessing data based on input types.">
+<meta name="twitter:card" content="summary">
+</head>
+
+<body class="nav-sidebar floating nav-fixed">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg navbar-dark ">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container">
+    <a class="navbar-brand" href="./index.html">
+    <span class="navbar-title">Poniard</span>
+    </a>
+  </div>
+          <div id="quarto-search" class="" title="Search"></div>
+      </div> <!-- /container-fluid -->
+    </nav>
+  <nav class="quarto-secondary-nav" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+    <div class="container-fluid d-flex justify-content-between">
+      <h1 class="quarto-secondary-nav-title">Poniard Preprocessor</h1>
+      <button type="button" class="quarto-btn-toggle btn" aria-label="Show secondary navigation">
+        <i class="bi bi-chevron-right"></i>
+      </button>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse sidebar-navigation floating overflow-auto">
+      <div class="mt-2 flex-shrink-0 align-items-center">
+        <div class="sidebar-search">
+        <div id="quarto-search" class="" title="Search"></div>
+        </div>
+      </div>
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./index.html" class="sidebar-item-text sidebar-link">Poniard</a>
+  </div>
+</li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" aria-expanded="true">Guide</a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" aria-expanded="true">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./guide/getting_started.html" class="sidebar-item-text sidebar-link">Getting started</a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./guide/main_parameters.html" class="sidebar-item-text sidebar-link">Main parameters</a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./guide/preprocessing.html" class="sidebar-item-text sidebar-link">Preprocessing</a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./guide/end_to_end_example.html" class="sidebar-item-text sidebar-link">A slightly more complex case study</a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" aria-expanded="true">Reference</a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" aria-expanded="true">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" aria-expanded="false">Estimators</a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" aria-expanded="false">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth2 ">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./estimators.core.html" class="sidebar-item-text sidebar-link">Base estimator</a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./estimators.classification.html" class="sidebar-item-text sidebar-link">Classifier</a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./estimators.regression.html" class="sidebar-item-text sidebar-link">Regressor</a>
+  </div>
+</li>
+      </ul>
+  </li>
+          <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" aria-expanded="true">Preprocessors</a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" aria-expanded="true">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-4" class="collapse list-unstyled sidebar-section depth2 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./preprocessing.core.html" class="sidebar-item-text sidebar-link active">Poniard Preprocessor</a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./preprocessing.categorical.html" class="sidebar-item-text sidebar-link">Categorical preprocessors</a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./preprocessing.datetime.html" class="sidebar-item-text sidebar-link">Datetime preprocessors</a>
+  </div>
+</li>
+      </ul>
+  </li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./plot.plot_factory.html" class="sidebar-item-text sidebar-link">Plots</a>
+  </div>
+</li>
+          <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" aria-expanded="false">Plugins</a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" aria-expanded="false">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-5" class="collapse list-unstyled sidebar-section depth2 ">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./plugins.core.html" class="sidebar-item-text sidebar-link">Base plugin</a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./plugins.wandb.html" class="sidebar-item-text sidebar-link">Weights and Biases</a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./plugins.pandas_profiling.html" class="sidebar-item-text sidebar-link">Pandas Profiling</a>
+  </div>
+</li>
+      </ul>
+  </li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./error_analysis.error_analysis.html" class="sidebar-item-text sidebar-link">Error analysis</a>
+  </div>
+</li>
+      </ul>
+  </li>
+    </ul>
+    </div>
+</nav>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#poniardpreprocessor" id="toc-poniardpreprocessor" class="nav-link active" data-scroll-target="#poniardpreprocessor">PoniardPreprocessor</a></li>
+  <li><a href="#poniardpreprocessor.build" id="toc-poniardpreprocessor.build" class="nav-link" data-scroll-target="#poniardpreprocessor.build">PoniardPreprocessor.build</a></li>
+  </ul>
+<div class="toc-actions"><div><i class="bi bi-github"></i></div><div class="action-links"><p><a href="https://github.com/rxavier/poniard/issues/new" class="toc-action">Report an issue</a></p></div></div></nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title d-none d-lg-block">Poniard Preprocessor</h1>
+</div>
+
+<div>
+  <div class="description">
+    Preprocessing data based on input types.
+  </div>
+</div>
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+</header>
+
+<!-- WARNING: THIS FILE WAS AUTOGENERATED! DO NOT EDIT! -->
+<hr>
+<p><a href="https://github.com/rxavier/poniard/blob/master/poniard/preprocessing/core.py#L36" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="poniardpreprocessor" class="level3">
+<h3 class="anchored" data-anchor-id="poniardpreprocessor">PoniardPreprocessor</h3>
+<blockquote class="blockquote">
+<pre><code> PoniardPreprocessor (task:Optional[str]=None,
+                      scaler:Optional[Union[str,TransformerMixin]]=None, h
+                      igh_cardinality_encoder:Optional[Union[str,Transform
+                      erMixin]]=None, numeric_imputer:Optional[Union[str,T
+                      ransformerMixin]]=None, custom_preprocessor:Union[No
+                      ne,Pipeline,TransformerMixin]=None,
+                      numeric_threshold:Union[int,float]=0.1,
+                      cardinality_threshold:Union[int,float]=20,
+                      verbose:int=0, random_state:Optional[int]=None,
+                      n_jobs:Optional[int]=None,
+                      cache_transformations:bool=False)</code></pre>
+</blockquote>
+<p>Base preprocessor that builds an easily modifiable pipeline based on feature data types.</p>
+<table class="table">
+<colgroup>
+<col style="width: 6%">
+<col style="width: 25%">
+<col style="width: 34%">
+<col style="width: 34%">
+</colgroup>
+<thead>
+<tr class="header">
+<th></th>
+<th><strong>Type</strong></th>
+<th><strong>Default</strong></th>
+<th><strong>Details</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>task</td>
+<td>Optional[str]</td>
+<td>None</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>scaler</td>
+<td>Optional[Union[str, TransformerMixin]]</td>
+<td>None</td>
+<td>Numeric scaler method. Either “standard”, “minmax”, “robust” or scikit-learn Transformer.</td>
+</tr>
+<tr class="odd">
+<td>high_cardinality_encoder</td>
+<td>Optional[Union[str, TransformerMixin]]</td>
+<td>None</td>
+<td>Encoder for categorical features with high cardinality. Either “target” or “ordinal”,<br>or scikit-learn Transformer.</td>
+</tr>
+<tr class="even">
+<td>numeric_imputer</td>
+<td>Optional[Union[str, TransformerMixin]]</td>
+<td>None</td>
+<td>Imputation method. Either “simple”, “iterative” or scikit-learn Transformer.</td>
+</tr>
+<tr class="odd">
+<td>custom_preprocessor</td>
+<td>Union[None, Pipeline, TransformerMixin]</td>
+<td>None</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>numeric_threshold</td>
+<td>Union[int, float]</td>
+<td>0.1</td>
+<td>Number features with unique values above a certain threshold will be treated as numeric. If<br>float, the threshold is <code>numeric_threshold * samples</code>.</td>
+</tr>
+<tr class="odd">
+<td>cardinality_threshold</td>
+<td>Union[int, float]</td>
+<td>20</td>
+<td>Non-number features with cardinality above a certain threshold will be treated as<br>ordinal encoded instead of one-hot encoded. If float, the threshold is<br><code>cardinality_threshold * samples</code>.</td>
+</tr>
+<tr class="even">
+<td>verbose</td>
+<td>int</td>
+<td>0</td>
+<td>Verbosity level. Propagated to every scikit-learn function and estimator.</td>
+</tr>
+<tr class="odd">
+<td>random_state</td>
+<td>Optional[int]</td>
+<td>None</td>
+<td>RNG. Propagated to every scikit-learn function and estimator. The default None sets<br>random_state to 0 so that cross_validate results are comparable.</td>
+</tr>
+<tr class="even">
+<td>n_jobs</td>
+<td>Optional[int]</td>
+<td>None</td>
+<td>Controls parallel processing. -1 uses all cores. Propagated to every scikit-learn<br>function.</td>
+</tr>
+<tr class="odd">
+<td>cache_transformations</td>
+<td>bool</td>
+<td>False</td>
+<td>Whether to cache transformations and set the <code>memory</code> parameter for Pipelines. This can<br>speed up slow transformations as they are not recalculated for each estimator.</td>
+</tr>
+</tbody>
+</table>
+<p><a href="https://rxavier.github.io/poniard/preprocessing.core.html#poniardpreprocessor"><code>PoniardPreprocessor</code></a>’s job is to build a preprocessing pipeline that fits the input data, both features and target. It does this by inferring the types of the features and selecting appropiate family of transformers for each group. The user is free to select which particular transformer to choose for each group, for example, by changing the default numeric scaler from <code>StandardScaler</code> to <code>RobustScaler</code>.</p>
+<p>Customization is done through 3 parameters related to transformers (<code>scaler</code>, <code>high_cardinality_encoder</code> and <code>numeric_imputer</code>), which take standard sklearn-compatible transformers, and 2 parameters related to type inference (<code>numeric_threshold</code> and <code>cardinality_threshold</code>).</p>
+<p>The latter work by separating features into buckets. In particular, numeric (<code>int</code>, <code>float</code>) features can be left as numeric or cast to a high cardinality categorical (if the number of unique values is below <code>numeric_threshold</code>), while categoricals can either by low or high cardinality (if the number of unique values exceeds <code>categorical_threshold</code>).</p>
+<hr>
+<p><a href="https://github.com/rxavier/poniard/blob/master/poniard/preprocessing/core.py#L100" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="poniardpreprocessor.build" class="level3">
+<h3 class="anchored">PoniardPreprocessor.build</h3>
+<blockquote class="blockquote">
+<pre><code> PoniardPreprocessor.build
+                            (X:Union[pandas.core.frame.DataFrame,numpy.nda
+                            rray,List,NoneType]=None, y:Union[pandas.core.
+                            frame.DataFrame,numpy.ndarray,List,NoneType]=N
+                            one)</code></pre>
+</blockquote>
+<p>Builds the preprocessor according to the input data.</p>
+<p>Gets the data from the main <a href="https://rxavier.github.io/poniard/estimators.core.html#poniardbaseestimator"><code>PoniardBaseEstimator</code></a> (if available) or processes the input data, calls the type inference method, sets up the transformers and builds the pipeline.</p>
+<table class="table">
+<colgroup>
+<col style="width: 6%">
+<col style="width: 25%">
+<col style="width: 34%">
+<col style="width: 34%">
+</colgroup>
+<thead>
+<tr class="header">
+<th></th>
+<th><strong>Type</strong></th>
+<th><strong>Default</strong></th>
+<th><strong>Details</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>X</td>
+<td>Optional[Union[pd.DataFrame, np.ndarray, List]]</td>
+<td>None</td>
+<td>Features</td>
+</tr>
+<tr class="even">
+<td>y</td>
+<td>Optional[Union[pd.DataFrame, np.ndarray, List]]</td>
+<td>None</td>
+<td>Target.</td>
+</tr>
+<tr class="odd">
+<td><strong>Returns</strong></td>
+<td><strong>PoniardPreprocessor</strong></td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>random.seed(<span class="dv">0</span>)</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>rng <span class="op">=</span> np.random.default_rng(<span class="dv">0</span>)</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>data <span class="op">=</span> pd.DataFrame(</span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>    {</span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>        <span class="st">"type"</span>: random.choices([<span class="st">"house"</span>, <span class="st">"apartment"</span>], k<span class="op">=</span><span class="dv">500</span>),</span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>        <span class="st">"age"</span>: rng.uniform(<span class="dv">1</span>, <span class="dv">200</span>, <span class="dv">500</span>).astype(<span class="bu">int</span>),</span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>        <span class="st">"date"</span>: pd.date_range(<span class="st">"2022-01-01"</span>, freq<span class="op">=</span><span class="st">"M"</span>, periods<span class="op">=</span><span class="dv">500</span>),</span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>        <span class="st">"rating"</span>: random.choices(<span class="bu">range</span>(<span class="dv">50</span>), k<span class="op">=</span><span class="dv">500</span>),</span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>        <span class="st">"target"</span>: random.choices([<span class="dv">0</span>, <span class="dv">1</span>], k<span class="op">=</span><span class="dv">500</span>),</span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a>data.head()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+
+<div>
+
+<table class="dataframe table table-sm table-striped">
+  <thead>
+    <tr>
+      <th></th>
+      <th>type</th>
+      <th>age</th>
+      <th>date</th>
+      <th>rating</th>
+      <th>target</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>apartment</td>
+      <td>127</td>
+      <td>2022-01-31</td>
+      <td>1</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>apartment</td>
+      <td>54</td>
+      <td>2022-02-28</td>
+      <td>17</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>house</td>
+      <td>9</td>
+      <td>2022-03-31</td>
+      <td>0</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>house</td>
+      <td>4</td>
+      <td>2022-04-30</td>
+      <td>48</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>apartment</td>
+      <td>162</td>
+      <td>2022-05-31</td>
+      <td>40</td>
+      <td>0</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+</div>
+</div>
+<p>If running a standalone <a href="https://rxavier.github.io/poniard/preprocessing.core.html#poniardpreprocessor"><code>PoniardPreprocessor</code></a>, <code>task</code> (either “classification” or “regression”) has to be specified in the constructor.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>X, y <span class="op">=</span> data.drop(<span class="st">"target"</span>, axis<span class="op">=</span><span class="dv">1</span>), data[<span class="st">"target"</span>]</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>prep <span class="op">=</span> PoniardPreprocessor(task<span class="op">=</span><span class="st">"classification"</span>).build(X, y)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>The actual preprocessing pipeline is held within the <code>preprocessor</code> attribute.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>prep.preprocessor</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<style>#sk-container-id-1 {color: black;background-color: white;}#sk-container-id-1 pre{padding: 0;}#sk-container-id-1 div.sk-toggleable {background-color: white;}#sk-container-id-1 label.sk-toggleable__label {cursor: pointer;display: block;width: 100%;margin-bottom: 0;padding: 0.3em;box-sizing: border-box;text-align: center;}#sk-container-id-1 label.sk-toggleable__label-arrow:before {content: "▸";float: left;margin-right: 0.25em;color: #696969;}#sk-container-id-1 label.sk-toggleable__label-arrow:hover:before {color: black;}#sk-container-id-1 div.sk-estimator:hover label.sk-toggleable__label-arrow:before {color: black;}#sk-container-id-1 div.sk-toggleable__content {max-height: 0;max-width: 0;overflow: hidden;text-align: left;background-color: #f0f8ff;}#sk-container-id-1 div.sk-toggleable__content pre {margin: 0.2em;color: black;border-radius: 0.25em;background-color: #f0f8ff;}#sk-container-id-1 input.sk-toggleable__control:checked~div.sk-toggleable__content {max-height: 200px;max-width: 100%;overflow: auto;}#sk-container-id-1 input.sk-toggleable__control:checked~label.sk-toggleable__label-arrow:before {content: "▾";}#sk-container-id-1 div.sk-estimator input.sk-toggleable__control:checked~label.sk-toggleable__label {background-color: #d4ebff;}#sk-container-id-1 div.sk-label input.sk-toggleable__control:checked~label.sk-toggleable__label {background-color: #d4ebff;}#sk-container-id-1 input.sk-hidden--visually {border: 0;clip: rect(1px 1px 1px 1px);clip: rect(1px, 1px, 1px, 1px);height: 1px;margin: -1px;overflow: hidden;padding: 0;position: absolute;width: 1px;}#sk-container-id-1 div.sk-estimator {font-family: monospace;background-color: #f0f8ff;border: 1px dotted black;border-radius: 0.25em;box-sizing: border-box;margin-bottom: 0.5em;}#sk-container-id-1 div.sk-estimator:hover {background-color: #d4ebff;}#sk-container-id-1 div.sk-parallel-item::after {content: "";width: 100%;border-bottom: 1px solid gray;flex-grow: 1;}#sk-container-id-1 div.sk-label:hover label.sk-toggleable__label {background-color: #d4ebff;}#sk-container-id-1 div.sk-serial::before {content: "";position: absolute;border-left: 1px solid gray;box-sizing: border-box;top: 0;bottom: 0;left: 50%;z-index: 0;}#sk-container-id-1 div.sk-serial {display: flex;flex-direction: column;align-items: center;background-color: white;padding-right: 0.2em;padding-left: 0.2em;position: relative;}#sk-container-id-1 div.sk-item {position: relative;z-index: 1;}#sk-container-id-1 div.sk-parallel {display: flex;align-items: stretch;justify-content: center;background-color: white;position: relative;}#sk-container-id-1 div.sk-item::before, #sk-container-id-1 div.sk-parallel-item::before {content: "";position: absolute;border-left: 1px solid gray;box-sizing: border-box;top: 0;bottom: 0;left: 50%;z-index: -1;}#sk-container-id-1 div.sk-parallel-item {display: flex;flex-direction: column;z-index: 1;position: relative;background-color: white;}#sk-container-id-1 div.sk-parallel-item:first-child::after {align-self: flex-end;width: 50%;}#sk-container-id-1 div.sk-parallel-item:last-child::after {align-self: flex-start;width: 50%;}#sk-container-id-1 div.sk-parallel-item:only-child::after {width: 0;}#sk-container-id-1 div.sk-dashed-wrapped {border: 1px dashed gray;margin: 0 0.4em 0.5em 0.4em;box-sizing: border-box;padding-bottom: 0.4em;background-color: white;}#sk-container-id-1 div.sk-label label {font-family: monospace;font-weight: bold;display: inline-block;line-height: 1.2em;}#sk-container-id-1 div.sk-label-container {text-align: center;}#sk-container-id-1 div.sk-container {/* jupyter's `normalize.less` sets `[hidden] { display: none; }` but bootstrap.min.css set `[hidden] { display: none !important; }` so we also need the `!important` here to be able to override the default hidden behavior on the sphinx rendered scikit-learn.org. See: https://github.com/scikit-learn/scikit-learn/issues/21755 */display: inline-block !important;position: relative;}#sk-container-id-1 div.sk-text-repr-fallback {display: none;}</style><div id="sk-container-id-1" class="sk-top-container"><div class="sk-text-repr-fallback"><pre>Pipeline(steps=[('type_preprocessor',
+                 ColumnTransformer(transformers=[('numeric_preprocessor',
+                                                  Pipeline(steps=[('numeric_imputer',
+                                                                   SimpleImputer()),
+                                                                  ('scaler',
+                                                                   StandardScaler())]),
+                                                  ['age']),
+                                                 ('categorical_low_preprocessor',
+                                                  Pipeline(steps=[('categorical_imputer',
+                                                                   SimpleImputer(strategy='most_frequent')),
+                                                                  ('one-hot_encoder',
+                                                                   OneHotEncoder(drop='if_binary',
+                                                                                 hand...
+                                                  Pipeline(steps=[('categorical_imputer',
+                                                                   SimpleImputer(strategy='most_frequent')),
+                                                                  ('high_cardinality_encoder',
+                                                                   TargetEncoder(handle_unknown='ignore',
+                                                                                 task='classification'))]),
+                                                  ['rating']),
+                                                 ('datetime_preprocessor',
+                                                  Pipeline(steps=[('datetime_encoder',
+                                                                   DatetimeEncoder()),
+                                                                  ('datetime_imputer',
+                                                                   SimpleImputer(strategy='most_frequent'))]),
+                                                  ['date'])])),
+                ('remove_invariant', VarianceThreshold())])</pre><b>In a Jupyter environment, please rerun this cell to show the HTML representation or trust the notebook. <br>On GitHub, the HTML representation is unable to render, please try loading this page with nbviewer.org.</b></div><div class="sk-container" hidden=""><div class="sk-item sk-dashed-wrapped"><div class="sk-label-container"><div class="sk-label sk-toggleable"><input class="sk-toggleable__control sk-hidden--visually" id="sk-estimator-id-1" type="checkbox"><label for="sk-estimator-id-1" class="sk-toggleable__label sk-toggleable__label-arrow">Pipeline</label><div class="sk-toggleable__content"><pre>Pipeline(steps=[('type_preprocessor',
+                 ColumnTransformer(transformers=[('numeric_preprocessor',
+                                                  Pipeline(steps=[('numeric_imputer',
+                                                                   SimpleImputer()),
+                                                                  ('scaler',
+                                                                   StandardScaler())]),
+                                                  ['age']),
+                                                 ('categorical_low_preprocessor',
+                                                  Pipeline(steps=[('categorical_imputer',
+                                                                   SimpleImputer(strategy='most_frequent')),
+                                                                  ('one-hot_encoder',
+                                                                   OneHotEncoder(drop='if_binary',
+                                                                                 hand...
+                                                  Pipeline(steps=[('categorical_imputer',
+                                                                   SimpleImputer(strategy='most_frequent')),
+                                                                  ('high_cardinality_encoder',
+                                                                   TargetEncoder(handle_unknown='ignore',
+                                                                                 task='classification'))]),
+                                                  ['rating']),
+                                                 ('datetime_preprocessor',
+                                                  Pipeline(steps=[('datetime_encoder',
+                                                                   DatetimeEncoder()),
+                                                                  ('datetime_imputer',
+                                                                   SimpleImputer(strategy='most_frequent'))]),
+                                                  ['date'])])),
+                ('remove_invariant', VarianceThreshold())])</pre></div></div></div><div class="sk-serial"><div class="sk-item sk-dashed-wrapped"><div class="sk-label-container"><div class="sk-label sk-toggleable"><input class="sk-toggleable__control sk-hidden--visually" id="sk-estimator-id-2" type="checkbox"><label for="sk-estimator-id-2" class="sk-toggleable__label sk-toggleable__label-arrow">type_preprocessor: ColumnTransformer</label><div class="sk-toggleable__content"><pre>ColumnTransformer(transformers=[('numeric_preprocessor',
+                                 Pipeline(steps=[('numeric_imputer',
+                                                  SimpleImputer()),
+                                                 ('scaler', StandardScaler())]),
+                                 ['age']),
+                                ('categorical_low_preprocessor',
+                                 Pipeline(steps=[('categorical_imputer',
+                                                  SimpleImputer(strategy='most_frequent')),
+                                                 ('one-hot_encoder',
+                                                  OneHotEncoder(drop='if_binary',
+                                                                handle_unknown='ignore',
+                                                                sparse=False))]),...
+                                ('categorical_high_preprocessor',
+                                 Pipeline(steps=[('categorical_imputer',
+                                                  SimpleImputer(strategy='most_frequent')),
+                                                 ('high_cardinality_encoder',
+                                                  TargetEncoder(handle_unknown='ignore',
+                                                                task='classification'))]),
+                                 ['rating']),
+                                ('datetime_preprocessor',
+                                 Pipeline(steps=[('datetime_encoder',
+                                                  DatetimeEncoder()),
+                                                 ('datetime_imputer',
+                                                  SimpleImputer(strategy='most_frequent'))]),
+                                 ['date'])])</pre></div></div></div><div class="sk-parallel"><div class="sk-parallel-item"><div class="sk-item"><div class="sk-label-container"><div class="sk-label sk-toggleable"><input class="sk-toggleable__control sk-hidden--visually" id="sk-estimator-id-3" type="checkbox"><label for="sk-estimator-id-3" class="sk-toggleable__label sk-toggleable__label-arrow">numeric_preprocessor</label><div class="sk-toggleable__content"><pre>['age']</pre></div></div></div><div class="sk-serial"><div class="sk-item"><div class="sk-serial"><div class="sk-item"><div class="sk-estimator sk-toggleable"><input class="sk-toggleable__control sk-hidden--visually" id="sk-estimator-id-4" type="checkbox"><label for="sk-estimator-id-4" class="sk-toggleable__label sk-toggleable__label-arrow">SimpleImputer</label><div class="sk-toggleable__content"><pre>SimpleImputer()</pre></div></div></div><div class="sk-item"><div class="sk-estimator sk-toggleable"><input class="sk-toggleable__control sk-hidden--visually" id="sk-estimator-id-5" type="checkbox"><label for="sk-estimator-id-5" class="sk-toggleable__label sk-toggleable__label-arrow">StandardScaler</label><div class="sk-toggleable__content"><pre>StandardScaler()</pre></div></div></div></div></div></div></div></div><div class="sk-parallel-item"><div class="sk-item"><div class="sk-label-container"><div class="sk-label sk-toggleable"><input class="sk-toggleable__control sk-hidden--visually" id="sk-estimator-id-6" type="checkbox"><label for="sk-estimator-id-6" class="sk-toggleable__label sk-toggleable__label-arrow">categorical_low_preprocessor</label><div class="sk-toggleable__content"><pre>['type']</pre></div></div></div><div class="sk-serial"><div class="sk-item"><div class="sk-serial"><div class="sk-item"><div class="sk-estimator sk-toggleable"><input class="sk-toggleable__control sk-hidden--visually" id="sk-estimator-id-7" type="checkbox"><label for="sk-estimator-id-7" class="sk-toggleable__label sk-toggleable__label-arrow">SimpleImputer</label><div class="sk-toggleable__content"><pre>SimpleImputer(strategy='most_frequent')</pre></div></div></div><div class="sk-item"><div class="sk-estimator sk-toggleable"><input class="sk-toggleable__control sk-hidden--visually" id="sk-estimator-id-8" type="checkbox"><label for="sk-estimator-id-8" class="sk-toggleable__label sk-toggleable__label-arrow">OneHotEncoder</label><div class="sk-toggleable__content"><pre>OneHotEncoder(drop='if_binary', handle_unknown='ignore', sparse=False)</pre></div></div></div></div></div></div></div></div><div class="sk-parallel-item"><div class="sk-item"><div class="sk-label-container"><div class="sk-label sk-toggleable"><input class="sk-toggleable__control sk-hidden--visually" id="sk-estimator-id-9" type="checkbox"><label for="sk-estimator-id-9" class="sk-toggleable__label sk-toggleable__label-arrow">categorical_high_preprocessor</label><div class="sk-toggleable__content"><pre>['rating']</pre></div></div></div><div class="sk-serial"><div class="sk-item"><div class="sk-serial"><div class="sk-item"><div class="sk-estimator sk-toggleable"><input class="sk-toggleable__control sk-hidden--visually" id="sk-estimator-id-10" type="checkbox"><label for="sk-estimator-id-10" class="sk-toggleable__label sk-toggleable__label-arrow">SimpleImputer</label><div class="sk-toggleable__content"><pre>SimpleImputer(strategy='most_frequent')</pre></div></div></div><div class="sk-item"><div class="sk-estimator sk-toggleable"><input class="sk-toggleable__control sk-hidden--visually" id="sk-estimator-id-11" type="checkbox"><label for="sk-estimator-id-11" class="sk-toggleable__label sk-toggleable__label-arrow">TargetEncoder</label><div class="sk-toggleable__content"><pre>TargetEncoder(handle_unknown='ignore', task='classification')</pre></div></div></div></div></div></div></div></div><div class="sk-parallel-item"><div class="sk-item"><div class="sk-label-container"><div class="sk-label sk-toggleable"><input class="sk-toggleable__control sk-hidden--visually" id="sk-estimator-id-12" type="checkbox"><label for="sk-estimator-id-12" class="sk-toggleable__label sk-toggleable__label-arrow">datetime_preprocessor</label><div class="sk-toggleable__content"><pre>['date']</pre></div></div></div><div class="sk-serial"><div class="sk-item"><div class="sk-serial"><div class="sk-item"><div class="sk-estimator sk-toggleable"><input class="sk-toggleable__control sk-hidden--visually" id="sk-estimator-id-13" type="checkbox"><label for="sk-estimator-id-13" class="sk-toggleable__label sk-toggleable__label-arrow">DatetimeEncoder</label><div class="sk-toggleable__content"><pre>DatetimeEncoder()</pre></div></div></div><div class="sk-item"><div class="sk-estimator sk-toggleable"><input class="sk-toggleable__control sk-hidden--visually" id="sk-estimator-id-14" type="checkbox"><label for="sk-estimator-id-14" class="sk-toggleable__label sk-toggleable__label-arrow">SimpleImputer</label><div class="sk-toggleable__content"><pre>SimpleImputer(strategy='most_frequent')</pre></div></div></div></div></div></div></div></div></div></div><div class="sk-item"><div class="sk-estimator sk-toggleable"><input class="sk-toggleable__control sk-hidden--visually" id="sk-estimator-id-15" type="checkbox"><label for="sk-estimator-id-15" class="sk-toggleable__label sk-toggleable__label-arrow">VarianceThreshold</label><div class="sk-toggleable__content"><pre>VarianceThreshold()</pre></div></div></div></div></div></div></div>
+</div>
+</div>
+<p><a href="https://rxavier.github.io/poniard/preprocessing.core.html#poniardpreprocessor"><code>PoniardPreprocessor</code></a> is included by default in and tightly coupled with <a href="https://rxavier.github.io/poniard/estimators.core.html#poniardbaseestimator"><code>PoniardBaseEstimator</code></a>. During <a href="https://rxavier.github.io/poniard/estimators.core.html#poniardbaseestimator.setup"><code>PoniardBaseEstimator.setup</code></a> a preprocessor instance will be initialized, and the whole estimator instance will be passed to the preprocessor’s <code>_poniard</code> attribute, giving it access to the data. Likewise, running <a href="https://rxavier.github.io/poniard/estimators.core.html#poniardbaseestimator.reassign_types"><code>PoniardBaseEstimator.reassign_types</code></a> and <a href="https://rxavier.github.io/poniard/estimators.core.html#poniardbaseestimator.add_preprocessing_step"><code>PoniardBaseEstimator.add_preprocessing_step</code></a> will trigger changes in <a href="https://rxavier.github.io/poniard/preprocessing.core.html#poniardpreprocessor"><code>PoniardPreprocessor</code></a>.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> poniard <span class="im">import</span> PoniardClassifier</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> poniard.preprocessing <span class="im">import</span> PoniardPreprocessor</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>X, y <span class="op">=</span> data.drop(<span class="st">"target"</span>, axis<span class="op">=</span><span class="dv">1</span>), data[<span class="st">"target"</span>]</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>clf <span class="op">=</span> PoniardClassifier().setup(X, y)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+
+                         <h2 class="anchored" data-anchor-id="poniardpreprocessor.build">Setup info</h2>
+                         <h3 class="anchored">Target</h3>
+                             <p><b>Type:</b> binary</p>
+                             <p><b>Shape:</b> (500,)</p>
+                             <p><b>Unique values:</b> 2</p>
+                             <h3 class="anchored">Metrics</h3>
+                             <b>Main metric:</b> roc_auc
+                             
+</div>
+<div class="cell-output cell-output-display">
+
+ <h3 class="anchored">Feature type inference</h3>
+                                <p><b>Minimum unique values to consider a number-like feature numeric:</b> 50</p>
+                                <p><b>Minimum unique values to consider a categorical feature high cardinality:</b> 20</p>
+                                <p><b>Inferred feature types:</b></p>
+                                <table class="dataframe table table-sm table-striped">
+  <thead>
+    <tr>
+      <th></th>
+      <th>numeric</th>
+      <th>categorical_high</th>
+      <th>categorical_low</th>
+      <th>datetime</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>age</td>
+      <td>rating</td>
+      <td>type</td>
+      <td>date</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>clf._poniard_preprocessor</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<pre><code>PoniardPreprocessor()</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>clf._poniard_preprocessor.preprocessor</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<style>#sk-container-id-2 {color: black;background-color: white;}#sk-container-id-2 pre{padding: 0;}#sk-container-id-2 div.sk-toggleable {background-color: white;}#sk-container-id-2 label.sk-toggleable__label {cursor: pointer;display: block;width: 100%;margin-bottom: 0;padding: 0.3em;box-sizing: border-box;text-align: center;}#sk-container-id-2 label.sk-toggleable__label-arrow:before {content: "▸";float: left;margin-right: 0.25em;color: #696969;}#sk-container-id-2 label.sk-toggleable__label-arrow:hover:before {color: black;}#sk-container-id-2 div.sk-estimator:hover label.sk-toggleable__label-arrow:before {color: black;}#sk-container-id-2 div.sk-toggleable__content {max-height: 0;max-width: 0;overflow: hidden;text-align: left;background-color: #f0f8ff;}#sk-container-id-2 div.sk-toggleable__content pre {margin: 0.2em;color: black;border-radius: 0.25em;background-color: #f0f8ff;}#sk-container-id-2 input.sk-toggleable__control:checked~div.sk-toggleable__content {max-height: 200px;max-width: 100%;overflow: auto;}#sk-container-id-2 input.sk-toggleable__control:checked~label.sk-toggleable__label-arrow:before {content: "▾";}#sk-container-id-2 div.sk-estimator input.sk-toggleable__control:checked~label.sk-toggleable__label {background-color: #d4ebff;}#sk-container-id-2 div.sk-label input.sk-toggleable__control:checked~label.sk-toggleable__label {background-color: #d4ebff;}#sk-container-id-2 input.sk-hidden--visually {border: 0;clip: rect(1px 1px 1px 1px);clip: rect(1px, 1px, 1px, 1px);height: 1px;margin: -1px;overflow: hidden;padding: 0;position: absolute;width: 1px;}#sk-container-id-2 div.sk-estimator {font-family: monospace;background-color: #f0f8ff;border: 1px dotted black;border-radius: 0.25em;box-sizing: border-box;margin-bottom: 0.5em;}#sk-container-id-2 div.sk-estimator:hover {background-color: #d4ebff;}#sk-container-id-2 div.sk-parallel-item::after {content: "";width: 100%;border-bottom: 1px solid gray;flex-grow: 1;}#sk-container-id-2 div.sk-label:hover label.sk-toggleable__label {background-color: #d4ebff;}#sk-container-id-2 div.sk-serial::before {content: "";position: absolute;border-left: 1px solid gray;box-sizing: border-box;top: 0;bottom: 0;left: 50%;z-index: 0;}#sk-container-id-2 div.sk-serial {display: flex;flex-direction: column;align-items: center;background-color: white;padding-right: 0.2em;padding-left: 0.2em;position: relative;}#sk-container-id-2 div.sk-item {position: relative;z-index: 1;}#sk-container-id-2 div.sk-parallel {display: flex;align-items: stretch;justify-content: center;background-color: white;position: relative;}#sk-container-id-2 div.sk-item::before, #sk-container-id-2 div.sk-parallel-item::before {content: "";position: absolute;border-left: 1px solid gray;box-sizing: border-box;top: 0;bottom: 0;left: 50%;z-index: -1;}#sk-container-id-2 div.sk-parallel-item {display: flex;flex-direction: column;z-index: 1;position: relative;background-color: white;}#sk-container-id-2 div.sk-parallel-item:first-child::after {align-self: flex-end;width: 50%;}#sk-container-id-2 div.sk-parallel-item:last-child::after {align-self: flex-start;width: 50%;}#sk-container-id-2 div.sk-parallel-item:only-child::after {width: 0;}#sk-container-id-2 div.sk-dashed-wrapped {border: 1px dashed gray;margin: 0 0.4em 0.5em 0.4em;box-sizing: border-box;padding-bottom: 0.4em;background-color: white;}#sk-container-id-2 div.sk-label label {font-family: monospace;font-weight: bold;display: inline-block;line-height: 1.2em;}#sk-container-id-2 div.sk-label-container {text-align: center;}#sk-container-id-2 div.sk-container {/* jupyter's `normalize.less` sets `[hidden] { display: none; }` but bootstrap.min.css set `[hidden] { display: none !important; }` so we also need the `!important` here to be able to override the default hidden behavior on the sphinx rendered scikit-learn.org. See: https://github.com/scikit-learn/scikit-learn/issues/21755 */display: inline-block !important;position: relative;}#sk-container-id-2 div.sk-text-repr-fallback {display: none;}</style><div id="sk-container-id-2" class="sk-top-container"><div class="sk-text-repr-fallback"><pre>Pipeline(steps=[('type_preprocessor',
+                 ColumnTransformer(transformers=[('numeric_preprocessor',
+                                                  Pipeline(steps=[('numeric_imputer',
+                                                                   SimpleImputer()),
+                                                                  ('scaler',
+                                                                   StandardScaler())]),
+                                                  ['age']),
+                                                 ('categorical_low_preprocessor',
+                                                  Pipeline(steps=[('categorical_imputer',
+                                                                   SimpleImputer(strategy='most_frequent')),
+                                                                  ('one-hot_encoder',
+                                                                   OneHotEncoder(drop='if_binary',
+                                                                                 hand...
+                                                                   SimpleImputer(strategy='most_frequent')),
+                                                                  ('high_cardinality_encoder',
+                                                                   TargetEncoder(handle_unknown='ignore',
+                                                                                 task='classification'))]),
+                                                  ['rating']),
+                                                 ('datetime_preprocessor',
+                                                  Pipeline(steps=[('datetime_encoder',
+                                                                   DatetimeEncoder()),
+                                                                  ('datetime_imputer',
+                                                                   SimpleImputer(strategy='most_frequent'))]),
+                                                  ['date'])])),
+                ('remove_invariant', VarianceThreshold())],
+         verbose=0)</pre><b>In a Jupyter environment, please rerun this cell to show the HTML representation or trust the notebook. <br>On GitHub, the HTML representation is unable to render, please try loading this page with nbviewer.org.</b></div><div class="sk-container" hidden=""><div class="sk-item sk-dashed-wrapped"><div class="sk-label-container"><div class="sk-label sk-toggleable"><input class="sk-toggleable__control sk-hidden--visually" id="sk-estimator-id-16" type="checkbox"><label for="sk-estimator-id-16" class="sk-toggleable__label sk-toggleable__label-arrow">Pipeline</label><div class="sk-toggleable__content"><pre>Pipeline(steps=[('type_preprocessor',
+                 ColumnTransformer(transformers=[('numeric_preprocessor',
+                                                  Pipeline(steps=[('numeric_imputer',
+                                                                   SimpleImputer()),
+                                                                  ('scaler',
+                                                                   StandardScaler())]),
+                                                  ['age']),
+                                                 ('categorical_low_preprocessor',
+                                                  Pipeline(steps=[('categorical_imputer',
+                                                                   SimpleImputer(strategy='most_frequent')),
+                                                                  ('one-hot_encoder',
+                                                                   OneHotEncoder(drop='if_binary',
+                                                                                 hand...
+                                                                   SimpleImputer(strategy='most_frequent')),
+                                                                  ('high_cardinality_encoder',
+                                                                   TargetEncoder(handle_unknown='ignore',
+                                                                                 task='classification'))]),
+                                                  ['rating']),
+                                                 ('datetime_preprocessor',
+                                                  Pipeline(steps=[('datetime_encoder',
+                                                                   DatetimeEncoder()),
+                                                                  ('datetime_imputer',
+                                                                   SimpleImputer(strategy='most_frequent'))]),
+                                                  ['date'])])),
+                ('remove_invariant', VarianceThreshold())],
+         verbose=0)</pre></div></div></div><div class="sk-serial"><div class="sk-item sk-dashed-wrapped"><div class="sk-label-container"><div class="sk-label sk-toggleable"><input class="sk-toggleable__control sk-hidden--visually" id="sk-estimator-id-17" type="checkbox"><label for="sk-estimator-id-17" class="sk-toggleable__label sk-toggleable__label-arrow">type_preprocessor: ColumnTransformer</label><div class="sk-toggleable__content"><pre>ColumnTransformer(transformers=[('numeric_preprocessor',
+                                 Pipeline(steps=[('numeric_imputer',
+                                                  SimpleImputer()),
+                                                 ('scaler', StandardScaler())]),
+                                 ['age']),
+                                ('categorical_low_preprocessor',
+                                 Pipeline(steps=[('categorical_imputer',
+                                                  SimpleImputer(strategy='most_frequent')),
+                                                 ('one-hot_encoder',
+                                                  OneHotEncoder(drop='if_binary',
+                                                                handle_unknown='ignore',
+                                                                sparse=False))]),...
+                                ('categorical_high_preprocessor',
+                                 Pipeline(steps=[('categorical_imputer',
+                                                  SimpleImputer(strategy='most_frequent')),
+                                                 ('high_cardinality_encoder',
+                                                  TargetEncoder(handle_unknown='ignore',
+                                                                task='classification'))]),
+                                 ['rating']),
+                                ('datetime_preprocessor',
+                                 Pipeline(steps=[('datetime_encoder',
+                                                  DatetimeEncoder()),
+                                                 ('datetime_imputer',
+                                                  SimpleImputer(strategy='most_frequent'))]),
+                                 ['date'])])</pre></div></div></div><div class="sk-parallel"><div class="sk-parallel-item"><div class="sk-item"><div class="sk-label-container"><div class="sk-label sk-toggleable"><input class="sk-toggleable__control sk-hidden--visually" id="sk-estimator-id-18" type="checkbox"><label for="sk-estimator-id-18" class="sk-toggleable__label sk-toggleable__label-arrow">numeric_preprocessor</label><div class="sk-toggleable__content"><pre>['age']</pre></div></div></div><div class="sk-serial"><div class="sk-item"><div class="sk-serial"><div class="sk-item"><div class="sk-estimator sk-toggleable"><input class="sk-toggleable__control sk-hidden--visually" id="sk-estimator-id-19" type="checkbox"><label for="sk-estimator-id-19" class="sk-toggleable__label sk-toggleable__label-arrow">SimpleImputer</label><div class="sk-toggleable__content"><pre>SimpleImputer()</pre></div></div></div><div class="sk-item"><div class="sk-estimator sk-toggleable"><input class="sk-toggleable__control sk-hidden--visually" id="sk-estimator-id-20" type="checkbox"><label for="sk-estimator-id-20" class="sk-toggleable__label sk-toggleable__label-arrow">StandardScaler</label><div class="sk-toggleable__content"><pre>StandardScaler()</pre></div></div></div></div></div></div></div></div><div class="sk-parallel-item"><div class="sk-item"><div class="sk-label-container"><div class="sk-label sk-toggleable"><input class="sk-toggleable__control sk-hidden--visually" id="sk-estimator-id-21" type="checkbox"><label for="sk-estimator-id-21" class="sk-toggleable__label sk-toggleable__label-arrow">categorical_low_preprocessor</label><div class="sk-toggleable__content"><pre>['type']</pre></div></div></div><div class="sk-serial"><div class="sk-item"><div class="sk-serial"><div class="sk-item"><div class="sk-estimator sk-toggleable"><input class="sk-toggleable__control sk-hidden--visually" id="sk-estimator-id-22" type="checkbox"><label for="sk-estimator-id-22" class="sk-toggleable__label sk-toggleable__label-arrow">SimpleImputer</label><div class="sk-toggleable__content"><pre>SimpleImputer(strategy='most_frequent')</pre></div></div></div><div class="sk-item"><div class="sk-estimator sk-toggleable"><input class="sk-toggleable__control sk-hidden--visually" id="sk-estimator-id-23" type="checkbox"><label for="sk-estimator-id-23" class="sk-toggleable__label sk-toggleable__label-arrow">OneHotEncoder</label><div class="sk-toggleable__content"><pre>OneHotEncoder(drop='if_binary', handle_unknown='ignore', sparse=False)</pre></div></div></div></div></div></div></div></div><div class="sk-parallel-item"><div class="sk-item"><div class="sk-label-container"><div class="sk-label sk-toggleable"><input class="sk-toggleable__control sk-hidden--visually" id="sk-estimator-id-24" type="checkbox"><label for="sk-estimator-id-24" class="sk-toggleable__label sk-toggleable__label-arrow">categorical_high_preprocessor</label><div class="sk-toggleable__content"><pre>['rating']</pre></div></div></div><div class="sk-serial"><div class="sk-item"><div class="sk-serial"><div class="sk-item"><div class="sk-estimator sk-toggleable"><input class="sk-toggleable__control sk-hidden--visually" id="sk-estimator-id-25" type="checkbox"><label for="sk-estimator-id-25" class="sk-toggleable__label sk-toggleable__label-arrow">SimpleImputer</label><div class="sk-toggleable__content"><pre>SimpleImputer(strategy='most_frequent')</pre></div></div></div><div class="sk-item"><div class="sk-estimator sk-toggleable"><input class="sk-toggleable__control sk-hidden--visually" id="sk-estimator-id-26" type="checkbox"><label for="sk-estimator-id-26" class="sk-toggleable__label sk-toggleable__label-arrow">TargetEncoder</label><div class="sk-toggleable__content"><pre>TargetEncoder(handle_unknown='ignore', task='classification')</pre></div></div></div></div></div></div></div></div><div class="sk-parallel-item"><div class="sk-item"><div class="sk-label-container"><div class="sk-label sk-toggleable"><input class="sk-toggleable__control sk-hidden--visually" id="sk-estimator-id-27" type="checkbox"><label for="sk-estimator-id-27" class="sk-toggleable__label sk-toggleable__label-arrow">datetime_preprocessor</label><div class="sk-toggleable__content"><pre>['date']</pre></div></div></div><div class="sk-serial"><div class="sk-item"><div class="sk-serial"><div class="sk-item"><div class="sk-estimator sk-toggleable"><input class="sk-toggleable__control sk-hidden--visually" id="sk-estimator-id-28" type="checkbox"><label for="sk-estimator-id-28" class="sk-toggleable__label sk-toggleable__label-arrow">DatetimeEncoder</label><div class="sk-toggleable__content"><pre>DatetimeEncoder()</pre></div></div></div><div class="sk-item"><div class="sk-estimator sk-toggleable"><input class="sk-toggleable__control sk-hidden--visually" id="sk-estimator-id-29" type="checkbox"><label for="sk-estimator-id-29" class="sk-toggleable__label sk-toggleable__label-arrow">SimpleImputer</label><div class="sk-toggleable__content"><pre>SimpleImputer(strategy='most_frequent')</pre></div></div></div></div></div></div></div></div></div></div><div class="sk-item"><div class="sk-estimator sk-toggleable"><input class="sk-toggleable__control sk-hidden--visually" id="sk-estimator-id-30" type="checkbox"><label for="sk-estimator-id-30" class="sk-toggleable__label sk-toggleable__label-arrow">VarianceThreshold</label><div class="sk-toggleable__content"><pre>VarianceThreshold()</pre></div></div></div></div></div></div></div>
+</div>
+</div>
+<p>However, a custom instance of <a href="https://rxavier.github.io/poniard/preprocessing.core.html#poniardpreprocessor"><code>PoniardPreprocessor</code></a> can be passed to estimators.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>custom <span class="op">=</span> PoniardPreprocessor(scaler<span class="op">=</span><span class="st">"robust"</span>, numeric_imputer<span class="op">=</span><span class="st">"iterative"</span>)</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>clf <span class="op">=</span> PoniardClassifier(custom_preprocessor<span class="op">=</span>custom).setup(X, y, show_info<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>clf.fit()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<script type="application/vnd.jupyter.widget-view+json">
+{"model_id":"","version_major":2,"version_minor":0}
+</script>
+</div>
+<div class="cell-output cell-output-display">
+<pre><code>PoniardClassifier(custom_preprocessor=PoniardPreprocessor(scaler='robust', numeric_imputer='iterative'))</code></pre>
+</div>
+</div>
+
+
+</section>
+
+</main> <!-- /main -->
+<script type="application/vnd.jupyter.widget-state+json">
+{"state":{},"version_major":2,"version_minor":0}
+</script>
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const clipboard = new window.ClipboardJS('.code-copy-button', {
+    target: function(trigger) {
+      return trigger.previousElementSibling;
+    }
+  });
+  clipboard.on('success', function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  });
+  function tippyHover(el, contentFn) {
+    const config = {
+      allowHTML: true,
+      content: contentFn,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start'
+    };
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      return note.innerHTML;
+    });
+  }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+</body></html>
