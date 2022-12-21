@@ -5,9 +5,7 @@
 #    pip-compile setup.py
 #
 joblib==1.2.0
-    # via
-    #   poniard (setup.py)
-    #   scikit-learn
+    # via scikit-learn
 numpy==1.22.4 ; python_version >= "3.8"
     # via
     #   pandas

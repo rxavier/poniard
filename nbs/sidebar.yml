@@ -28,3 +28,5 @@ website:
                 - plugins.core.ipynb
                 - plugins.wandb.ipynb
                 - plugins.pandas_profiling.ipynb
+            - text: "Error analysis"
+              file: error_analysis.error_analysis.ipynb
