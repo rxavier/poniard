@@ -202,16 +202,19 @@ class ErrorAnalyzer:
         errors = pd.concat([truth, preds, pro], axis=1)
         if exclude_correct:
             errors = errors.loc[~preds.eq(y).all(axis=1)]
-        errors_per_label = (1 - errors[pro.columns]).abs()
+        errors_per_label = (
+            errors[truth.columns].sub(errors[pro.columns].values, axis=1)
+        ).abs()
         last = lambda x: x[-1]
         zero_array = np.zeros_like(errors_per_label)
-        errors_per_label = errors_per_label.mask(
-            errors[truth.columns]
-            .rename(columns=last)
-            .eq(errors[preds.columns].rename(columns=last))
-            .values,
-            zero_array,
-        )
+        # It might be reasonable to avoid considering errors if the ground truth aligns with the proba.
+        # errors_per_label = errors_per_label.mask(
+        #    errors[truth.columns]
+        #    .rename(columns=last)
+        #    .eq(errors[preds.columns].rename(columns=last))
+        #    .values,
+        #    zero_array,
+        # )
         errors_per_label.columns = [f"error_{i}" for i in range(y.shape[1])]
         errors_per_label = errors_per_label.assign(error=errors_per_label.mean(axis=1))
         errors = pd.concat([errors, errors_per_label], axis=1)

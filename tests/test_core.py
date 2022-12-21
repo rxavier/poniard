@@ -54,6 +54,7 @@ from poniard.preprocessing import PoniardPreprocessor
 )
 def test_classifier_fit(target, metrics, estimators, cv):
     features = pd.DataFrame(np.random.normal(size=(len(target), 5)))
+    features.columns = features.columns.astype(str)
     features["strings"] = np.random.choice(["a", "b", "c"], size=len(target))
     features["dates"] = pd.date_range("2020-01-01", periods=len(target))
     clf = PoniardClassifier(
@@ -105,6 +106,7 @@ def test_classifier_fit(target, metrics, estimators, cv):
 )
 def test_regressor_fit(target, metrics, estimators, cv):
     features = pd.DataFrame(np.random.normal(size=(20, 5)))
+    features.columns = features.columns.astype(str)
     features["strings"] = np.random.choice(["a", "b", "c"], size=len(target))
     features["dates"] = pd.date_range("2020-01-01", periods=len(target))
     clf = PoniardRegressor(
