@@ -34,7 +34,10 @@ dependencies = [
 
 [project.optional-dependencies]
 xgboost = ["xgboost>=2.0.0"]
-polars = ["polars>=1.0.0"]
+polars = [
+    "polars>=1.0.0",
+    "pyarrow>=25.0.0",
+]
 dev = [
     "pytest",
     "ruff",
