@@ -293,29 +293,57 @@ class PoniardBaseEstimator(ResultsMixin, EnsembleMixin, TuningMixin, ABC):
             )
         return Pipeline([(name, estimator)])
 
+    @staticmethod
+    def _generate_estimator_name(
+        estimator, existing_names: set[str], all_estimators: list
+    ) -> str:
+        """Generate a name for an estimator.
+
+        Default is the class name. If it clashes, append _2, _3, etc.
+        """
+        class_name = estimator.__class__.__name__
+        if class_name not in existing_names:
+            return class_name
+        i = 2
+        while f"{class_name}_{i}" in existing_names:
+            i += 1
+        return f"{class_name}_{i}"
+
     def _build_pipelines(
         self,
     ) -> dict[str, ClassifierMixin | RegressorMixin]:
-        """Build `pipelines` dict where keys are the estimator class names.
+        """Build `pipelines` dict where keys are estimator names.
 
-        Adds dummy estimators if not included during construction. Does nothing if
-        `pipelines` exists.
+        Names can be:
+        - A dict: keys are names, values are estimators
+        - A list of tuples: (name, estimator)
+        - A list of estimators: class name if unique, short prefix if duplicates
 
+        Adds dummy estimators if not included during construction.
         """
         if isinstance(self.estimators, dict):
             estimators = self.estimators.copy()
         elif self.estimators:
-            estimators = {
-                estimator.__class__.__name__: estimator for estimator in self.estimators
-            }
+            estimators = {}
+            for item in self.estimators:
+                if isinstance(item, tuple):
+                    name, estimator = item
+                else:
+                    name = self._generate_estimator_name(
+                        item, set(estimators.keys()), self.estimators
+                    )
+                    estimator = item
+                estimators[name] = estimator
         else:
-            estimators = {
-                estimator.__class__.__name__: estimator
-                for estimator in self._default_estimators
-            }
+            estimators = {}
+            for estimator in self._default_estimators:
+                name = self._generate_estimator_name(
+                    estimator, set(estimators.keys()), self._default_estimators
+                )
+                estimators[name] = estimator
         estimators.update(self._added_estimators)
         for name in self._removed_estimators:
-            estimators.pop(name)
+            estimators.pop(name, None)
         estimators = self._add_dummy_estimators(estimators)
 
         for estimator in estimators.values():
@@ -329,15 +357,21 @@ class PoniardBaseEstimator(ResultsMixin, EnsembleMixin, TuningMixin, ABC):
         return pipelines
 
     def _add_dummy_estimators(self, estimators: dict):
-        if (
-            "DummyClassifier" in estimators.keys()
-            or "DummyRegressor" in estimators.keys()
-        ):
+        existing_names = set(estimators.keys())
+        if "DummyClassifier" in existing_names or "DummyRegressor" in existing_names:
             return estimators
         if self.poniard_task == "classification":
-            estimators.update({"DummyClassifier": DummyClassifier(strategy="prior")})
+            dummy = DummyClassifier(strategy="prior")
+            name = self._generate_estimator_name(
+                dummy, existing_names, list(estimators.values())
+            )
+            estimators[name] = dummy
         elif self.poniard_task == "regression":
-            estimators.update({"DummyRegressor": DummyRegressor(strategy="mean")})
+            dummy = DummyRegressor(strategy="mean")
+            name = self._generate_estimator_name(
+                dummy, existing_names, list(estimators.values())
+            )
+            estimators[name] = dummy
         return estimators
 
     @abstractmethod
@@ -735,12 +769,22 @@ class PoniardBaseEstimator(ResultsMixin, EnsembleMixin, TuningMixin, ABC):
 
         """
         estimators = element_to_list_maybe(estimators)
-        if not isinstance(estimators, dict):
-            new_estimators = {
-                estimator.__class__.__name__: estimator for estimator in estimators
-            }
-        else:
+        if isinstance(estimators, dict):
             new_estimators = estimators
+        else:
+            new_estimators = {}
+            existing_names = set(self.pipelines.keys())
+            all_estimators = list(estimators)
+            for item in estimators:
+                if isinstance(item, tuple):
+                    name, estimator = item
+                else:
+                    name = self._generate_estimator_name(
+                        item, existing_names, all_estimators
+                    )
+                    estimator = item
+                    existing_names.add(name)
+                new_estimators[name] = estimator
         for new_estimator in new_estimators.values():
             self._pass_instance_attrs(new_estimator)
         self._added_estimators.update(new_estimators)
