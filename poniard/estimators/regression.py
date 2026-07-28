@@ -3,7 +3,7 @@ from __future__ import annotations
 __all__ = ['PoniardRegressor']
 
 from collections.abc import Callable
-from typing import Any, Sequence
+from typing import Sequence
 
 from sklearn.base import RegressorMixin, TransformerMixin
 from sklearn.ensemble import (
@@ -54,8 +54,6 @@ class PoniardRegressor(PoniardBaseEstimator):
     n_jobs :
         Controls parallel processing. -1 uses all cores. Propagated to every scikit-learn
         function.
-    plugins :
-        Plugin instances that run in set moments of setup, fit and plotting.
     plot_options :
         :class:poniard.plot.plot_factory.PoniardPlotFactory instance specifying Plotly format
         options or None, which sets the default factory.
@@ -71,7 +69,6 @@ class PoniardRegressor(PoniardBaseEstimator):
         verbose: bool = False,
         random_state: int | None = None,
         n_jobs: int | None = None,
-        plugins: Sequence[Any] | None = None,
         plot_options: PoniardPlotFactory | None = None,
     ):
         super().__init__(
@@ -83,7 +80,6 @@ class PoniardRegressor(PoniardBaseEstimator):
             verbose=verbose,
             random_state=random_state,
             n_jobs=n_jobs,
-            plugins=plugins,
             plot_options=plot_options,
         )
 

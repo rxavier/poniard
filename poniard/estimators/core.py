@@ -1,13 +1,12 @@
 from __future__ import annotations
 
-import inspect
 import itertools
 import os
 import re
 import warnings
 from abc import ABC, abstractmethod
 from collections.abc import Callable, Iterable
-from typing import TYPE_CHECKING, Any, Sequence
+from typing import TYPE_CHECKING, Sequence
 
 import numpy as np
 import pandas as pd
@@ -88,8 +87,6 @@ class PoniardBaseEstimator(ABC):
     n_jobs :
         Controls parallel processing. -1 uses all cores. Propagated to every scikit-learn
         function.
-    plugins :
-        Plugin instances that run in set moments of setup, fit and plotting.
     plot_options :
         :class:poniard.plot.plot_factory.PoniardPlotFactory instance specifying Plotly format
         options or None, which sets the default factory.
@@ -110,7 +107,6 @@ class PoniardBaseEstimator(ABC):
         verbose: bool = False,
         random_state: int | None = None,
         n_jobs: int | None = None,
-        plugins: Sequence[Any] | None = None,
         plot_options: PoniardPlotFactory | None = None,
     ):
 
@@ -142,17 +138,10 @@ class PoniardBaseEstimator(ABC):
         self._memory = None
         self._tqdm_leave = os.getenv("PONIARD_TQDM_LEAVE", "False") == "True"
 
-        self._init_plugins(plugins)
         self._init_plots(plot_options)
 
         self._added_estimators = {}
         self._removed_estimators = []
-
-    def _init_plugins(self, plugins: Sequence[Any] | None = None) -> None:
-        self.plugins = element_to_list_maybe(plugins)
-        if self.plugins:
-            for plugin in self.plugins:
-                setattr(plugin, "_poniard", self)
 
     def _init_plots(self, plot_options: PoniardPlotFactory | None = None) -> None:
         self.plot_options = plot_options or PoniardPlotFactory()
@@ -201,7 +190,6 @@ class PoniardBaseEstimator(ABC):
         show_info :
             Whether to print information about the target, metrics and type inference.
         """
-        self._run_plugin_method("on_setup_start")
         if pl is not None and isinstance(X, (pl.DataFrame, pl.Series)):
             X = X.to_pandas()
         if pl is not None and isinstance(y, (pl.DataFrame, pl.Series)):
@@ -213,7 +201,6 @@ class PoniardBaseEstimator(ABC):
         self.X = X
         self.y = y
         self.show_info = show_info
-        self._run_plugin_method("on_setup_data")
         self.target_info = get_target_info(self.y, self.poniard_task)
         if self.target_info["type_"] == "multiclass-multioutput":
             raise NotImplementedError(
@@ -233,7 +220,6 @@ class PoniardBaseEstimator(ABC):
             else:
                 self.preprocessor = self._build_preprocessor()
             self._pass_instance_attrs(self.preprocessor)
-        self._run_plugin_method("on_setup_preprocessor")
 
         if self.show_info:
             self._print_setup_info()
@@ -242,7 +228,6 @@ class PoniardBaseEstimator(ABC):
 
         self.cv = self._build_cv()
 
-        self._run_plugin_method("on_setup_end")
         return self
 
     def _print_setup_info(self):
@@ -409,7 +394,6 @@ class PoniardBaseEstimator(ABC):
         """
         if not hasattr(self, "cv"):
             raise ValueError("`setup` must be called before `fit`.")
-        self._run_plugin_method("on_fit_start")
 
         results = {}
         filtered_pipelines = {
@@ -446,7 +430,6 @@ class PoniardBaseEstimator(ABC):
 
         self._process_results()
         self._process_long_results()
-        self._run_plugin_method("on_fit_end")
         return self
 
     def _predict(
@@ -681,7 +664,6 @@ class PoniardBaseEstimator(ABC):
         self._poniard_preprocessor.feature_types = assigned_types
         self._poniard_preprocessor.build()
         self.preprocessor = self._poniard_preprocessor.preprocessor
-        self._run_plugin_method("on_reassign_types")
         self.pipelines = self._build_pipelines()
         return self
 
@@ -738,7 +720,6 @@ class PoniardBaseEstimator(ABC):
                     memory=self._memory,
                 )
         self.pipelines = self._build_pipelines()
-        self._run_plugin_method("on_add_preprocessing_step")
         return self
 
     def add_estimators(
@@ -786,7 +767,6 @@ class PoniardBaseEstimator(ABC):
                     for name, estimator in new_estimators.items()
                 }
             )
-        self._run_plugin_method("on_add_estimators")
         return self
 
     def remove_estimators(
@@ -825,7 +805,6 @@ class PoniardBaseEstimator(ABC):
                 if k not in estimator_names
             }
             self._process_long_results()
-        self._run_plugin_method("on_remove_estimators")
         return self
 
     def get_estimator(
@@ -858,9 +837,6 @@ class PoniardBaseEstimator(ABC):
         model = clone(model)
         if retrain:
             model.fit(self.X, self.y)
-        self._run_plugin_method(
-            "on_get_estimator", estimator=model, name=estimator_name
-        )
         return model
 
     def analyze_estimator(
@@ -884,11 +860,6 @@ class PoniardBaseEstimator(ABC):
         Plotly Figure
             Figure
         """
-        self._run_plugin_method(
-            "on_analyze_estimator",
-            estimator=self.get_estimator(estimator_name),
-            name=estimator_name,
-        )
 
         table = self.get_results(return_train_scores=True).loc[[estimator_name]]
 
@@ -1202,19 +1173,6 @@ class PoniardBaseEstimator(ABC):
         ):
             if hasattr(obj, attr):
                 setattr(obj, attr, value)
-
-    def _run_plugin_method(self, method: str, **kwargs):
-        """Helper method to run plugin methods by name."""
-        if not self.plugins:
-            return
-        for plugin in self.plugins:
-            fetched_method = getattr(plugin, method, None)
-            if callable(fetched_method):
-                accepted_kwargs = inspect.getargs(fetched_method.__code__).args
-                matched_kwargs = {
-                    k: v for k, v in kwargs.items() if k in accepted_kwargs
-                }
-                fetched_method(**matched_kwargs)
 
     def _get_or_compute_prediction(self, estimator_name: str, method: str):
         """Get predictions (either predict, predict_proba or decision_function) for a given

@@ -396,13 +396,7 @@ class PoniardPreprocessor:
         self.inferred_types_df = pd.DataFrame.from_dict(
             self.feature_types, orient="index"
         ).T.fillna("")
-        self._run_plugin_method_maybe("on_infer_types")
         return numeric, categorical_high, categorical_low, datetime_cols
-
-    def _run_plugin_method_maybe(self, method: str, **kwargs):
-        if self._poniard is not None:
-            self._poniard._run_plugin_method(method, **kwargs)
-        return
 
     def __repr__(self):
         return non_default_repr(self)
