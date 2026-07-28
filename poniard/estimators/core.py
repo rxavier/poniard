@@ -6,7 +6,7 @@ import re
 import warnings
 from abc import ABC, abstractmethod
 from collections.abc import Callable, Iterable
-from typing import TYPE_CHECKING, Sequence
+from typing import Sequence
 
 import numpy as np
 import pandas as pd
@@ -46,9 +46,6 @@ try:
     _has_ipython = True
 except ImportError:
     _has_ipython = False
-
-if TYPE_CHECKING:
-    pass
 
 from ..plot import PoniardPlotFactory
 from ..preprocessing import PoniardPreprocessor
@@ -313,6 +310,15 @@ class PoniardBaseEstimator(ABC):
     def _default_estimators(self) -> list[ClassifierMixin]:
         return []
 
+    def _make_pipeline(self, name: str, estimator) -> Pipeline:
+        """Create a Pipeline for an estimator, optionally including the preprocessor."""
+        if self.preprocess:
+            return Pipeline(
+                [("preprocessor", self.preprocessor), (name, estimator)],
+                memory=self._memory,
+            )
+        return Pipeline([(name, estimator)])
+
     def _build_pipelines(
         self,
     ) -> dict[str, ClassifierMixin | RegressorMixin]:
@@ -341,24 +347,10 @@ class PoniardBaseEstimator(ABC):
         for estimator in estimators.values():
             self._pass_instance_attrs(estimator)
 
-        pipelines = {}
-        if self.preprocess:
-            pipelines.update(
-                {
-                    name: Pipeline(
-                        [("preprocessor", self.preprocessor), (name, estimator)],
-                        memory=self._memory,
-                    )
-                    for name, estimator in estimators.items()
-                }
-            )
-        else:
-            pipelines.update(
-                {
-                    name: Pipeline([(name, estimator)])
-                    for name, estimator in estimators.items()
-                }
-            )
+        pipelines = {
+            name: self._make_pipeline(name, estimator)
+            for name, estimator in estimators.items()
+        }
         self._fitted_pipeline_ids = []
         return pipelines
 
@@ -750,23 +742,10 @@ class PoniardBaseEstimator(ABC):
         for new_estimator in new_estimators.values():
             self._pass_instance_attrs(new_estimator)
         self._added_estimators.update(new_estimators)
-        if self.preprocess:
-            self.pipelines.update(
-                {
-                    name: Pipeline(
-                        [("preprocessor", self.preprocessor), (name, estimator)],
-                        memory=self._memory,
-                    )
-                    for name, estimator in new_estimators.items()
-                }
-            )
-        else:
-            self.pipelines.update(
-                {
-                    name: Pipeline([(name, estimator)])
-                    for name, estimator in new_estimators.items()
-                }
-            )
+        self.pipelines.update({
+            name: self._make_pipeline(name, estimator)
+            for name, estimator in new_estimators.items()
+        })
         return self
 
     def remove_estimators(
@@ -1167,10 +1146,10 @@ class PoniardBaseEstimator(ABC):
 
     def _pass_instance_attrs(self, obj: ClassifierMixin | RegressorMixin):
         """Helper method to propagate instance attributes to objects."""
-        for attr, value in zip(
-            ["random_state", "verbose", "verbosity"],
-            [self.random_state, self.verbose, self.verbose],
-        ):
+        for attr, value in [
+            ("random_state", self.random_state),
+            ("verbose", self.verbose),
+        ]:
             if hasattr(obj, attr):
                 setattr(obj, attr, value)
 

@@ -51,8 +51,10 @@ class PoniardPlotFactory:
         self._font_family = font_family
         self._font_color = font_color
         pio.templates.default = template
-        pio.templates["plotly_white"].layout.font = {"family": font_family}
-        pio.templates["plotly_white"].layout.font = {"color": font_color}
+        pio.templates["plotly_white"].layout.font = {
+            "family": font_family,
+            "color": font_color,
+        }
         pio.templates["plotly_white"].layout.margin = {"l": 20, "r": 20}
         pio.templates["plotly_white"].layout.legend.yanchor = "top"
         pio.templates["plotly_white"].layout.legend.y = -0.2
@@ -156,7 +158,7 @@ class PoniardPlotFactory:
             )
         fig.update_xaxes(matches=None)
         fig.update_layout(yaxis_title="")
-        self._poniard._run_plugin_method("on_plot", figure=fig, name="scores_plot")
+
         return fig
 
     def overfitness(
@@ -200,7 +202,6 @@ class PoniardPlotFactory:
             title=f"{metric} overfitness",
         )
         fig.update_layout(xaxis_title="Train / test ratio", yaxis_title="")
-        self._poniard._run_plugin_method("on_plot", figure=fig, name="overfitness_plot")
         return fig
 
     def permutation_importance(
@@ -284,9 +285,6 @@ class PoniardPlotFactory:
             ]
             fig = px.bar(importances, x="Importance", y="Feature", title=title)
             fig.update_layout(yaxis={"categoryorder": "total ascending"})
-        self._poniard._run_plugin_method(
-            "on_plot", figure=fig, name=f"{estimator_name}_permutation_importances_plot"
-        )
         return fig
 
     def roc_curve(
@@ -395,7 +393,6 @@ class PoniardPlotFactory:
                 }
             ]
         )
-        self._poniard._run_plugin_method("on_plot", figure=fig, name="roc_plot")
         return fig
 
     def confusion_matrix(self, estimator_name: str, **kwargs) -> Figure:
@@ -428,7 +425,6 @@ class PoniardPlotFactory:
         fig.update_yaxes(nticks=len(np.unique(y)) + 1)
         fig.update_xaxes(nticks=len(np.unique(y)) + 1)
         fig.update(layout_coloraxis_showscale=False)
-        self._poniard._run_plugin_method("on_plot", figure=fig, name="confusion_matrix")
         return fig
 
     def partial_dependence(
@@ -484,10 +480,28 @@ class PoniardPlotFactory:
         )
         if hide_legend:
             fig.update_layout(showlegend=False)
-        self._poniard._run_plugin_method(
-            "on_plot", figure=fig, name=f"{feature}_partial_dependence_plot"
-        )
         return fig
+
+    def _build_residuals_data(self, estimator_names: list[str]) -> pd.DataFrame:
+        """Build residuals DataFrame for a list of estimators."""
+        y = np.array(self._poniard.y)
+        estimator_names = element_to_list_maybe(estimator_names)
+        data = []
+        for name in estimator_names:
+            y_pred = self._poniard._get_or_compute_prediction(name, "predict")
+            if y.ndim == 1:
+                y_2d = np.expand_dims(y, 1)
+            else:
+                y_2d = y
+            if y_pred.ndim == 1:
+                y_pred = np.expand_dims(y_pred, 1)
+            for i in range(y_2d.shape[1]):
+                row = {"Estimator": name, "Target": i}
+                if y_2d.shape[1] > 1:
+                    row["Predicted"] = y_pred[:, i]
+                row["Residuals"] = y_2d[:, i] - y_pred[:, i]
+                data.append(pd.DataFrame(row))
+        return pd.concat(data)
 
     def residuals(self, estimator_names: list[str]) -> Figure:
         """Plot regression residuals vs predictions for a list of estimators.
@@ -503,41 +517,15 @@ class PoniardPlotFactory:
             Residuals plot.
         """
         if self._poniard.poniard_task == "classification":
-            raise ValueError("Residuls plot is not available for classifiers.")
-        y = self._poniard.y
-        estimator_names = element_to_list_maybe(estimator_names)
-        data = []
-        for name in estimator_names:
-            y = np.array(y)
-            y_pred = self._poniard._get_or_compute_prediction(name, "predict")
-            if y.ndim == 1:
-                y = np.expand_dims(y, 1)
-            if y_pred.ndim == 1:
-                y_pred = np.expand_dims(y_pred, 1)
-            for i in range(y.shape[1]):
-                data.append(
-                    pd.DataFrame(
-                        {
-                            "Estimator": name,
-                            "Target": i,
-                            "Predicted": y_pred[:, i],
-                            "Residuals": y[:, i] - y_pred[:, i],
-                        }
-                    )
-                )
-        data = pd.concat(data)
+            raise ValueError("Residuals plot is not available for classifiers.")
+        data = self._build_residuals_data(estimator_names)
         fig = px.scatter(
             data,
-            x="Predicted",
+            x="Predicted" if "Predicted" in data.columns else "Residuals",
             y="Residuals",
             color="Estimator",
-            symbol="Target",
+            symbol="Target" if "Target" in data.columns else None,
             title="Residuals plot with cross validated predictions",
-        )
-        self._poniard._run_plugin_method(
-            "on_plot",
-            figure=fig,
-            name="Residuals plot with cross validated predictions",
         )
         return fig
 
@@ -556,42 +544,17 @@ class PoniardPlotFactory:
         """
         if self._poniard.poniard_task == "classification":
             raise ValueError(
-                "Residuls histogram plot is not available for classifiers."
+                "Residuals histogram plot is not available for classifiers."
             )
-        y = self._poniard.y
-        estimator_names = element_to_list_maybe(estimator_names)
-        data = []
-        for name in estimator_names:
-            y = np.array(y)
-            y_pred = self._poniard._get_or_compute_prediction(name, "predict")
-            if y.ndim == 1:
-                y = np.expand_dims(y, 1)
-            if y_pred.ndim == 1:
-                y_pred = np.expand_dims(y_pred, 1)
-            for i in range(y.shape[1]):
-                data.append(
-                    pd.DataFrame(
-                        {
-                            "Estimator": name,
-                            "Target": i,
-                            "Residuals": y[:, i] - y_pred[:, i],
-                        }
-                    )
-                )
-        data = pd.concat(data)
+        data = self._build_residuals_data(estimator_names)
         fig = px.histogram(
             data,
             x="Residuals",
             color="Estimator",
-            pattern_shape="Target",
+            pattern_shape="Target" if "Target" in data.columns else None,
             histnorm="percent",
             barmode="overlay",
             title="Residuals histogram plot with cross validated predictions",
-        )
-        self._poniard._run_plugin_method(
-            "on_plot",
-            figure=fig,
-            name="Residuals histogram plot with cross validated predictions",
         )
         return fig
 

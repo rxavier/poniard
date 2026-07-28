@@ -2,17 +2,18 @@ import inspect
 
 
 def get_kwargs(exclude_self: bool = True, back: bool = False):
-    """Returns the kwargs passed to the function/method that calls it.
-
-    Based on [this SO answer](https://stackoverflow.com/a/65927265/10840137)."""
+    """Returns the kwargs passed to the function/method that calls it."""
     frame = inspect.currentframe().f_back
     if back:
         frame = frame.f_back
-    keys, _, _, values = inspect.getargvalues(frame)
+    # co_varnames includes local vars in order; co_argcount limits to params
+    params = frame.f_code.co_varnames[: frame.f_code.co_argcount]
+    local_vars = frame.f_locals
     kwargs = {}
-    for key in keys:
-        if exclude_self and key != "self":
-            kwargs[key] = values[key]
+    for name in params:
+        if exclude_self and name == "self":
+            continue
+        kwargs[name] = local_vars[name]
     return kwargs
 
 
