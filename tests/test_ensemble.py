@@ -1,11 +1,11 @@
-import pandas as pd
 import numpy as np
+import pandas as pd
 import pytest
 from sklearn.linear_model import LinearRegression, LogisticRegression
-from sklearn.tree import DecisionTreeRegressor, DecisionTreeClassifier
 from sklearn.svm import LinearSVR
+from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
 
-from poniard import PoniardRegressor, PoniardClassifier
+from poniard import PoniardClassifier, PoniardRegressor
 
 
 @pytest.mark.parametrize(

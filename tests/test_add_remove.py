@@ -1,8 +1,8 @@
 import numpy as np
 import pandas as pd
 import pytest
-from sklearn.ensemble import ExtraTreesClassifier, RandomForestClassifier
 from sklearn.base import ClassifierMixin
+from sklearn.ensemble import ExtraTreesClassifier, RandomForestClassifier
 from sklearn.pipeline import Pipeline
 
 from poniard import PoniardClassifier

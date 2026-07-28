@@ -1,12 +1,12 @@
 import numpy as np
 import pandas as pd
 import pytest
-from sklearn.linear_model import LogisticRegression
 from sklearn.base import BaseEstimator
-from sklearn.preprocessing import StandardScaler
-from sklearn.impute import SimpleImputer
-from sklearn.pipeline import make_pipeline, Pipeline
 from sklearn.feature_selection import SelectKBest, f_regression
+from sklearn.impute import SimpleImputer
+from sklearn.linear_model import LogisticRegression
+from sklearn.pipeline import Pipeline, make_pipeline
+from sklearn.preprocessing import StandardScaler
 
 from poniard import PoniardClassifier, PoniardRegressor
 from poniard.preprocessing import PoniardPreprocessor

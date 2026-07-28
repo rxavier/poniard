@@ -1,9 +1,9 @@
+from __future__ import annotations
+
 # This file is based on part of the Dython package (https://github.com/shakedzy/dython)
 # Because I only needed Cramér's V, adding a whole dependency
 # did not make sense.
-
 import warnings
-from typing import Union, List
 
 import numpy as np
 import pandas as pd
@@ -11,11 +11,11 @@ import scipy.stats as ss
 
 
 def cramers_v(
-    x: Union[pd.Series, np.ndarray, List],
-    y: Union[pd.Series, np.ndarray, List],
+    x: pd.Series | np.ndarray | list,
+    y: pd.Series | np.ndarray | list,
     bias_correction: bool = True,
     nan_strategy: str = "replace",
-    nan_replace_value: Union[int, float] = 0,
+    nan_replace_value: int | float = 0,
 ):
     """
     Calculates Cramer's V statistic for categorical-categorical association.
@@ -71,17 +71,17 @@ def cramers_v(
 
 
 def replace_nan_with_value(x, y, value):
-    x = np.array([v if v == v and v is not None else value for v in x])  # NaN != NaN
-    y = np.array([v if v == v and v is not None else value for v in y])
-    return x, y
+    x_arr = np.asarray(x, dtype=float)
+    y_arr = np.asarray(y, dtype=float)
+    x_arr[np.isnan(x_arr)] = value
+    y_arr[np.isnan(y_arr)] = value
+    return x_arr, y_arr
 
 
 def remove_incomplete_samples(x, y):
-    x = [v if v is not None else np.nan for v in x]
-    y = [v if v is not None else np.nan for v in y]
-    arr = np.array([x, y]).transpose()
-    arr = arr[~np.isnan(arr).any(axis=1)].transpose()
+    x_arr = np.asarray(x, dtype=float)
+    y_arr = np.asarray(y, dtype=float)
+    mask = ~(np.isnan(x_arr) | np.isnan(y_arr))
     if isinstance(x, list):
-        return arr[0].tolist(), arr[1].tolist()
-    else:
-        return arr[0], arr[1]
+        return x_arr[mask].tolist(), y_arr[mask].tolist()
+    return x_arr[mask], y_arr[mask]

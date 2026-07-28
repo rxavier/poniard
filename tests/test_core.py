@@ -1,22 +1,22 @@
-import pytest
-import pandas as pd
 import numpy as np
-from sklearn.linear_model import LogisticRegression, LinearRegression
-from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
-from sklearn.multiclass import OneVsRestClassifier
-from sklearn.multioutput import MultiOutputRegressor
-from sklearn.model_selection import StratifiedKFold, KFold
-from sklearn.metrics import (
-    make_scorer,
-    accuracy_score,
-    roc_auc_score,
-    mean_absolute_percentage_error,
-    mean_squared_error,
-)
+import pandas as pd
+import pytest
 from sklearn.datasets import (
     make_multilabel_classification,
     make_regression,
 )
+from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
+from sklearn.linear_model import LinearRegression, LogisticRegression
+from sklearn.metrics import (
+    accuracy_score,
+    make_scorer,
+    mean_absolute_percentage_error,
+    mean_squared_error,
+    roc_auc_score,
+)
+from sklearn.model_selection import KFold, StratifiedKFold
+from sklearn.multiclass import OneVsRestClassifier
+from sklearn.multioutput import MultiOutputRegressor
 
 from poniard import PoniardClassifier, PoniardRegressor
 from poniard.preprocessing import PoniardPreprocessor
