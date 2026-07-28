@@ -25,6 +25,12 @@ This is not meant to be an end-to-end solution, and you should keep working on y
 pip install poniard
 ```
 
+With plotting support:
+
+```bash
+pip install poniard[plot]
+```
+
 ## Quick start
 
 ```python
@@ -33,9 +39,22 @@ from poniard import PoniardClassifier
 
 X, y = make_classification(n_samples=200, n_features=10, random_state=42)
 clf = PoniardClassifier()
-clf.setup(X, y)
-clf.fit()
+clf.fit(X, y)
 clf.get_results()
+```
+
+## Plotting
+
+Plotting is a separate object that receives data and the fitted estimator:
+
+```python
+from poniard.plot import PoniardPlotFactory
+
+plotter = PoniardPlotFactory(X, y, clf)
+plotter.metrics()
+plotter.roc_curve()
+plotter.confusion_matrix("LogisticRegression")
+plotter.permutation_importance("LogisticRegression")
 ```
 
 ## Features
@@ -45,15 +64,7 @@ clf.get_results()
 - **Cross-validated comparison**: Fits multiple estimators with cross-validation and collects results
 - **Hyperparameter tuning**: Optuna-based tuning for any estimator
 - **Ensemble building**: Create ensembles from fitted estimators
-- **Plotting**: Metrics comparison, ROC curves, confusion matrices, feature importance, and more
-- **Plugin system**: Extend with Weights & Biases logging, pandas-profiling reports, etc.
-
-## Examples
-
-See the [examples/](examples/) directory for Jupyter notebooks demonstrating the library:
-
-- [Getting started](examples/00_getting_started.ipynb)
-- [End-to-end example](examples/03_end_to_end_example.ipynb)
+- **Plotting**: Metrics comparison, ROC curves, confusion matrices, feature importance (optional, requires plotly)
 
 ## Development
 
