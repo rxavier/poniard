@@ -185,6 +185,8 @@ class PoniardBaseEstimator(ABC):
             Whether to print information about the target, metrics and type inference.
         """
         self._run_plugin_method("on_setup_start")
+        X = self._convert_to_pandas(X)
+        y = self._convert_to_pandas(y)
         if not isinstance(X, (pd.DataFrame, pd.Series, np.ndarray)):
             X = np.array(X)
         if not isinstance(y, (pd.DataFrame, pd.Series, np.ndarray)):
@@ -1179,6 +1181,22 @@ class PoniardBaseEstimator(ABC):
             stratify = self.y if "Stratified" in self.cv.__class__.__name__ else None
             cv_params_for_split.update({"stratify": stratify})
         return train_test_split(self.X, self.y, test_size=0.2, **cv_params_for_split)
+
+    @staticmethod
+    def _convert_to_pandas(data):
+        """Convert polars or other array-like inputs to pandas."""
+        if data is None:
+            return data
+        try:
+            import polars as pl
+
+            if isinstance(data, pl.DataFrame):
+                return data.to_pandas()
+            if isinstance(data, pl.Series):
+                return data.to_pandas()
+        except ImportError:
+            pass
+        return data
 
     def _pass_instance_attrs(self, obj: ClassifierMixin | RegressorMixin):
         """Helper method to propagate instance attributes to objects."""

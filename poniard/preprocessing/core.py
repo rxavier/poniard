@@ -17,11 +17,11 @@ from sklearn.preprocessing import (
     OrdinalEncoder,
     RobustScaler,
     StandardScaler,
+    TargetEncoder,
 )
 
 from ..utils.estimate import get_target_info
 from ..utils.utils import get_kwargs, non_default_repr
-from .categorical import TargetEncoder
 from .datetime import DatetimeEncoder
 
 if TYPE_CHECKING:
@@ -264,9 +264,7 @@ class PoniardPreprocessor:
                     handle_unknown="use_encoded_value", unknown_value=99999
                 )
             else:
-                high_cardinality_encoder = TargetEncoder(
-                    task=self.task, handle_unknown="ignore"
-                )
+                high_cardinality_encoder = TargetEncoder(cv=3)
         else:
             high_cardinality_encoder = OrdinalEncoder(
                 handle_unknown="use_encoded_value", unknown_value=99999

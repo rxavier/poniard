@@ -1312,6 +1312,34 @@ wheels = [
 ]
 
 [[package]]
+name = "polars"
+version = "1.43.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "polars-runtime-32" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/32/79/720f4901230992f359653717e7cc3596731ed36e1a27be351d128ee0c3b7/polars-1.43.1.tar.gz", hash = "sha256:cb07ff3ad61c7b28043e6176e5fdb04a294346920b7f033deeb84116b4911883", size = 750058, upload-time = "2026-07-27T12:07:58.288Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/f3/7c/d74a56d5afae8e91924aad91cba621b286a05307e88569ecab666b3055b3/polars-1.43.1-py3-none-any.whl", hash = "sha256:f6ecd9184956f46442ddfcf6185423401475bbeffea59e238de8b9ecedacf16c", size = 846844, upload-time = "2026-07-27T12:06:33.913Z" },
+]
+
+[[package]]
+name = "polars-runtime-32"
+version = "1.43.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/60/44/390c9e9eef393991d907b7067264ddaa685b550a5bab94991765459a5e64/polars_runtime_32-1.43.1.tar.gz", hash = "sha256:2931c71fce2080ade2fc743207b3d70ea659f694e0273b6bacfe551ad6ce43e0", size = 3093618, upload-time = "2026-07-27T12:07:59.492Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/72/a5/72c075ff95b31807c3cf497757bdd87f81b5b8869e60a22ec532238bac99/polars_runtime_32-1.43.1-cp310-abi3-macosx_10_12_x86_64.whl", hash = "sha256:ddc7bca81e3616b74eba597bff09acbe3567e5b66798cc5305adc2e91a36e31e", size = 53084414, upload-time = "2026-07-27T12:06:36.283Z" },
+    { url = "https://files.pythonhosted.org/packages/b3/8f/a34347323459116becbc3b6223bc55b25a1be705d6064decac6b7aa0c769/polars_runtime_32-1.43.1-cp310-abi3-macosx_11_0_arm64.whl", hash = "sha256:3bdaeb8b017be11d7d2f8a938ae98cb4135f90de451771c2bac4d21dca2f7cf4", size = 47514709, upload-time = "2026-07-27T12:06:39.63Z" },
+    { url = "https://files.pythonhosted.org/packages/83/7e/a0a22740388facc22f2faa81787b4150231a22dad42ad02b2c6efdba0d0a/polars_runtime_32-1.43.1-cp310-abi3-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:def1c19a339903ab39f1d134a69a9e8b02feb4f800f547809fbfed458ccb135e", size = 51351657, upload-time = "2026-07-27T12:06:44.701Z" },
+    { url = "https://files.pythonhosted.org/packages/34/f1/4a07318711eeb3a27c62c916751ca45f18df6b0891d18aba68ffd9c18a76/polars_runtime_32-1.43.1-cp310-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:4f323e5c4aa0f068c2c911bd01f1ecdc25c1f3a501879b29550a41ab95490965", size = 57289250, upload-time = "2026-07-27T12:06:48.173Z" },
+    { url = "https://files.pythonhosted.org/packages/26/74/c6b55dbb4db2574a9478bf1c2aa04624ea924fc44dc14b64050be462db7e/polars_runtime_32-1.43.1-cp310-abi3-musllinux_1_2_aarch64.whl", hash = "sha256:b93d4bf59dcb0bac68ab2458890f1e8431d17369e59efc88625f0d92b22cad92", size = 51505657, upload-time = "2026-07-27T12:06:51.557Z" },
+    { url = "https://files.pythonhosted.org/packages/43/2e/12e987b0f311f20e41f904acc452824af3009579d60c878a5435ae1e9f0a/polars_runtime_32-1.43.1-cp310-abi3-musllinux_1_2_x86_64.whl", hash = "sha256:977b4620d837f3ca0d131f858ac1bd72e2ae10a5e85a6cc27fddc71fbdb5005d", size = 55189721, upload-time = "2026-07-27T12:06:54.68Z" },
+    { url = "https://files.pythonhosted.org/packages/3a/f6/5bfba6f40a08b2b1bbe0507e9cc638ebada2dceaece45f9d87a905c57de5/polars_runtime_32-1.43.1-cp310-abi3-win_amd64.whl", hash = "sha256:fa557938e9113c12d59c56df8d7f7e1a411cc1954df0dafbb05900136c6329e7", size = 52566672, upload-time = "2026-07-27T12:06:57.725Z" },
+    { url = "https://files.pythonhosted.org/packages/f9/5e/41df901e2684e8857bdffd458c8157d237c701df9f3f922d101075f97724/polars_runtime_32-1.43.1-cp310-abi3-win_arm64.whl", hash = "sha256:cc186bad9f33b71f66ee6cc3ba2146d64315a120b0e988814d6fb1a37f0cc9e9", size = 46575356, upload-time = "2026-07-27T12:07:00.856Z" },
+]
+
+[[package]]
 name = "poniard"
 version = "0.5.0"
 source = { editable = "." }
@@ -1337,6 +1365,9 @@ plugins = [
     { name = "wandb" },
     { name = "ydata-profiling" },
 ]
+polars = [
+    { name = "polars" },
+]
 xgboost = [
     { name = "xgboost", version = "3.2.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
     { name = "xgboost", version = "3.3.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
@@ -1352,6 +1383,7 @@ requires-dist = [
     { name = "numpy", specifier = ">=1.26.0" },
     { name = "pandas", specifier = ">=2.0.0" },
     { name = "plotly" },
+    { name = "polars", marker = "extra == 'polars'", specifier = ">=1.0.0" },
     { name = "poniard", extras = ["xgboost"], marker = "extra == 'dev'" },
     { name = "pre-commit", marker = "extra == 'dev'" },
     { name = "pytest", marker = "extra == 'dev'" },
@@ -1362,7 +1394,7 @@ requires-dist = [
     { name = "xgboost", marker = "extra == 'xgboost'", specifier = ">=2.0.0" },
     { name = "ydata-profiling", marker = "extra == 'plugins'" },
 ]
-provides-extras = ["xgboost", "dev", "plugins"]
+provides-extras = ["xgboost", "polars", "dev", "plugins"]
 
 [package.metadata.requires-dev]
 dev = [{ name = "ruff", specifier = ">=0.16.0" }]
