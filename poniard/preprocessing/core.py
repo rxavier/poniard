@@ -321,71 +321,76 @@ class PoniardPreprocessor:
             datetime_preprocessor,
         )
 
-    def _infer_dtypes(self) -> tuple[list[str], list[str], list[str]]:
-        """Infer feature types (numeric, low-cardinality categorical or high-cardinality
-        categorical).
+    def _infer_dtypes(self) -> tuple[list, list, list, list]:
+        """Infer feature types (numeric, low-cardinality categorical,
+        high-cardinality categorical, datetime).
 
         Returns
         -------
-        list[str], list[str], list[str]
-            Three lists with column names or indices.
+        tuple[list, list, list, list]
+            Four lists with column names or indices.
         """
         X = self.X
-        numeric = []
-        categorical_high = []
-        categorical_low = []
-        datetime = []
+        numeric: list = []
+        categorical_high: list = []
+        categorical_low: list = []
+        datetime_cols: list = []
+
         if not isinstance(self.cardinality_threshold, int):
             self.cardinality_threshold = int(self.cardinality_threshold * X.shape[0])
         if not isinstance(self.numeric_threshold, int):
             self.numeric_threshold = int(self.numeric_threshold * X.shape[0])
 
         if isinstance(X, pd.DataFrame):
-            datetime = X.select_dtypes(
-                include=["datetime64[ns]", "datetimetz"]
-            ).columns.tolist()
-            numbers = X.select_dtypes(include="number").columns
-            for column in numbers:
-                if X[column].nunique() > self.numeric_threshold:
-                    numeric.append(column)
-                elif X[column].nunique() > self.cardinality_threshold:
-                    categorical_high.append(column)
+            for col in X.columns:
+                dtype = X[col].dtype
+                nunique = X[col].nunique()
+
+                if pd.api.types.is_datetime64_any_dtype(dtype):
+                    datetime_cols.append(col)
+                elif pd.api.types.is_numeric_dtype(dtype):
+                    if nunique > self.numeric_threshold:
+                        numeric.append(col)
+                    elif nunique > self.cardinality_threshold:
+                        categorical_high.append(col)
+                    else:
+                        categorical_low.append(col)
                 else:
-                    categorical_low.append(column)
-            strings = X.select_dtypes(exclude=["number", "datetime"]).columns
-            for column in strings:
-                if X[column].nunique() > self.cardinality_threshold:
-                    categorical_high.append(column)
-                else:
-                    categorical_low.append(column)
+                    # strings, objects, categorical, boolean
+                    if nunique > self.cardinality_threshold:
+                        categorical_high.append(col)
+                    else:
+                        categorical_low.append(col)
         else:
-            if np.issubdtype(X.dtype, np.datetime64):
-                datetime.extend(range(X.shape[1]))
-            if np.issubdtype(X.dtype, np.number):
-                for i in range(X.shape[1]):
-                    if np.unique(X[:, i]).shape[0] > self.numeric_threshold:
+            for i in range(X.shape[1]):
+                col = X[:, i]
+                nunique = len(np.unique(col))
+                if np.issubdtype(col.dtype, np.datetime64):
+                    datetime_cols.append(i)
+                elif np.issubdtype(col.dtype, np.number):
+                    if nunique > self.numeric_threshold:
                         numeric.append(i)
-                    elif np.unique(X[:, i]).shape[0] > self.cardinality_threshold:
+                    elif nunique > self.cardinality_threshold:
                         categorical_high.append(i)
                     else:
                         categorical_low.append(i)
-            else:
-                for i in range(X.shape[1]):
-                    if np.unique(X[:, i]).shape[0] > self.cardinality_threshold:
+                else:
+                    if nunique > self.cardinality_threshold:
                         categorical_high.append(i)
                     else:
                         categorical_low.append(i)
+
         self.feature_types = {
             "numeric": numeric,
             "categorical_high": categorical_high,
             "categorical_low": categorical_low,
-            "datetime": datetime,
+            "datetime": datetime_cols,
         }
         self.inferred_types_df = pd.DataFrame.from_dict(
             self.feature_types, orient="index"
         ).T.fillna("")
         self._run_plugin_method_maybe("on_infer_types")
-        return numeric, categorical_high, categorical_low, datetime
+        return numeric, categorical_high, categorical_low, datetime_cols
 
     def _run_plugin_method_maybe(self, method: str, **kwargs):
         if self._poniard is not None:
