@@ -154,24 +154,24 @@ class PoniardBaseEstimator(ABC):
         y: pd.DataFrame | np.ndarray | list,
         show_info: bool = True,
     ) -> PoniardBaseEstimator:
-        """Acts as an orchestrator for Poniard estimators by setting up everything neeeded
-        for `PoniardBaseEstimator.fit`.
+        """Configure the estimator: infer types, build preprocessing, build pipelines.
 
-        Converts inputs to arrays if necessary, sets `metrics`,
-        `preprocessor`, `cv` and `pipelines`.
-
-        After running `PoniardBaseEstimator.setup`, metadata (target_info, metrics, feature_types,
-        preprocessor, pipelines, cv) will be set.
-
+        Call this before `fit()` to set up the pipeline. You can modify
+        the preprocessor or estimator list between `setup()` and `fit()`.
 
         Parameters
         ----------
         X :
-            Features
+            Features.
         y :
             Target.
         show_info :
             Whether to print information about the target, metrics and type inference.
+
+        Returns
+        -------
+        PoniardBaseEstimator
+            Self.
         """
         if pl is not None and isinstance(X, (pl.DataFrame, pl.Series)):
             X = X.to_pandas()
@@ -206,7 +206,6 @@ class PoniardBaseEstimator(ABC):
             self._print_setup_info()
 
         self.pipelines = self._build_pipelines()
-
         self.cv = self._build_cv()
 
         return self
@@ -360,9 +359,11 @@ class PoniardBaseEstimator(ABC):
     def _build_cv(self):
         return self.cv
 
-    def fit(self, X, y) -> PoniardBaseEstimator:
-        """This is the main Poniard method. It uses scikit-learn's `cross_validate` function to
-        score all `metrics` for every `pipelines`, using `cv` for cross validation.
+    def fit(self, X, y, show_info: bool = True) -> PoniardBaseEstimator:
+        """Fit the estimator: build preprocessing pipeline, cross-validate all estimators.
+
+        This is the main method. It infers feature types, builds preprocessing,
+        and cross-validates all estimators, collecting results.
 
         Parameters
         ----------
@@ -370,15 +371,55 @@ class PoniardBaseEstimator(ABC):
             Features.
         y :
             Target.
+        show_info :
+            Whether to print information about the target, metrics and type inference.
 
         Returns
         -------
         PoniardBaseEstimator
             Self.
         """
-        if not hasattr(self, "cv"):
-            raise ValueError("`setup` must be called before `fit`.")
+        # Input conversion
+        if pl is not None and isinstance(X, (pl.DataFrame, pl.Series)):
+            X = X.to_pandas()
+        if pl is not None and isinstance(y, (pl.DataFrame, pl.Series)):
+            y = y.to_pandas()
+        if not isinstance(X, (pd.DataFrame, pd.Series, np.ndarray)):
+            X = np.array(X)
+        if not isinstance(y, (pd.DataFrame, pd.Series, np.ndarray)):
+            y = np.array(y)
 
+        # Type inference and metadata
+        self.show_info = show_info
+        self.target_info = get_target_info(y, self.poniard_task)
+        if self.target_info["type_"] == "multiclass-multioutput":
+            raise NotImplementedError(
+                "multiclass-multioutput targets are not supported as "
+                "no sklearn metrics support them."
+            )
+        if self.metrics:
+            self.metrics = element_to_list_maybe(self.metrics)
+        else:
+            self.metrics = self._build_metrics()
+
+        # Preprocessing
+        if self.preprocess:
+            if self.custom_preprocessor and not isinstance(
+                self.custom_preprocessor, PoniardPreprocessor
+            ):
+                self.preprocessor = self.custom_preprocessor
+            else:
+                self.preprocessor = self._build_preprocessor(X, y)
+            self._pass_instance_attrs(self.preprocessor)
+
+        if self.show_info:
+            self._print_setup_info()
+
+        # Build pipelines and CV
+        self.pipelines = self._build_pipelines()
+        self.cv = self._build_cv()
+
+        # Cross-validate
         results = {}
         filtered_pipelines = {
             name: pipeline
