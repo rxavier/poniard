@@ -35,12 +35,10 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-xgboost = ["xgboost>=2.0.0"]
 dev = [
     "pytest",
     "ruff",
     "pre-commit",
-    "poniard[xgboost]",
 ]
 
 [project.urls]
