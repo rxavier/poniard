@@ -361,7 +361,6 @@ dependencies = [
     { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
     { name = "numpy", version = "2.3.5", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
     { name = "pandas" },
-    { name = "plotly" },
     { name = "scikit-learn", version = "1.7.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
     { name = "scikit-learn", version = "1.9.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
     { name = "scipy", version = "1.15.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
@@ -371,9 +370,13 @@ dependencies = [
 
 [package.optional-dependencies]
 dev = [
+    { name = "plotly" },
     { name = "pre-commit" },
     { name = "pytest" },
     { name = "ruff" },
+]
+plot = [
+    { name = "plotly" },
 ]
 
 [package.dev-dependencies]
@@ -386,7 +389,8 @@ requires-dist = [
     { name = "joblib" },
     { name = "numpy", specifier = ">=1.26.0" },
     { name = "pandas", specifier = ">=2.0.0" },
-    { name = "plotly" },
+    { name = "plotly", marker = "extra == 'plot'" },
+    { name = "poniard", extras = ["plot"], marker = "extra == 'dev'" },
     { name = "pre-commit", marker = "extra == 'dev'" },
     { name = "pytest", marker = "extra == 'dev'" },
     { name = "ruff", marker = "extra == 'dev'" },
@@ -394,7 +398,7 @@ requires-dist = [
     { name = "scipy", specifier = ">=1.11.0" },
     { name = "tqdm" },
 ]
-provides-extras = ["dev"]
+provides-extras = ["plot", "dev"]
 
 [package.metadata.requires-dev]
 dev = [{ name = "ruff", specifier = ">=0.16.0" }]

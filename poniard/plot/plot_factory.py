@@ -7,53 +7,65 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 import pandas as pd
-import plotly.express as px
-import plotly.io as pio
-from plotly.graph_objs._figure import Figure
-from plotly.subplots import make_subplots
 from sklearn.inspection import partial_dependence, permutation_importance
 from sklearn.metrics import auc, confusion_matrix, roc_curve
 
 if TYPE_CHECKING:
     from poniard.estimators.core import PoniardBaseEstimator
 from ..utils.estimate import element_to_list_maybe
-from ..utils.utils import get_kwargs, non_default_repr
+
+try:
+    import plotly.express as px
+    import plotly.io as pio
+    from plotly.graph_objs._figure import Figure
+    from plotly.subplots import make_subplots
+except ImportError as e:
+    raise ImportError(
+        "plotly is required for plotting. Install it with: pip install plotly"
+    ) from e
 
 
 class PoniardPlotFactory:
     """Helper class that handles plotting for Poniard Estimators.
 
-    It has access to the Poniard estimator instance through the `_poniard`
-    attribute.
+    It operates as a standalone plotting object that receives data, an estimator,
+    and optional plotly configuration.
 
     Parameters
     ----------
-    template :
-        [Plotly template](https://plotly.com/python/templates/#view-available-themes). Default "plotly_white".
-    discrete_colors :
-        A list of colors, default Bold. See the [Plotly reference](https://plotly.com/python/discrete-color/#color-sequences-in-plotly-express).
-    font_family :
-        See the [Plotly reference](https://plotly.com/python/reference/layout/#layout-title-font-family)
-    font_color :
-        See the [Plotly reference](https://plotly.com/python/reference/layout/#layout-title-font-color)
+    X :
+        The feature data (DataFrame or array).
+    y :
+        The target data (Series or array).
+    estimator :
+        A fitted PoniardBaseEstimator instance (provides results, pipelines, etc.).
+    **plot_config :
+        Optional plotly config keys: ``template``, ``discrete_colors``, ``font_family``,
+        ``font_color``.
     """
 
     def __init__(
         self,
-        template: str = "plotly_white",
-        discrete_colors: list[str] = px.colors.qualitative.Bold,
-        font_family: str = "Helvetica",
-        font_color: str = "#8C8C8C",
+        X,
+        y,
+        estimator: PoniardBaseEstimator,
+        **plot_config,
     ):
-        self._init_params = get_kwargs()
-        self._template = template
-        self._discrete_colors = discrete_colors
-        self._font_family = font_family
-        self._font_color = font_color
-        pio.templates.default = template
+        self._X = X
+        self._y = y
+        self._estimator = estimator
+
+        self._template = plot_config.get("template", "plotly_white")
+        self._discrete_colors = plot_config.get(
+            "discrete_colors", px.colors.qualitative.Bold
+        )
+        self._font_family = plot_config.get("font_family", "Helvetica")
+        self._font_color = plot_config.get("font_color", "#8C8C8C")
+
+        pio.templates.default = self._template
         pio.templates["plotly_white"].layout.font = {
-            "family": font_family,
-            "color": font_color,
+            "family": self._font_family,
+            "color": self._font_color,
         }
         pio.templates["plotly_white"].layout.margin = {"l": 20, "r": 20}
         pio.templates["plotly_white"].layout.legend.yanchor = "top"
@@ -61,9 +73,7 @@ class PoniardPlotFactory:
         pio.templates["plotly_white"].layout.legend.xanchor = "left"
         pio.templates["plotly_white"].layout.legend.x = 0.0
         pio.templates["plotly_white"].layout.legend.orientation = "h"
-        px.defaults.color_discrete_sequence = discrete_colors
-
-        self._poniard: PoniardBaseEstimator | None = None
+        px.defaults.color_discrete_sequence = self._discrete_colors
 
     def metrics(
         self,
@@ -99,7 +109,7 @@ class PoniardPlotFactory:
         Figure
             Plotly strip or bar plot.
         """
-        results = self._poniard._long_results.replace(
+        results = self._estimator._long_results.replace(
             "Classifier|Regressor", "", regex=True
         )
         results = results.loc[~results["Metric"].isin(["fit_time", "score_time"])]
@@ -133,7 +143,7 @@ class PoniardPlotFactory:
                 **kwargs,
             )
         else:
-            stds = self._poniard._stds.reset_index().melt(id_vars="index")
+            stds = self._estimator._stds.reset_index().melt(id_vars="index")
             stds.columns = ["Model", "Metric", "Score"]
             stds["Model"] = stds["Model"].str.replace(
                 "Classifier|Regressor", "", regex=True
@@ -181,8 +191,8 @@ class PoniardPlotFactory:
             Plotly strip plot.
         """
         if not metric:
-            metric = self._poniard._first_scorer(sklearn_scorer=False)
-        results = self._poniard._long_results.replace(
+            metric = self._estimator._first_scorer(sklearn_scorer=False)
+        results = self._estimator._long_results.replace(
             "Classifier|Regressor", "", regex=True
         )
         results = results.loc[
@@ -235,18 +245,20 @@ class PoniardPlotFactory:
         Figure
             Plotly bar or strip plot.
         """
-        X_train, X_test, y_train, y_test = self._poniard._train_test_split_from_cv()
-        scoring = self._poniard._first_scorer(sklearn_scorer=True)
-        estimator = self._poniard.pipelines[estimator_name]
+        X_train, X_test, y_train, y_test = self._estimator._train_test_split_from_cv(
+            self._X, self._y
+        )
+        scoring = self._estimator._first_scorer(sklearn_scorer=True)
+        estimator = self._estimator.pipelines[estimator_name]
         estimator.fit(X_train, y_train)
         raw_importances = permutation_importance(
             estimator,
             X_test,
             y_test,
             scoring=scoring,
-            random_state=self._poniard.random_state,
+            random_state=self._estimator.random_state,
             n_repeats=n_repeats,
-            n_jobs=self._poniard.n_jobs,
+            n_jobs=self._estimator.n_jobs,
             **kwargs,
         )
         if isinstance(X_test, pd.DataFrame):
@@ -311,24 +323,24 @@ class PoniardPlotFactory:
         Figure
             Plotly line plot.
         """
-        if self._poniard.poniard_task == "regression":
+        if self._estimator.poniard_task == "regression":
             raise ValueError("ROC curve is not available for regressors.")
-        y = self._poniard.y
+        y = self._y
         if y.ndim > 1:
             raise ValueError("ROC curve is only available for binary classification.")
-        results = self._poniard._experiment_results
+        results = self._estimator._experiment_results
         estimator_names = element_to_list_maybe(estimator_names)
         if not estimator_names:
             estimator_names = list(results.keys())
 
         if response_method == "auto":
             if all(
-                hasattr(self._poniard.pipelines[estimator], "predict_proba")
+                hasattr(self._estimator.pipelines[estimator], "predict_proba")
                 for estimator in estimator_names
             ):
                 type_of_prediction = "predict_proba"
             elif all(
-                hasattr(self._poniard.pipelines[estimator], "decision_function")
+                hasattr(self._estimator.pipelines[estimator], "decision_function")
                 for estimator in estimator_names
             ):
                 type_of_prediction = "decision_function"
@@ -339,7 +351,7 @@ class PoniardPlotFactory:
         else:
             type_of_prediction = response_method
             if not all(
-                hasattr(self._poniard.pipelines[estimator], response_method)
+                hasattr(self._estimator.pipelines[estimator], response_method)
                 for estimator in estimator_names
             ):
                 raise ValueError(
@@ -348,7 +360,9 @@ class PoniardPlotFactory:
 
         estimator_metrics = []
         for name in estimator_names:
-            y_pred = self._poniard._get_or_compute_prediction(name, type_of_prediction)
+            y_pred = self._estimator._get_or_compute_prediction(
+                self._X, self._y, name, type_of_prediction
+            )
             if type_of_prediction == "predict_proba":
                 y_pred = y_pred[:, 1]
             fpr, tpr, _ = roc_curve(y, y_pred, **kwargs)
@@ -410,10 +424,12 @@ class PoniardPlotFactory:
         Figure
             Plotly image plot.
         """
-        if self._poniard.poniard_task == "regression":
+        if self._estimator.poniard_task == "regression":
             raise ValueError("Confusion matrix is not available for regressors.")
-        y = self._poniard.y
-        y_pred = self._poniard._get_or_compute_prediction(estimator_name, "predict")
+        y = self._y
+        y_pred = self._estimator._get_or_compute_prediction(
+            self._X, self._y, estimator_name, "predict"
+        )
         matrix = confusion_matrix(y, y_pred, **kwargs)
         fig = px.imshow(
             matrix,
@@ -450,9 +466,9 @@ class PoniardPlotFactory:
         Figure
             Plotly line plot.
         """
-        y = self._poniard.y
-        X = self._poniard.X
-        estimator = self._poniard.pipelines[estimator_name]
+        y = self._y
+        X = self._X
+        estimator = self._estimator.pipelines[estimator_name]
         estimator.fit(X, y)
         partial_dep = partial_dependence(
             estimator, X, features=[feature], kind="average", **kwargs
@@ -463,9 +479,9 @@ class PoniardPlotFactory:
         values = np.tile(partial_dep["values"][0], n_repeats)
         data = pd.DataFrame({"Target": response, f"Feature: {feature}": values})
         hide_legend = False
-        if n_repeats > 1 and self._poniard.poniard_task == "classification":
+        if n_repeats > 1 and self._estimator.poniard_task == "classification":
             data["Class"] = np.repeat(estimator.classes_, n_values)
-        elif self._poniard.poniard_task == "classification":
+        elif self._estimator.poniard_task == "classification":
             data["Class"] = 1
         else:
             data["Class"] = "Target"
@@ -484,11 +500,13 @@ class PoniardPlotFactory:
 
     def _build_residuals_data(self, estimator_names: list[str]) -> pd.DataFrame:
         """Build residuals DataFrame for a list of estimators."""
-        y = np.array(self._poniard.y)
+        y = np.array(self._y)
         estimator_names = element_to_list_maybe(estimator_names)
         data = []
         for name in estimator_names:
-            y_pred = self._poniard._get_or_compute_prediction(name, "predict")
+            y_pred = self._estimator._get_or_compute_prediction(
+                self._X, self._y, name, "predict"
+            )
             if y.ndim == 1:
                 y_2d = np.expand_dims(y, 1)
             else:
@@ -516,7 +534,7 @@ class PoniardPlotFactory:
         Figure
             Residuals plot.
         """
-        if self._poniard.poniard_task == "classification":
+        if self._estimator.poniard_task == "classification":
             raise ValueError("Residuals plot is not available for classifiers.")
         data = self._build_residuals_data(estimator_names)
         fig = px.scatter(
@@ -542,7 +560,7 @@ class PoniardPlotFactory:
         Figure
             Residuals histogram plot.
         """
-        if self._poniard.poniard_task == "classification":
+        if self._estimator.poniard_task == "classification":
             raise ValueError(
                 "Residuals histogram plot is not available for classifiers."
             )
@@ -561,8 +579,8 @@ class PoniardPlotFactory:
     def _full_estimator_analysis(
         self, estimator_name: str, height: int = 800, width: int = 800
     ) -> Figure:
-        main_scorer = self._poniard._first_scorer(sklearn_scorer=False)
-        sorted_means = self._poniard._long_results.query(
+        main_scorer = self._estimator._first_scorer(sklearn_scorer=False)
+        sorted_means = self._estimator._long_results.query(
             f"Metric == 'test_{main_scorer}' & Type=='Mean'"
         ).sort_values(ascending=False, by="Score")
         estimator_position = sorted_means.set_index("Model").index.get_loc(
@@ -571,9 +589,9 @@ class PoniardPlotFactory:
         if estimator_position == 0:
             better_estimator_name = None
             worse_estimator_name = sorted_means.iloc[1, 0]
-        elif estimator_position == len(self._poniard.pipelines) - 1:
+        elif estimator_position == len(self._estimator.pipelines) - 1:
             better_estimator_name = sorted_means.iloc[
-                len(self._poniard.pipelines) - 2, 0
+                len(self._estimator.pipelines) - 2, 0
             ]
             worse_estimator_name = None
         else:
@@ -585,7 +603,7 @@ class PoniardPlotFactory:
             if x
         ]
 
-        metrics = self._poniard.get_results()
+        metrics = self._estimator.get_results()
         metric_rankings = metrics.loc[:, ~metrics.columns.str.contains("time")].rank(
             ascending=True
         )
@@ -594,34 +612,26 @@ class PoniardPlotFactory:
         )
         rankings = pd.concat([metric_rankings, time_rankings], axis=1)
         rank = px.bar(rankings.loc[estimator_name, :], text_auto=True)
-        rank_title = f"Metrics rank (best={len(self._poniard.pipelines)})"
+        rank_title = f"Metrics rank (best={len(self._estimator.pipelines)})"
         rank.update_layout(dict(xaxis_title=None, yaxis_title="Rank"), showlegend=False)
 
-        if self._poniard.poniard_task == "classification":
-            if self._poniard.target_info["type_"] == "binary":
-                task_1_fig = self._poniard.plot.roc_curve(
-                    estimator_names=estimator_names
-                )
+        if self._estimator.poniard_task == "classification":
+            if self._estimator.target_info["type_"] == "binary":
+                task_1_fig = self.roc_curve(estimator_names=estimator_names)
                 task_1_title = "ROC curve w/ CV predictions"
             else:
-                task_1_fig = self._poniard.plot.metrics(metrics=main_scorer, kind="bar")
+                task_1_fig = self.metrics(metrics=main_scorer, kind="bar")
                 task_1_title = f"{main_scorer} scores"
-            task_2_fig = self._poniard.plot.confusion_matrix(
-                estimator_name=estimator_name
-            )
+            task_2_fig = self.confusion_matrix(estimator_name=estimator_name)
             task_2_title = "Confusion matrix w/ CV predictions"
             task_2_fig.update_layout(coloraxis_showscale=False)
         else:
-            task_1_fig = self._poniard.plot.residuals_histogram(
-                estimator_names=estimator_names
-            )
+            task_1_fig = self.residuals_histogram(estimator_names=estimator_names)
             task_1_title = "Residuals histogram w/ CV predictions"
-            task_2_fig = self._poniard.plot.residuals(estimator_names=estimator_names)
+            task_2_fig = self.residuals(estimator_names=estimator_names)
             task_2_title = "Residuals plot w/ CV predictions"
 
-        importance_fig = self._poniard.plot.permutation_importance(
-            estimator_name=estimator_name
-        )
+        importance_fig = self.permutation_importance(estimator_name=estimator_name)
 
         plot_array = make_subplots(
             rows=2,
@@ -668,6 +678,3 @@ class PoniardPlotFactory:
             }
         )
         return plot_array
-
-    def __repr__(self):
-        return non_default_repr(self)

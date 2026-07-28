@@ -18,7 +18,6 @@ from sklearn.pipeline import Pipeline
 from sklearn.svm import LinearSVR
 from sklearn.tree import DecisionTreeRegressor
 
-from ..plot.plot_factory import PoniardPlotFactory
 from .core import PoniardBaseEstimator
 
 
@@ -54,9 +53,6 @@ class PoniardRegressor(PoniardBaseEstimator):
     n_jobs :
         Controls parallel processing. -1 uses all cores. Propagated to every scikit-learn
         function.
-    plot_options :
-        :class:poniard.plot.plot_factory.PoniardPlotFactory instance specifying Plotly format
-        options or None, which sets the default factory.
     """
 
     def __init__(
@@ -69,7 +65,6 @@ class PoniardRegressor(PoniardBaseEstimator):
         verbose: bool = False,
         random_state: int | None = None,
         n_jobs: int | None = None,
-        plot_options: PoniardPlotFactory | None = None,
     ):
         super().__init__(
             estimators=estimators,
@@ -80,7 +75,6 @@ class PoniardRegressor(PoniardBaseEstimator):
             verbose=verbose,
             random_state=random_state,
             n_jobs=n_jobs,
-            plot_options=plot_options,
         )
 
     @property

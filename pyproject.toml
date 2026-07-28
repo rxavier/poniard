@@ -30,15 +30,16 @@ dependencies = [
     "numpy>=1.26.0",
     "scipy>=1.11.0",
     "joblib",
-    "plotly",
     "tqdm",
 ]
 
 [project.optional-dependencies]
+plot = ["plotly"]
 dev = [
     "pytest",
     "ruff",
     "pre-commit",
+    "poniard[plot]",
 ]
 
 [project.urls]

@@ -61,7 +61,7 @@ def test_classifier_fit(target, metrics, estimators, cv):
         estimators=estimators, cv=cv, metrics=metrics, random_state=0
     )
     clf.setup(features, target)
-    clf.fit()
+    clf.fit(features, target)
     results = clf.get_results(return_train_scores=True)
     if not estimators:
         n_estimators = len(clf._default_estimators)
@@ -113,7 +113,7 @@ def test_regressor_fit(target, metrics, estimators, cv):
         estimators=estimators, cv=cv, metrics=metrics, random_state=0
     )
     clf.setup(features, target)
-    clf.fit()
+    clf.fit(features, target)
     results = clf.get_results(return_train_scores=True)
     if not estimators:
         n_estimators = len(clf._default_estimators)
@@ -137,7 +137,7 @@ def test_multilabel_fit():
         random_state=0,
     )
     clf.setup(X, y)
-    clf.fit()
+    clf.fit(X, y)
     results = clf.get_results(return_train_scores=True)
     assert results.isna().sum().sum() == 0
     assert results.shape == (3, 12)
@@ -153,7 +153,7 @@ def test_multioutput_fit():
         random_state=0,
     )
     clf.setup(X, y)
-    clf.fit()
+    clf.fit(X, y)
     results = clf.get_results(return_train_scores=True)
     assert results.isna().sum().sum() == 0
     assert results.shape == (3, 10)
@@ -185,7 +185,7 @@ def test_type_inference():
         random_state=0,
     )
     clf.setup(x, y)
-    clf.fit()
+    clf.fit(x, y)
     assert all(
         x in clf.feature_types["numeric"] for x in ["numeric", "high_cardinality_int"]
     )

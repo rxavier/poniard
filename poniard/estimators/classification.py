@@ -19,7 +19,6 @@ from sklearn.pipeline import Pipeline
 from sklearn.svm import SVC
 from sklearn.tree import DecisionTreeClassifier
 
-from ..plot.plot_factory import PoniardPlotFactory
 from .core import PoniardBaseEstimator
 
 
@@ -55,9 +54,6 @@ class PoniardClassifier(PoniardBaseEstimator):
     n_jobs :
         Controls parallel processing. -1 uses all cores. Propagated to every scikit-learn
         function.
-    plot_options :
-        :class:poniard.plot.plot_factory.PoniardPlotFactory instance specifying Plotly format
-        options or None, which sets the default factory.
     """
 
     def __init__(
@@ -70,7 +66,6 @@ class PoniardClassifier(PoniardBaseEstimator):
         verbose: bool = False,
         random_state: int | None = None,
         n_jobs: int | None = None,
-        plot_options: PoniardPlotFactory | None = None,
     ):
         super().__init__(
             estimators=estimators,
@@ -81,7 +76,6 @@ class PoniardClassifier(PoniardBaseEstimator):
             verbose=verbose,
             random_state=random_state,
             n_jobs=n_jobs,
-            plot_options=plot_options,
         )
 
     @property
@@ -137,9 +131,7 @@ class PoniardClassifier(PoniardBaseEstimator):
     def _build_cv(self) -> BaseCrossValidator:
         cv = self.cv or 5
         if isinstance(cv, int):
-            if (self.y is not None) and (
-                self.target_info["type_"] in ("binary", "multiclass")
-            ):
+            if self.target_info["type_"] in ("binary", "multiclass"):
                 return StratifiedKFold(
                     n_splits=cv, shuffle=True, random_state=self.random_state
                 )

@@ -24,11 +24,11 @@ def test_ensemble(method, estimator_names, top_n, sort_by):
         random_state=True,
     )
     reg.setup(x, y)
-    reg.fit()
+    reg.fit(x, y)
     reg.build_ensemble(
         method=method, estimator_names=estimator_names, top_n=top_n, sort_by=sort_by
     )
-    reg.fit()
+    reg.fit(x, y)
     results = reg.get_results()
     ensemble_class_name = method.capitalize() + "Regressor"
     ensemble = reg.get_estimator(ensemble_class_name)
@@ -59,7 +59,7 @@ def test_predictions_similarity(reg_or_clf, on_errors):
         y = np.array([0, 0, 0, 1, 1, 1, 0, 0, 1, 1, 0, 1])
     x = pd.DataFrame(np.random.normal(size=(len(y), 5)))
     est.setup(x, y)
-    est.fit()
-    result = est.get_predictions_similarity(on_errors=on_errors)
+    est.fit(x, y)
+    result = est.get_predictions_similarity(x, y, on_errors=on_errors)
     assert result.shape == (2, 2)
     assert result.iloc[1, 0] == result.iloc[0, 1]

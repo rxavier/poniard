@@ -31,7 +31,7 @@ from ..utils.utils import get_kwargs, non_default_repr
 from .datetime import DatetimeEncoder
 
 if TYPE_CHECKING:
-    from poniard.estimators.core import PoniardBaseEstimator
+    pass
 
 __all__ = ['PoniardPreprocessor']
 
@@ -97,17 +97,17 @@ class PoniardPreprocessor:
         else:
             self._memory = None
 
-        self._poniard: PoniardBaseEstimator | None = None
-
     def build(
         self,
         X: pd.DataFrame | np.ndarray | list | None = None,
         y: pd.DataFrame | np.ndarray | list | None = None,
+        task: str | None = None,
+        target_info: dict | None = None,
     ) -> PoniardPreprocessor:
         """Builds the preprocessor according to the input data.
 
-        Gets the data from the main `PoniardBaseEstimator` (if available) or processes the input data,
-        calls the type inference method, sets up the transformers and builds the pipeline.
+        Processes the input data, calls the type inference method, sets up the transformers
+        and builds the pipeline.
 
         Parameters
         ----------
@@ -115,11 +115,15 @@ class PoniardPreprocessor:
             Features
         y :
             Target.
+        task :
+            Task type ("classification" or "regression"). Overrides the task set at init.
+        target_info :
+            Target info dict. If None, computed from y and task.
         """
-        if not self.task and not self._poniard:
-            raise ValueError(
-                "A task must be defined on initialization if not used within a Poniard estimator."
-            )
+        if task:
+            self.task = task
+        if not self.task:
+            raise ValueError("A task must be defined on initialization or passed to build().")
 
         self._setup_data(X=X, y=y)
         X = self.X
@@ -132,10 +136,9 @@ class PoniardPreprocessor:
         except AttributeError:
             numeric, categorical_high, categorical_low, datetime = self._infer_dtypes()
 
-        self.task = self.task or self._poniard.poniard_task
-        try:
-            self.target_info = self._poniard.target_info
-        except AttributeError:
+        if target_info:
+            self.target_info = target_info
+        else:
             self.target_info = get_target_info(self.y, self.task)
         (
             numeric_preprocessor,
@@ -219,21 +222,7 @@ class PoniardPreprocessor:
         X: pd.DataFrame | np.ndarray | list | None = None,
         y: pd.DataFrame | np.ndarray | list | None = None,
     ) -> PoniardPreprocessor:
-        if (X is None or y is None) and self._poniard is None:
-            raise NotImplementedError(
-                "Both X and y need to be passed if not using the "
-                "preprocessor within a Poniard estimator."
-            )
-        elif self._poniard is not None:
-            if X is not None or y is not None:
-                warnings.warn(
-                    "Input data will be ignored since the preprocessor is working "
-                    "within a Poniard estimator",
-                    stacklevel=2,
-                )
-            self.X = self._poniard.X
-            self.y = self._poniard.y
-        else:
+        if X is not None and y is not None:
             if pl is not None and isinstance(X, (pl.DataFrame, pl.Series)):
                 X = X.to_pandas()
             if pl is not None and isinstance(y, (pl.DataFrame, pl.Series)):
@@ -244,6 +233,8 @@ class PoniardPreprocessor:
                 y = np.array(y)
             self.X = X
             self.y = y
+        elif not hasattr(self, "X") or not hasattr(self, "y"):
+            raise NotImplementedError("Both X and y need to be passed to _setup_data.")
         return self
 
     def _setup_transformers(self):

@@ -35,7 +35,7 @@ def test_remove_fitted():
     y = np.array([0, 0, 0, 1, 1, 1, 0, 0, 1, 1, 0, 1])
     x = pd.DataFrame(np.random.normal(size=(len(y), 5)))
     clf.setup(x, y)
-    clf.fit()
+    clf.fit(x, y)
     clf.remove_estimators(["RandomForestClassifier"], drop_results=True)
     # Same amount of estimators because the dummy is added
     assert len(clf.pipelines) == len(clf._default_estimators)
@@ -51,7 +51,7 @@ def test_get(include_preprocessor, output_type):
     y = np.array([0, 0, 0, 1, 1, 1, 0, 0, 1, 1, 0, 1])
     x = pd.DataFrame(np.random.normal(size=(len(y), 5)))
     clf.setup(x, y)
-    clf.fit()
+    clf.fit(x, y)
     estimator = clf.get_estimator(
         "RandomForestClassifier", include_preprocessor=include_preprocessor
     )

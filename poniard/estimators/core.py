@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import itertools
 import os
-import re
 import warnings
 from abc import ABC, abstractmethod
 from collections.abc import Callable, Iterable
@@ -10,8 +9,6 @@ from typing import Sequence
 
 import numpy as np
 import pandas as pd
-import plotly.graph_objects as go
-from plotly.graph_objs._figure import Figure
 from sklearn.base import ClassifierMixin, RegressorMixin, TransformerMixin, clone
 from sklearn.compose import ColumnTransformer
 from sklearn.dummy import DummyClassifier, DummyRegressor
@@ -47,7 +44,6 @@ try:
 except ImportError:
     _has_ipython = False
 
-from ..plot import PoniardPlotFactory
 from ..preprocessing import PoniardPreprocessor
 from ..utils.estimate import element_to_list_maybe, get_target_info
 from ..utils.hyperparameters import get_grid
@@ -84,9 +80,6 @@ class PoniardBaseEstimator(ABC):
     n_jobs :
         Controls parallel processing. -1 uses all cores. Propagated to every scikit-learn
         function.
-    plot_options :
-        :class:poniard.plot.plot_factory.PoniardPlotFactory instance specifying Plotly format
-        options or None, which sets the default factory.
     """
 
     def __init__(
@@ -104,7 +97,6 @@ class PoniardBaseEstimator(ABC):
         verbose: bool = False,
         random_state: int | None = None,
         n_jobs: int | None = None,
-        plot_options: PoniardPlotFactory | None = None,
     ):
 
         self._init_params = get_kwargs()
@@ -135,15 +127,8 @@ class PoniardBaseEstimator(ABC):
         self._memory = None
         self._tqdm_leave = os.getenv("PONIARD_TQDM_LEAVE", "False") == "True"
 
-        self._init_plots(plot_options)
-
         self._added_estimators = {}
         self._removed_estimators = []
-
-    def _init_plots(self, plot_options: PoniardPlotFactory | None = None) -> None:
-        self.plot_options = plot_options or PoniardPlotFactory()
-        self.plot = self.plot_options
-        self.plot._poniard = self
 
     @property
     def poniard_task(self) -> str | None:
@@ -175,7 +160,8 @@ class PoniardBaseEstimator(ABC):
         Converts inputs to arrays if necessary, sets `metrics`,
         `preprocessor`, `cv` and `pipelines`.
 
-        After running `PoniardBaseEstimator.setup`, both `X` and `y` will be held as attributes.
+        After running `PoniardBaseEstimator.setup`, metadata (target_info, metrics, feature_types,
+        preprocessor, pipelines, cv) will be set.
 
 
         Parameters
@@ -195,10 +181,8 @@ class PoniardBaseEstimator(ABC):
             X = np.array(X)
         if not isinstance(y, (pd.DataFrame, pd.Series, np.ndarray)):
             y = np.array(y)
-        self.X = X
-        self.y = y
         self.show_info = show_info
-        self.target_info = get_target_info(self.y, self.poniard_task)
+        self.target_info = get_target_info(y, self.poniard_task)
         if self.target_info["type_"] == "multiclass-multioutput":
             raise NotImplementedError(
                 "multiclass-multioutput targets are not supported as "
@@ -215,7 +199,7 @@ class PoniardBaseEstimator(ABC):
             ):
                 self.preprocessor = self.custom_preprocessor
             else:
-                self.preprocessor = self._build_preprocessor()
+                self.preprocessor = self._build_preprocessor(X, y)
             self._pass_instance_attrs(self.preprocessor)
 
         if self.show_info:
@@ -288,7 +272,7 @@ class PoniardBaseEstimator(ABC):
                 print("Inferred feature types", "----------------------", sep="\n")
                 print(self._poniard_preprocessor.inferred_types_df)
 
-    def _build_preprocessor(self) -> Pipeline:
+    def _build_preprocessor(self, X, y) -> Pipeline:
         """Build default preprocessor using `PoniardPreprocessor`.
 
         The preprocessor imputes missing values, scales numeric features and encodes categorical
@@ -299,9 +283,10 @@ class PoniardBaseEstimator(ABC):
             self._poniard_preprocessor = self.custom_preprocessor
         else:
             self._poniard_preprocessor = PoniardPreprocessor()
-        self._poniard_preprocessor._poniard = self
         self._memory = self._poniard_preprocessor._memory
-        self._poniard_preprocessor.build()
+        self._poniard_preprocessor.build(
+            X=X, y=y, task=self.poniard_task, target_info=self.target_info
+        )
         self.feature_types = self._poniard_preprocessor.feature_types
         return self._poniard_preprocessor.preprocessor
 
@@ -375,9 +360,16 @@ class PoniardBaseEstimator(ABC):
     def _build_cv(self):
         return self.cv
 
-    def fit(self) -> PoniardBaseEstimator:
+    def fit(self, X, y) -> PoniardBaseEstimator:
         """This is the main Poniard method. It uses scikit-learn's `cross_validate` function to
         score all `metrics` for every `pipelines`, using `cv` for cross validation.
+
+        Parameters
+        ----------
+        X :
+            Features.
+        y :
+            Target.
 
         Returns
         -------
@@ -403,8 +395,8 @@ class PoniardBaseEstimator(ABC):
                 )
                 result = cross_validate(
                     pipeline,
-                    self.X,
-                    self.y,
+                    X,
+                    y,
                     scoring=self.metrics,
                     cv=self.cv,
                     return_train_score=True,
@@ -425,13 +417,12 @@ class PoniardBaseEstimator(ABC):
         return self
 
     def _predict(
-        self, method: str, estimator_names: Sequence[str] | None = None
+        self, method: str, X, y, estimator_names: Sequence[str] | None = None
     ) -> dict[str, np.ndarray]:
         """Helper method for predicting targets or target probabilities with cross validation.
         Accepts predict, predict_proba, predict_log_proba or decision_function."""
         if not hasattr(self, "cv"):
             raise ValueError("`setup` must be called before `predict`.")
-        X, y = self.X, self.y
         estimator_names = element_to_list_maybe(estimator_names)
         if not estimator_names:
             estimator_names = [estimator for estimator in self.pipelines.keys()]
@@ -455,7 +446,7 @@ class PoniardBaseEstimator(ABC):
                     f"{name} does not support `{method}` method. Filling with nan.",
                     stacklevel=2,
                 )
-                result = np.empty(self.y.shape)
+                result = np.empty(y.shape)
                 result[:] = np.nan
             results.update({name: result})
 
@@ -472,12 +463,16 @@ class PoniardBaseEstimator(ABC):
         return results
 
     def predict(
-        self, estimator_names: Sequence[str] | None = None
+        self, X, y, estimator_names: Sequence[str] | None = None
     ) -> dict[str, np.ndarray]:
         """Get cross validated target predictions where each sample belongs to a single test set.
 
         Parameters
         ----------
+        X :
+            Features.
+        y :
+            Target.
         estimator_names :
             Estimators to include. If None, predict all estimators.
 
@@ -486,13 +481,22 @@ class PoniardBaseEstimator(ABC):
         dict
             Dict where keys are estimator names and values are numpy arrays of predictions.
         """
-        return self._predict(method="predict", estimator_names=estimator_names)
+        return self._predict(method="predict", X=X, y=y, estimator_names=estimator_names)
 
     def predict_proba(
-        self, estimator_names: Sequence[str] | None = None
+        self, X, y, estimator_names: Sequence[str] | None = None
     ) -> dict[str, np.ndarray]:
         """Get cross validated target probability predictions where each sample belongs to a
         single test set.
+
+        Parameters
+        ----------
+        X :
+            Features.
+        y :
+            Target.
+        estimator_names :
+            Estimators to include. If None, predict all estimators.
 
         Returns
         -------
@@ -500,16 +504,20 @@ class PoniardBaseEstimator(ABC):
             Dict where keys are estimator names and values are numpy arrays of prediction
             probabilities.
         """
-        return self._predict(method="predict_proba", estimator_names=estimator_names)
+        return self._predict(method="predict_proba", X=X, y=y, estimator_names=estimator_names)
 
     def decision_function(
-        self, estimator_names: Sequence[str] | None = None
+        self, X, y, estimator_names: Sequence[str] | None = None
     ) -> dict[str, np.ndarray]:
         """Get cross validated decision function predictions where each sample belongs to a
         single test set.
 
         Parameters
         ----------
+        X :
+            Features.
+        y :
+            Target.
         estimator_names :
             Estimators to include. If None, predict all estimators.
 
@@ -519,17 +527,21 @@ class PoniardBaseEstimator(ABC):
             Dict where keys are estimator names and values are numpy arrays of decision functions.
         """
         return self._predict(
-            method="decision_function", estimator_names=estimator_names
+            method="decision_function", X=X, y=y, estimator_names=estimator_names
         )
 
     def predict_all(
-        self, estimator_names: Sequence[str] | None = None
+        self, X, y, estimator_names: Sequence[str] | None = None
     ) -> tuple[dict[str, np.ndarray], ...]:
         """Get cross validated target predictions, probabilities and decision functions
         where each sample belongs to a test set.
 
         Parameters
         ----------
+        X :
+            Features.
+        y :
+            Target.
         estimator_names :
             Estimators to include. If None, predict all estimators.
 
@@ -540,9 +552,9 @@ class PoniardBaseEstimator(ABC):
             predictions.
         """
         return (
-            self._predict(method="predict", estimator_names=estimator_names),
-            self._predict(method="predict_proba", estimator_names=estimator_names),
-            self._predict(method="decision_function", estimator_names=estimator_names),
+            self._predict(method="predict", X=X, y=y, estimator_names=estimator_names),
+            self._predict(method="predict_proba", X=X, y=y, estimator_names=estimator_names),
+            self._predict(method="decision_function", X=X, y=y, estimator_names=estimator_names),
         )
 
     def get_results(
@@ -790,6 +802,8 @@ class PoniardBaseEstimator(ABC):
         self,
         estimator_name: str,
         include_preprocessor: bool = True,
+        X: pd.DataFrame | np.ndarray | list | None = None,
+        y: pd.DataFrame | np.ndarray | list | None = None,
         retrain: bool = False,
     ) -> Pipeline | ClassifierMixin | RegressorMixin:
         """Obtain an estimator in `pipelines` by name. This is useful for extracting default
@@ -802,6 +816,10 @@ class PoniardBaseEstimator(ABC):
             Estimator name.
         include_preprocessor :
             Whether to return a pipeline with a preprocessor or just the estimator. Default True.
+        X :
+            Features. Required if retrain is True.
+        y :
+            Target. Required if retrain is True.
         retrain :
             Whether to retrain with full data. Default False.
 
@@ -815,65 +833,10 @@ class PoniardBaseEstimator(ABC):
             model = model._final_estimator
         model = clone(model)
         if retrain:
-            model.fit(self.X, self.y)
+            if X is None or y is None:
+                raise ValueError("X and y must be provided when retrain=True.")
+            model.fit(X, y)
         return model
-
-    def analyze_estimator(
-        self, estimator_name: str, height: int = 800, width: int = 800
-    ) -> Figure:
-        """Print a selection of metrics and plots for a given estimator.
-
-        By default, orders estimators according to the first metric.
-
-        Parameters
-        ----------
-        estimator_name :
-            Name of estimator to analyze.
-        height :
-            Height of output `Figure`.
-        width :
-            Width of output `Figure`.
-
-        Returns
-        -------
-        Plotly Figure
-            Figure
-        """
-
-        table = self.get_results(return_train_scores=True).loc[[estimator_name]]
-
-        def title_fixer(x):
-            return re.sub("test_|train_|_", " ", x).strip().title()
-
-        test_table = table.loc[:, ~table.columns.str.startswith("train")].rename(
-            columns=title_fixer
-        )
-        train_table = (
-            table.loc[:, table.columns.str.startswith("train")]
-            .assign(fit_time=".", score_time=".")
-            .rename(columns=title_fixer)
-        )
-        table = pd.concat([test_table, train_table])
-        table.insert(0, "Split", ["Test", "Train"])
-
-        fig = go.Figure(
-            data=[
-                go.Table(
-                    header=dict(
-                        values=list(table.columns), align="center", font_size=15
-                    ),
-                    cells=dict(
-                        values=[table[col] for col in table.columns],
-                        align="center",
-                        font_size=12,
-                        format=[None] + [".3f"] * table.shape[1],
-                    ),
-                )
-            ]
-        )
-        fig.update_layout(width=800, height=150, margin={k: 10 for k in "tblr"})
-        fig.show()
-        return self.plot._full_estimator_analysis(estimator_name, height, width)
 
     def build_ensemble(
         self,
@@ -951,6 +914,8 @@ class PoniardBaseEstimator(ABC):
 
     def get_predictions_similarity(
         self,
+        X,
+        y,
         on_errors: bool = True,
     ) -> pd.DataFrame:
         """Compute correlation/association between cross validated predictions for each estimator.
@@ -959,6 +924,10 @@ class PoniardBaseEstimator(ABC):
 
         Parameters
         ----------
+        X :
+            Features.
+        y :
+            Target.
         on_errors :
             Whether to compute similarity on prediction errors instead of predictions. Default
             True.
@@ -968,19 +937,19 @@ class PoniardBaseEstimator(ABC):
         pd.DataFrame
             Similarity.
         """
-        if self.y.ndim > 1:
+        if y.ndim > 1:
             raise ValueError("y must be a 1-dimensional array.")
         raw_results = {
-            name: self._get_or_compute_prediction(estimator_name=name, method="predict")
+            name: self._get_or_compute_prediction(X=X, y=y, estimator_name=name, method="predict")
             for name in self.pipelines.keys()
         }
         results = raw_results.copy()
         for name, result in raw_results.items():
             if on_errors:
                 if self.poniard_task == "regression":
-                    results[name] = self.y - result
+                    results[name] = y - result
                 else:
-                    results[name] = np.where(result == self.y, 1, 0)
+                    results[name] = np.where(result == y, 1, 0)
         results = pd.DataFrame(results)
         if self.poniard_task == "classification":
             estimator_names = [x for x in results.columns if x != "DummyClassifier"]
@@ -1003,6 +972,8 @@ class PoniardBaseEstimator(ABC):
     def tune_estimator(
         self,
         estimator_name: str,
+        X,
+        y,
         grid: dict | None = None,
         mode: str = "grid",
         tuned_estimator_name: str | None = None,
@@ -1014,6 +985,10 @@ class PoniardBaseEstimator(ABC):
         ----------
         estimator_name :
             Estimator to tune.
+        X :
+            Features.
+        y :
+            Target.
         grid :
             Hyperparameter grid. Default None, which uses the grids available for default
             estimators.
@@ -1029,7 +1004,6 @@ class PoniardBaseEstimator(ABC):
         PoniardBaseEstimator
             Self.
         """
-        X, y = self.X, self.y
         estimator = clone(self.pipelines[estimator_name])
         if not grid:
             try:
@@ -1130,7 +1104,7 @@ class PoniardBaseEstimator(ABC):
                 "self.metrics can only be a sequence of str or dict of str: callable."
             )
 
-    def _train_test_split_from_cv(self):
+    def _train_test_split_from_cv(self, X, y):
         """Split data in a 80/20 fashion following the cross-validation strategy defined in the constructor."""
         if isinstance(self.cv, (int, Iterable)):
             cv_params_for_split = {}
@@ -1140,9 +1114,9 @@ class PoniardBaseEstimator(ABC):
                 for k, v in vars(self.cv).items()
                 if k in ["shuffle", "random_state"]
             }
-            stratify = self.y if "Stratified" in self.cv.__class__.__name__ else None
+            stratify = y if "Stratified" in self.cv.__class__.__name__ else None
             cv_params_for_split.update({"stratify": stratify})
-        return train_test_split(self.X, self.y, test_size=0.2, **cv_params_for_split)
+        return train_test_split(X, y, test_size=0.2, **cv_params_for_split)
 
     def _pass_instance_attrs(self, obj: ClassifierMixin | RegressorMixin):
         """Helper method to propagate instance attributes to objects."""
@@ -1153,13 +1127,13 @@ class PoniardBaseEstimator(ABC):
             if hasattr(obj, attr):
                 setattr(obj, attr, value)
 
-    def _get_or_compute_prediction(self, estimator_name: str, method: str):
+    def _get_or_compute_prediction(self, X, y, estimator_name: str, method: str):
         """Get predictions (either predict, predict_proba or decision_function) for a given
         estimator or compute if not available."""
         try:
             return self._experiment_results[estimator_name][method]
         except KeyError:
-            self._predict(method=method, estimator_names=[estimator_name])
+            self._predict(method=method, X=X, y=y, estimator_names=[estimator_name])
             return self._experiment_results[estimator_name][method]
 
     def __repr__(self):
