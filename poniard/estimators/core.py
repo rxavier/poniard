@@ -185,6 +185,15 @@ class PoniardBaseEstimator(ABC):
             Whether to print information about the target, metrics and type inference.
         """
         self._run_plugin_method("on_setup_start")
+        try:
+            import polars as pl
+
+            if isinstance(X, (pl.DataFrame, pl.Series)):
+                X = X.to_pandas()
+            if isinstance(y, (pl.DataFrame, pl.Series)):
+                y = y.to_pandas()
+        except ImportError:
+            pass
         if not isinstance(X, (pd.DataFrame, pd.Series, np.ndarray)):
             X = np.array(X)
         if not isinstance(y, (pd.DataFrame, pd.Series, np.ndarray)):
