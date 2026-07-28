@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import itertools
 import os
 import warnings
 from abc import ABC, abstractmethod
@@ -12,18 +11,8 @@ import pandas as pd
 from sklearn.base import ClassifierMixin, RegressorMixin, TransformerMixin, clone
 from sklearn.compose import ColumnTransformer
 from sklearn.dummy import DummyClassifier, DummyRegressor
-from sklearn.ensemble import (
-    StackingClassifier,
-    StackingRegressor,
-    VotingClassifier,
-    VotingRegressor,
-)
 from sklearn.exceptions import UndefinedMetricWarning
-from sklearn.experimental import enable_halving_search_cv  # noqa: F401
 from sklearn.model_selection import (
-    GridSearchCV,
-    HalvingGridSearchCV,
-    RandomizedSearchCV,
     cross_val_predict,
     cross_validate,
     train_test_split,
@@ -46,13 +35,14 @@ except ImportError:
 
 from ..preprocessing import PoniardPreprocessor
 from ..utils.estimate import element_to_list_maybe, get_target_info
-from ..utils.hyperparameters import get_grid
-from ..utils.stats import cramers_v
 from ..utils.utils import get_kwargs, non_default_repr
+from .ensemble import EnsembleMixin
+from .results import ResultsMixin
+from .tuning import TuningMixin
 
 __all__ = ['PoniardBaseEstimator']
 
-class PoniardBaseEstimator(ABC):
+class PoniardBaseEstimator(ResultsMixin, EnsembleMixin, TuningMixin, ABC):
     """Base estimator that sets up all the functionality for the classifier and regressor.
 
     Parameters
@@ -598,47 +588,6 @@ class PoniardBaseEstimator(ABC):
             self._predict(method="decision_function", X=X, y=y, estimator_names=estimator_names),
         )
 
-    def get_results(
-        self,
-        return_train_scores: bool = False,
-        std: bool = False,
-        wrt_dummy: bool = False,
-    ) -> tuple[pd.DataFrame, pd.DataFrame] | pd.DataFrame:
-        """Return dataframe containing scoring results. By default returns the mean score and fit
-        and score times. Optionally returns standard deviations as well.
-
-        Parameters
-        ----------
-        return_train_scores :
-            If False, only return test scores.
-        std :
-            Whether to return standard deviation of the scores. Default False.
-        wrt_dummy :
-            Whether to compute each score/time with respect to the dummy estimator results. Default
-            False.
-
-        Returns
-        -------
-        tuple[pd.DataFrame, pd.DataFrame] | pd.DataFrame
-            Results
-        """
-        means = self._means
-        stds = self._stds
-        if not return_train_scores:
-            means = means.loc[
-                :, means.columns.str.contains("test_|fit|score", regex=True)
-            ]
-            stds = stds.loc[:, stds.columns.str.contains("test_|fit|score", regex=True)]
-        if wrt_dummy:
-            dummy_means = means.loc[means.index.str.contains("Dummy")]
-            dummy_stds = stds.loc[stds.index.str.contains("Dummy")]
-            means = means / dummy_means.squeeze()
-            stds = stds / dummy_stds.squeeze()
-        if std:
-            return means, stds
-        else:
-            return means
-
     def reassign_types(
         self,
         numeric: list[str | int] | None = None,
@@ -878,272 +827,6 @@ class PoniardBaseEstimator(ABC):
                 raise ValueError("X and y must be provided when retrain=True.")
             model.fit(X, y)
         return model
-
-    def build_ensemble(
-        self,
-        method: str = "stacking",
-        estimator_names: Sequence[str] | None = None,
-        top_n: int | None = 3,
-        sort_by: str | None = None,
-        ensemble_name: str | None = None,
-        **kwargs,
-    ) -> PoniardBaseEstimator:
-        """Combine estimators into an ensemble.
-
-        By default, orders estimators according to the first metric.
-
-        Parameters
-        ----------
-        method :
-            Ensemble method. Either "stacking" or "voting". Default "stacking".
-        estimator_names :
-            Names of estimators to include. Default None, which uses `top_n`
-        top_n :
-            How many of the best estimators to include.
-        sort_by :
-            Which metric to consider for ordering results. Default None, which uses the first metric.
-        ensemble_name :
-            Ensemble name when adding to `pipelines`. Default None.
-        kwargs :
-            Passed to the ensemble class constructor.
-
-        Returns
-        -------
-        PoniardBaseEstimator
-            Self.
-        """
-        if method not in ["voting", "stacking"]:
-            raise ValueError("Method must be either voting or stacking.")
-        estimator_names = element_to_list_maybe(estimator_names)
-        if estimator_names:
-            models = [
-                (name, self.pipelines[name]._final_estimator)
-                for name in estimator_names
-            ]
-        else:
-            if sort_by:
-                sorter = sort_by
-            else:
-                sorter = self._means.columns[0]
-            models = [
-                (name, self.pipelines[name]._final_estimator)
-                for name in self._means.sort_values(sorter, ascending=False).index[
-                    :top_n
-                ]
-            ]
-        if method == "voting":
-            if self.poniard_task == "classification":
-                ensemble = VotingClassifier(
-                    estimators=models, verbose=self.verbose, **kwargs
-                )
-            else:
-                ensemble = VotingRegressor(
-                    estimators=models, verbose=self.verbose, **kwargs
-                )
-        else:
-            if self.poniard_task == "classification":
-                ensemble = StackingClassifier(
-                    estimators=models, verbose=self.verbose, cv=self.cv, **kwargs
-                )
-            else:
-                ensemble = StackingRegressor(
-                    estimators=models, verbose=self.verbose, cv=self.cv, **kwargs
-                )
-        ensemble_name = ensemble_name or ensemble.__class__.__name__
-        self.add_estimators(estimators={ensemble_name: ensemble})
-        return self
-
-    def get_predictions_similarity(
-        self,
-        X,
-        y,
-        on_errors: bool = True,
-    ) -> pd.DataFrame:
-        """Compute correlation/association between cross validated predictions for each estimator.
-
-        This can be useful for ensembling.
-
-        Parameters
-        ----------
-        X :
-            Features.
-        y :
-            Target.
-        on_errors :
-            Whether to compute similarity on prediction errors instead of predictions. Default
-            True.
-
-        Returns
-        -------
-        pd.DataFrame
-            Similarity.
-        """
-        if y.ndim > 1:
-            raise ValueError("y must be a 1-dimensional array.")
-        raw_results = {
-            name: self._get_or_compute_prediction(X=X, y=y, estimator_name=name, method="predict")
-            for name in self.pipelines.keys()
-        }
-        results = raw_results.copy()
-        for name, result in raw_results.items():
-            if on_errors:
-                if self.poniard_task == "regression":
-                    results[name] = y - result
-                else:
-                    results[name] = np.where(result == y, 1, 0)
-        results = pd.DataFrame(results)
-        if self.poniard_task == "classification":
-            estimator_names = [x for x in results.columns if x != "DummyClassifier"]
-            table = pd.DataFrame(
-                data=np.nan, index=estimator_names, columns=estimator_names
-            )
-            for row, col in itertools.combinations_with_replacement(
-                table.index[::-1], 2
-            ):
-                cramer = cramers_v(results[row], results[col])
-                if row == col:
-                    table.loc[row, col] = 1
-                else:
-                    table.loc[row, col] = cramer
-                    table.loc[col, row] = cramer
-        else:
-            table = results.drop("DummyRegressor", axis=1).corr()
-        return table
-
-    def tune_estimator(
-        self,
-        estimator_name: str,
-        X,
-        y,
-        grid: dict | None = None,
-        mode: str = "grid",
-        tuned_estimator_name: str | None = None,
-        **kwargs,
-    ) -> GridSearchCV | RandomizedSearchCV:
-        """Hyperparameter tuning for a single estimator.
-
-        Parameters
-        ----------
-        estimator_name :
-            Estimator to tune.
-        X :
-            Features.
-        y :
-            Target.
-        grid :
-            Hyperparameter grid. Default None, which uses the grids available for default
-            estimators.
-        mode :
-            Type of search. Eitherr "grid", "halving" or "random". Default "grid".
-        tuned_estimator_name :
-            Estimator name when adding to `pipelines`. Default None.
-        kwargs :
-            Passed to the search class constructor.
-
-        Returns
-        -------
-        PoniardBaseEstimator
-            Self.
-        """
-        estimator = clone(self.pipelines[estimator_name])
-        if not grid:
-            try:
-                grid = get_grid(estimator_name)
-                grid = {f"{estimator_name}__{k}": v for k, v in grid.items()}
-            except KeyError:
-                raise NotImplementedError(
-                    f"Estimator {estimator_name} has no predefined hyperparameter grid, so it has to be supplied."
-                )
-        self._pass_instance_attrs(estimator)
-
-        scoring = self._first_scorer(sklearn_scorer=True)
-        if mode == "random":
-            search = RandomizedSearchCV(
-                estimator,
-                grid,
-                scoring=scoring,
-                cv=self.cv,
-                verbose=self.verbose,
-                n_jobs=self.n_jobs,
-                random_state=self.random_state,
-                **kwargs,
-            )
-        elif mode == "halving":
-            search = HalvingGridSearchCV(
-                estimator,
-                grid,
-                scoring=scoring,
-                cv=self.cv,
-                verbose=self.verbose,
-                n_jobs=self.n_jobs,
-                random_state=self.random_state,
-                **kwargs,
-            )
-        else:
-            search = GridSearchCV(
-                estimator,
-                grid,
-                scoring=scoring,
-                cv=self.cv,
-                verbose=self.verbose,
-                n_jobs=self.n_jobs,
-                **kwargs,
-            )
-        search.fit(X, y)
-        tuned_estimator_name = tuned_estimator_name or f"{estimator_name}_tuned"
-        self.add_estimators(
-            estimators={
-                tuned_estimator_name: clone(search.best_estimator_._final_estimator)
-            }
-        )
-        return self
-
-    def _process_results(self) -> None:
-        """Compute mean and standard deviations of  experiment results."""
-        results = pd.DataFrame(self._experiment_results).T
-        results = results.loc[
-            :,
-            [
-                x
-                for x in results.columns
-                if x not in ["predict", "predict_proba", "decision_function"]
-            ],
-        ]
-        means = results.apply(lambda x: np.mean(np.stack(x.values), axis=1))
-        stds = results.apply(lambda x: np.std(np.stack(x.values), axis=1))
-        means = means[list(means.columns[2:]) + ["fit_time", "score_time"]]
-        stds = stds[list(stds.columns[2:]) + ["fit_time", "score_time"]]
-        self._means = means.sort_values(means.columns[0], ascending=False)
-        self._stds = stds.reindex(self._means.index)
-
-    def _process_long_results(self) -> None:
-        """Prepare experiment results for plotting."""
-        base = pd.DataFrame(self._experiment_results).T
-        melted = (
-            base.rename_axis("Model")
-            .reset_index()
-            .melt(id_vars="Model", var_name="Metric", value_name="Score")
-            .explode("Score")
-        )
-        melted["Type"] = "Fold"
-        means = melted.groupby(["Model", "Metric"])["Score"].mean().reset_index()
-        means["Type"] = "Mean"
-        melted = pd.concat([melted, means])
-        self._long_results = melted
-
-    def _first_scorer(self, sklearn_scorer: bool) -> str | Callable:
-        """Helper method to get the first scoring function or name."""
-        if isinstance(self.metrics, Sequence):
-            return self.metrics[0]
-        elif isinstance(self.metrics, dict):
-            if sklearn_scorer:
-                return list(self.metrics.values())[0]
-            else:
-                return list(self.metrics.keys())[0]
-        else:
-            raise ValueError(
-                "self.metrics can only be a sequence of str or dict of str: callable."
-            )
 
     def _train_test_split_from_cv(self, X, y):
         """Split data in a 80/20 fashion following the cross-validation strategy defined in the constructor."""
