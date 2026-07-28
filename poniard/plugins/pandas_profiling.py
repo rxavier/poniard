@@ -9,6 +9,11 @@ import numpy as np
 import pandas as pd
 from pandas_profiling import ProfileReport
 
+try:
+    import wandb
+except ImportError:
+    wandb = None
+
 from .core import BasePlugin
 
 
@@ -67,9 +72,7 @@ class PandasProfilingPlugin(BasePlugin):
 
     def _log_to_wandb_if_available(self):
         wandb_plugin = self._check_plugin_used("WandBPlugin")
-        if wandb_plugin:
-            import wandb
-
+        if wandb_plugin and wandb is not None:
             with open(self.html_path) as report:
                 artifact = wandb.Artifact(name="pandas_profiling_report", type="html")
                 artifact.add(wandb.Html(report), "Pandas Profiling Report")

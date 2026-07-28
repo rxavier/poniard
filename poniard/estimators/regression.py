@@ -18,12 +18,6 @@ from sklearn.pipeline import Pipeline
 from sklearn.svm import LinearSVR
 from sklearn.tree import DecisionTreeRegressor
 
-try:
-    from xgboost import XGBRegressor
-    _has_xgboost = True
-except ImportError:
-    _has_xgboost = False
-
 from ..plot.plot_factory import PoniardPlotFactory
 from .core import PoniardBaseEstimator
 
@@ -95,7 +89,7 @@ class PoniardRegressor(PoniardBaseEstimator):
 
     @property
     def _default_estimators(self) -> list[RegressorMixin]:
-        estimators = [
+        return [
             LinearRegression(),
             ElasticNet(random_state=self.random_state),
             LinearSVR(
@@ -110,9 +104,6 @@ class PoniardRegressor(PoniardBaseEstimator):
                 random_state=self.random_state, verbose=self.verbose
             ),
         ]
-        if _has_xgboost:
-            estimators.append(XGBRegressor(random_state=self.random_state))
-        return estimators
 
     def _build_metrics(self) -> dict[str, Callable] | list[str]:
         return [

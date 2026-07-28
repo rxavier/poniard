@@ -7,7 +7,7 @@ import re
 import warnings
 from abc import ABC, abstractmethod
 from collections.abc import Callable, Iterable
-from typing import Any, Sequence
+from typing import TYPE_CHECKING, Any, Sequence
 
 import numpy as np
 import pandas as pd
@@ -23,8 +23,10 @@ from sklearn.ensemble import (
     VotingRegressor,
 )
 from sklearn.exceptions import UndefinedMetricWarning
+from sklearn.experimental import enable_halving_search_cv  # noqa: F401
 from sklearn.model_selection import (
     GridSearchCV,
+    HalvingGridSearchCV,
     RandomizedSearchCV,
     cross_val_predict,
     cross_validate,
@@ -33,6 +35,21 @@ from sklearn.model_selection import (
 from sklearn.model_selection._split import BaseCrossValidator, BaseShuffleSplit
 from sklearn.pipeline import Pipeline
 from tqdm import tqdm
+
+try:
+    import polars as pl
+except ImportError:
+    pl = None
+
+try:
+    from IPython.display import HTML, display
+
+    _has_ipython = True
+except ImportError:
+    _has_ipython = False
+
+if TYPE_CHECKING:
+    pass
 
 from ..plot import PoniardPlotFactory
 from ..preprocessing import PoniardPreprocessor
@@ -185,15 +202,10 @@ class PoniardBaseEstimator(ABC):
             Whether to print information about the target, metrics and type inference.
         """
         self._run_plugin_method("on_setup_start")
-        try:
-            import polars as pl
-
-            if isinstance(X, (pl.DataFrame, pl.Series)):
-                X = X.to_pandas()
-            if isinstance(y, (pl.DataFrame, pl.Series)):
-                y = y.to_pandas()
-        except ImportError:
-            pass
+        if pl is not None and isinstance(X, (pl.DataFrame, pl.Series)):
+            X = X.to_pandas()
+        if pl is not None and isinstance(y, (pl.DataFrame, pl.Series)):
+            y = y.to_pandas()
         if not isinstance(X, (pd.DataFrame, pd.Series, np.ndarray)):
             X = np.array(X)
         if not isinstance(y, (pd.DataFrame, pd.Series, np.ndarray)):
@@ -241,9 +253,7 @@ class PoniardBaseEstimator(ABC):
         if hasattr(self, "_poniard_preprocessor"):
             num_thresh = self._poniard_preprocessor.numeric_threshold
             cat_thresh = self._poniard_preprocessor.cardinality_threshold
-        try:
-            from IPython.display import HTML, display
-
+        if _has_ipython:
             display(
                 HTML(
                     f"""
@@ -267,7 +277,7 @@ class PoniardBaseEstimator(ABC):
                                 {self._poniard_preprocessor.inferred_types_df.to_html()}"""
                     )
                 )
-        except ImportError:
+        else:
             print("Target info", "-----------", sep="\n")
             print(
                 f"Type: {type_}",
@@ -656,16 +666,14 @@ class PoniardBaseEstimator(ABC):
                 assigned_types, orient="index"
             ).T.fillna("")
 
-            try:
-                from IPython.display import HTML, display
-
+            if _has_ipython:
                 display(
                     HTML(
                         f"""<p><b>Assigned feature types:</b></p>
                             {assigned_types_df.to_html()}"""
                     )
                 )
-            except ImportError:
+            else:
                 print("Assigned feature types", "----------------------", sep="\n")
                 print(assigned_types_df)
 
@@ -1096,9 +1104,6 @@ class PoniardBaseEstimator(ABC):
                 **kwargs,
             )
         elif mode == "halving":
-            from sklearn.experimental import enable_halving_search_cv  # noqa: F401
-            from sklearn.model_selection import HalvingGridSearchCV
-
             search = HalvingGridSearchCV(
                 estimator,
                 grid,

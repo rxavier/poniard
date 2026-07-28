@@ -8,8 +8,9 @@ import numpy as np
 import pandas as pd
 from sklearn.base import TransformerMixin
 from sklearn.compose import ColumnTransformer
+from sklearn.experimental import enable_iterative_imputer  # noqa: F401
 from sklearn.feature_selection import VarianceThreshold
-from sklearn.impute import SimpleImputer
+from sklearn.impute import IterativeImputer, SimpleImputer
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import (
     MinMaxScaler,
@@ -19,6 +20,11 @@ from sklearn.preprocessing import (
     StandardScaler,
     TargetEncoder,
 )
+
+try:
+    import polars as pl
+except ImportError:
+    pl = None
 
 from ..utils.estimate import get_target_info
 from ..utils.utils import get_kwargs, non_default_repr
@@ -228,15 +234,10 @@ class PoniardPreprocessor:
             self.X = self._poniard.X
             self.y = self._poniard.y
         else:
-            try:
-                import polars as pl
-
-                if isinstance(X, (pl.DataFrame, pl.Series)):
-                    X = X.to_pandas()
-                if isinstance(y, (pl.DataFrame, pl.Series)):
-                    y = y.to_pandas()
-            except ImportError:
-                pass
+            if pl is not None and isinstance(X, (pl.DataFrame, pl.Series)):
+                X = X.to_pandas()
+            if pl is not None and isinstance(y, (pl.DataFrame, pl.Series)):
+                y = y.to_pandas()
             if not isinstance(X, (pd.DataFrame, pd.Series, np.ndarray)):
                 X = np.array(X)
             if not isinstance(y, (pd.DataFrame, pd.Series, np.ndarray)):
@@ -284,9 +285,6 @@ class PoniardPreprocessor:
         if isinstance(self.numeric_imputer, TransformerMixin):
             num_imputer = self.numeric_imputer
         elif self.numeric_imputer == "iterative":
-            from sklearn.experimental import enable_iterative_imputer  # noqa: F401
-            from sklearn.impute import IterativeImputer
-
             num_imputer = IterativeImputer(random_state=self.random_state)
         else:
             num_imputer = SimpleImputer(strategy="mean")

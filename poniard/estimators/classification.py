@@ -19,12 +19,6 @@ from sklearn.pipeline import Pipeline
 from sklearn.svm import SVC
 from sklearn.tree import DecisionTreeClassifier
 
-try:
-    from xgboost import XGBClassifier
-    _has_xgboost = True
-except ImportError:
-    _has_xgboost = False
-
 from ..plot.plot_factory import PoniardPlotFactory
 from .core import PoniardBaseEstimator
 
@@ -96,7 +90,7 @@ class PoniardClassifier(PoniardBaseEstimator):
 
     @property
     def _default_estimators(self) -> list[ClassifierMixin]:
-        estimators = [
+        return [
             LogisticRegression(
                 random_state=self.random_state, verbose=self.verbose, max_iter=5000
             ),
@@ -116,13 +110,6 @@ class PoniardClassifier(PoniardBaseEstimator):
                 random_state=self.random_state, verbose=self.verbose
             ),
         ]
-        if _has_xgboost:
-            estimators.append(
-                XGBClassifier(
-                    random_state=self.random_state,
-                )
-            )
-        return estimators
 
     def _build_metrics(self) -> dict[str, Callable] | list[str]:
         if self.target_info["type_"] == "multilabel-indicator":
