@@ -1,6 +1,6 @@
-import pytest
-import pandas as pd
 import numpy as np
+import pandas as pd
+import pytest
 from sklearn.linear_model import LogisticRegression
 
 from poniard import PoniardClassifier
@@ -11,7 +11,7 @@ from poniard import PoniardClassifier
     [
         (None, "grid"),
         ({"LogisticRegression__C": np.linspace(0.1, 1, num=4)}, "halving"),
-        ({"LogisticRegression__penalty": ["l1", "none"]}, "random"),
+        ({"LogisticRegression__penalty": ["l2", None]}, "random"),
     ],
 )
 def test_tune(grid, mode):
@@ -22,8 +22,8 @@ def test_tune(grid, mode):
         random_state=True,
     )
     clf.setup(x, y)
-    clf.fit()
-    clf.tune_estimator("LogisticRegression", grid, mode)
-    clf.fit()
+    clf.fit(x, y)
+    clf.tune_estimator("LogisticRegression", x, y, grid, mode)
+    clf.fit(x, y)
     assert clf.get_results().shape[0] == 3
     assert clf.get_results().isna().sum().sum() == 0

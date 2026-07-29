@@ -1,12 +1,12 @@
 import numpy as np
 import pandas as pd
 import pytest
-from sklearn.linear_model import LogisticRegression
 from sklearn.base import BaseEstimator
-from sklearn.preprocessing import StandardScaler
-from sklearn.impute import SimpleImputer
-from sklearn.pipeline import make_pipeline, Pipeline
 from sklearn.feature_selection import SelectKBest, f_regression
+from sklearn.impute import SimpleImputer
+from sklearn.linear_model import LogisticRegression
+from sklearn.pipeline import Pipeline, make_pipeline
+from sklearn.preprocessing import StandardScaler
 
 from poniard import PoniardClassifier, PoniardRegressor
 from poniard.preprocessing import PoniardPreprocessor
@@ -107,7 +107,7 @@ def test_preprocessing_classifier(
     )
     y = [0, 1, 0, 1, 0]
     estimator.setup(X, y)
-    estimator.fit()
+    estimator.fit(X, y)
     assert estimator.get_results().isna().sum().sum() == 0
     assert estimator.get_results(return_train_scores=True).shape == (2, 12)
     assert isinstance(

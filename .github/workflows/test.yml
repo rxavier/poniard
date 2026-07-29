@@ -1,33 +1,40 @@
 name: Test
 
-on: [workflow_dispatch, pull_request, push]
+on:
+  push:
+    branches: [main, master, develop]
+  pull_request:
+  workflow_dispatch:
 
 jobs:
-  build:
+  test:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest, macOS-latest]
-        python-version: ['3.7', '3.8', '3.9', '3.10']
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python-version: ['3.10', '3.11', '3.12', '3.13']
 
     steps:
-    - uses: actions/checkout@v1
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v2
-      with:
-        python-version: ${{ matrix.python-version }}
+      - uses: actions/checkout@v4
 
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        python -m pip install tox tox-gh-actions pytest
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
 
-    - name: Test with tox
-      run: tox
+      - name: Set up Python ${{ matrix.python-version }}
+        run: uv python install ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: uv sync --dev
+
+      - name: Lint
+        run: uv run ruff check poniard/ tests/
+
+      - name: Test
+        run: uv run pytest
 
   publish:
     if: startsWith(github.ref, 'refs/tags')
-    needs: build
-    uses: rxavier/poniard/.github/workflows/publish.yml@main
+    needs: test
+    uses: ./.github/workflows/publish.yml
     secrets:
       PYPI_API_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
