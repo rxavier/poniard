@@ -63,5 +63,8 @@ testpaths = ["tests"]
 
 [dependency-groups]
 dev = [
+    "pytest",
     "ruff>=0.16.0",
+    "pre-commit",
+    "poniard[plot]",
 ]
