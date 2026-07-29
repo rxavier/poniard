@@ -38,14 +38,17 @@ from sklearn.datasets import make_classification
 from poniard import PoniardClassifier
 
 X, y = make_classification(n_samples=200, n_features=10, random_state=42)
+
 clf = PoniardClassifier()
-clf.fit(X, y)
-clf.get_results()
+clf.setup(X, y)    # configure: type inference, preprocessing, pipelines
+# optionally: clf.add_estimators(...), clf.reassign_types(...), etc.
+clf.fit(X, y)      # cross-validate all estimators
+clf.get_results()  # comparison table
 ```
 
 ## Plotting
 
-Plotting is a separate object that receives data and the fitted estimator:
+Plotting is a separate module (requires `pip install poniard[plot]`):
 
 ```python
 from poniard.plot import PoniardPlotFactory
@@ -57,14 +60,39 @@ plotter.confusion_matrix("LogisticRegression")
 plotter.permutation_importance("LogisticRegression")
 ```
 
+## Estimator naming
+
+Each estimator gets a name automatically (its class name). You can override with tuple syntax:
+
+```python
+# Single of each class → class names
+clf = PoniardClassifier(estimators=[LogisticRegression(), SVC()])
+# pipelines: {'LogisticRegression': ..., 'SVC': ..., 'DummyClassifier': ...}
+
+# Duplicates → collision handling
+clf = PoniardClassifier(estimators=[
+    LogisticRegression(max_iter=1000),
+    LogisticRegression(C=0.1),
+])
+# pipelines: {'LogisticRegression': ..., 'LogisticRegression_2': ..., 'DummyClassifier': ...}
+
+# Tuple override
+clf = PoniardClassifier(estimators=[('my_lr', LogisticRegression())])
+# pipelines: {'my_lr': ..., 'DummyClassifier': ...}
+```
+
 ## Features
 
 - **Automatic type inference**: Detects numeric, categorical, and datetime features
 - **Built-in preprocessing**: Imputation, encoding, scaling via a configurable pipeline
 - **Cross-validated comparison**: Fits multiple estimators with cross-validation and collects results
-- **Hyperparameter tuning**: Optuna-based tuning for any estimator
+- **Hyperparameter tuning**: Grid, random, and halving search for any estimator
 - **Ensemble building**: Create ensembles from fitted estimators
 - **Plotting**: Metrics comparison, ROC curves, confusion matrices, feature importance (optional, requires plotly)
+
+## Python support
+
+3.10, 3.11, 3.12, 3.13 — tested on Linux, macOS, and Windows.
 
 ## Development
 
