@@ -3,6 +3,7 @@ name: Test
 on:
   push:
     branches: [main, master, develop]
+    tags: ['*']
   pull_request:
   workflow_dispatch:
 
