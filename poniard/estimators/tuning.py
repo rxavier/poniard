@@ -8,8 +8,6 @@ from sklearn.model_selection import (
     RandomizedSearchCV,
 )
 
-from ..utils.hyperparameters import get_grid
-
 
 class TuningMixin:
     """Mixin for hyperparameter tuning methods."""
@@ -23,8 +21,13 @@ class TuningMixin:
         mode: str = "grid",
         tuned_estimator_name: str | None = None,
         **kwargs,
-    ) -> GridSearchCV | RandomizedSearchCV:
+    ):
         """Hyperparameter tuning for a single estimator.
+
+        Poniard ships no default hyperparameter grids: `grid` must be supplied
+        explicitly. The grid is passed through to the search class, so keys must
+        follow sklearn's pipeline convention and be prefixed with the estimator
+        name (e.g. ``{"LogisticRegression__C": [...]}``).
 
         Parameters
         ----------
@@ -35,10 +38,10 @@ class TuningMixin:
         y :
             Target.
         grid :
-            Hyperparameter grid. Default None, which uses the grids available for default
-            estimators.
+            Hyperparameter grid. Required. Keys must be prefixed with the
+            estimator name (``<estimator_name>__<param>``).
         mode :
-            Type of search. Eitherr "grid", "halving" or "random". Default "grid".
+            Type of search. Either "grid", "halving" or "random". Default "grid".
         tuned_estimator_name :
             Estimator name when adding to `pipelines`. Default None.
         kwargs :
@@ -51,13 +54,9 @@ class TuningMixin:
         """
         estimator = clone(self.pipelines[estimator_name])
         if not grid:
-            try:
-                grid = get_grid(estimator_name)
-                grid = {f"{estimator_name}__{k}": v for k, v in grid.items()}
-            except KeyError:
-                raise NotImplementedError(
-                    f"Estimator {estimator_name} has no predefined hyperparameter grid, so it has to be supplied."
-                )
+            raise ValueError(
+                "`grid` must be provided: poniard ships no default hyperparameter grids."
+            )
         self._pass_instance_attrs(estimator)
 
         scoring = self._first_scorer(sklearn_scorer=True)
