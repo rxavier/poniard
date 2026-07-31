@@ -349,10 +349,16 @@ class PoniardPreprocessor:
         categorical_low: list = []
         datetime_cols: list = []
 
-        if not isinstance(self.cardinality_threshold, int):
-            self.cardinality_threshold = int(self.cardinality_threshold * X.shape[0])
-        if not isinstance(self.numeric_threshold, int):
-            self.numeric_threshold = int(self.numeric_threshold * X.shape[0])
+        cardinality_threshold = (
+            self.cardinality_threshold
+            if isinstance(self.cardinality_threshold, int)
+            else int(self.cardinality_threshold * X.shape[0])
+        )
+        numeric_threshold = (
+            self.numeric_threshold
+            if isinstance(self.numeric_threshold, int)
+            else int(self.numeric_threshold * X.shape[0])
+        )
 
         if isinstance(X, pd.DataFrame):
             for col in X.columns:
@@ -362,15 +368,15 @@ class PoniardPreprocessor:
                 if pd.api.types.is_datetime64_any_dtype(dtype):
                     datetime_cols.append(col)
                 elif pd.api.types.is_numeric_dtype(dtype):
-                    if nunique > self.numeric_threshold:
+                    if nunique > numeric_threshold:
                         numeric.append(col)
-                    elif nunique > self.cardinality_threshold:
+                    elif nunique > cardinality_threshold:
                         categorical_high.append(col)
                     else:
                         categorical_low.append(col)
                 else:
                     # strings, objects, categorical, boolean
-                    if nunique > self.cardinality_threshold:
+                    if nunique > cardinality_threshold:
                         categorical_high.append(col)
                     else:
                         categorical_low.append(col)
@@ -381,14 +387,14 @@ class PoniardPreprocessor:
                 if np.issubdtype(col.dtype, np.datetime64):
                     datetime_cols.append(i)
                 elif np.issubdtype(col.dtype, np.number):
-                    if nunique > self.numeric_threshold:
+                    if nunique > numeric_threshold:
                         numeric.append(i)
-                    elif nunique > self.cardinality_threshold:
+                    elif nunique > cardinality_threshold:
                         categorical_high.append(i)
                     else:
                         categorical_low.append(i)
                 else:
-                    if nunique > self.cardinality_threshold:
+                    if nunique > cardinality_threshold:
                         categorical_high.append(i)
                     else:
                         categorical_low.append(i)
