@@ -13,7 +13,7 @@ def test_add():
     x = pd.DataFrame(np.random.normal(size=(len(y), 5)))
     clf = PoniardClassifier().setup(x, y)
     clf.add_estimators([ExtraTreesClassifier()])
-    clf + {"rf2": RandomForestClassifier()}
+    clf.add_estimators({"rf2": RandomForestClassifier()})
     # Dummy is also added
     assert len(clf.pipelines) == len(clf._default_estimators) + 3
     assert "rf2" in clf.pipelines
@@ -25,7 +25,7 @@ def test_remove():
     x = pd.DataFrame(np.random.normal(size=(len(y), 5)))
     clf = PoniardClassifier().setup(x, y)
     clf.remove_estimators(["RandomForestClassifier"])
-    clf - ["LogisticRegression"]
+    clf.remove_estimators(["LogisticRegression"])
     # Same amount of estimators because the dummy is added
     assert len(clf.pipelines) == len(clf._default_estimators) - 1
 

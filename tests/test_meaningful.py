@@ -430,6 +430,28 @@ class TestResults:
         for col in score_cols:
             assert abs(dummy_row[col] - 1.0) < 1e-10, f"Dummy row col {col} not ~1.0"
 
+    def test_wrt_dummy_stds_are_nan(self, fitted_classifier):
+        """wrt_dummy=True with std=True returns NaN stds (only means are meaningful)."""
+        means, stds = fitted_classifier.get_results(wrt_dummy=True, std=True)
+        assert means.isna().sum().sum() == 0
+        assert stds.isna().all().all()
+
+    def test_wrt_dummy_requires_single_dummy(self, classification_data):
+        """wrt_dummy=True should raise if there is not exactly one dummy estimator."""
+        from sklearn.dummy import DummyClassifier
+
+        X, y = classification_data
+        clf = PoniardClassifier(
+            estimators=[LogisticRegression(random_state=42)],
+            cv=3,
+            random_state=42,
+        )
+        clf.setup(X, y)
+        clf.add_estimators({"DummyClassifier_2": DummyClassifier(strategy="prior")})
+        clf.fit(X, y)
+        with pytest.raises(ValueError, match="exactly one dummy"):
+            clf.get_results(wrt_dummy=True)
+
     def test_no_nan_in_results(self, fitted_classifier):
         """Results should not contain NaN values for standard metrics."""
         results = fitted_classifier.get_results()
@@ -482,31 +504,7 @@ class TestEstimatorManagement:
         est = fitted_classifier.get_estimator("LogisticRegression", include_preprocessor=False)
         assert isinstance(est, LogisticRegression)
 
-    def test_add_operator(self, fitted_classifier):
-        """__add__ should add estimators."""
-        from sklearn.tree import DecisionTreeClassifier
-        initial = len(fitted_classifier.pipelines)
-        fitted_classifier + [DecisionTreeClassifier()]
-        assert "DecisionTreeClassifier" in fitted_classifier.pipelines
-        assert len(fitted_classifier.pipelines) == initial + 1
 
-    def test_sub_operator(self, fitted_classifier):
-        """__sub__ should remove estimators by name."""
-        initial = len(fitted_classifier.pipelines)
-        fitted_classifier - "LogisticRegression"
-        assert "LogisticRegression" not in fitted_classifier.pipelines
-        assert len(fitted_classifier.pipelines) == initial - 1
-
-    def test_getitem_returns_pipeline(self, fitted_classifier):
-        """__getitem__ should return the pipeline for the given name."""
-        pipe = fitted_classifier["LogisticRegression"]
-        assert isinstance(pipe, Pipeline)
-
-    def test_add_dict_estimators(self, fitted_classifier):
-        """Adding estimators via dict should use dict keys as names."""
-        from sklearn.tree import DecisionTreeClassifier
-        fitted_classifier + {"my_dt": DecisionTreeClassifier()}
-        assert "my_dt" in fitted_classifier.pipelines
 
     def test_remove_all_estimators_raises(self, fitted_classifier):
         """Removing all estimators should raise ValueError."""

@@ -150,6 +150,11 @@ clf = PoniardClassifier(estimators=[('my_lr', LogisticRegression())])
 - **Error analysis**: Rank prediction errors, and analyze them against the target and features to find *where and why* models fail
 - **Plotting**: Metrics comparison, ROC curves, confusion matrices, feature importance (optional, requires plotly)
 
+## Environment variables
+
+- `PONIARD_TQDM_LEAVE` — set to `"True"` to keep the progress bars on screen
+  after fitting/searching completes (instead of clearing them). Default `"False"`.
+
 ## Python support
 
 3.10, 3.11, 3.12, 3.13 — tested on Linux, macOS, and Windows.
