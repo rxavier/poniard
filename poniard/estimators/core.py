@@ -600,33 +600,6 @@ class PoniardBaseEstimator(ResultsMixin, EnsembleMixin, TuningMixin, ABC):
             method="decision_function", X=X, y=y, estimator_names=estimator_names
         )
 
-    def predict_all(
-        self, X, y, estimator_names: Sequence[str] | None = None
-    ) -> tuple[dict[str, np.ndarray], ...]:
-        """Get cross validated target predictions, probabilities and decision functions
-        where each sample belongs to a test set.
-
-        Parameters
-        ----------
-        X :
-            Features.
-        y :
-            Target.
-        estimator_names :
-            Estimators to include. If None, predict all estimators.
-
-        Returns
-        -------
-        tuple[dict]
-            Tuple of dicts where keys are estimator names and values are numpy arrays of
-            predictions.
-        """
-        return (
-            self._predict(method="predict", X=X, y=y, estimator_names=estimator_names),
-            self._predict(method="predict_proba", X=X, y=y, estimator_names=estimator_names),
-            self._predict(method="decision_function", X=X, y=y, estimator_names=estimator_names),
-        )
-
     def reassign_types(
         self,
         numeric: list[str | int] | None = None,
@@ -949,56 +922,3 @@ class PoniardBaseEstimator(ResultsMixin, EnsembleMixin, TuningMixin, ABC):
 
     def __repr__(self):
         return non_default_repr(self)
-
-    def __add__(
-        self,
-        estimators: dict[str, ClassifierMixin | RegressorMixin]
-        | Sequence[ClassifierMixin | RegressorMixin],
-    ) -> PoniardBaseEstimator:
-        """Add estimators to a Poniard Estimator.
-
-        Parameters
-        ----------
-        estimators :
-            List or dict of estimators to add.
-
-        Returns
-        -------
-        PoniardBaseEstimator
-            Self.
-        """
-        estimators = element_to_list_maybe(estimators)
-        return self.add_estimators(estimators)
-
-    def __sub__(self, estimator_names: Sequence[str]) -> PoniardBaseEstimator:
-        """Remove an estimator and its results.
-
-        Parameters
-        ----------
-        estimator :
-            List of estimators names.
-
-        Returns
-        -------
-        PoniardBaseEstimator
-            Self.
-        """
-        estimator_names = element_to_list_maybe(estimator_names)
-        return self.remove_estimators(estimator_names, drop_results=True)
-
-    def __getitem__(
-        self, estimator_name: str
-    ) -> Pipeline | ClassifierMixin | RegressorMixin:
-        """Get an estimator by indexing with its name
-
-        Parameters
-        ----------
-        estimator_name :
-            Estimator name as string.
-
-        Returns
-        -------
-        Pipeline | ClassifierMixin | RegressorMixin
-            Built estimator.
-        """
-        return self.get_estimator(estimator_name)

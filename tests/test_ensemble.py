@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 import pytest
+from sklearn.dummy import DummyClassifier
 from sklearn.linear_model import LinearRegression, LogisticRegression
 from sklearn.svm import LinearSVR
 from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
@@ -63,3 +64,17 @@ def test_predictions_similarity(reg_or_clf, on_errors):
     result = est.get_predictions_similarity(x, y, on_errors=on_errors)
     assert result.shape == (2, 2)
     assert result.iloc[1, 0] == result.iloc[0, 1]
+
+
+def test_predictions_similarity_excludes_dummies_by_type():
+    """Dummy estimators are excluded by class, regardless of their name."""
+    y = np.array([0, 0, 0, 1, 1, 1, 0, 0, 1, 1, 0, 1])
+    x = pd.DataFrame(np.random.normal(size=(len(y), 5)))
+    est = PoniardClassifier(estimators=[LogisticRegression()])
+    est.setup(x, y)
+    est.add_estimators({"baseline": DummyClassifier(strategy="prior")})
+    est.fit(x, y)
+    result = est.get_predictions_similarity(x, y)
+    assert result.shape == (1, 1)
+    assert "baseline" not in result.columns
+    assert "LogisticRegression" in result.columns

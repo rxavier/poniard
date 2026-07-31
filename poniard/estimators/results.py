@@ -5,6 +5,7 @@ from collections.abc import Callable, Sequence
 
 import numpy as np
 import pandas as pd
+from sklearn.dummy import DummyClassifier, DummyRegressor
 
 from ..utils.stats import cramers_v
 
@@ -28,7 +29,9 @@ class ResultsMixin:
         std :
             Whether to return standard deviation of the scores. Default False.
         wrt_dummy :
-            Whether to compute each score/time with respect to the dummy estimator results. Default
+            Whether to compute each score/time relative to the dummy estimator
+            results. Only the mean ratios are meaningful; standard deviations
+            are returned as NaN. Requires exactly one dummy estimator. Default
             False.
 
         Returns
@@ -44,14 +47,28 @@ class ResultsMixin:
             ]
             stds = stds.loc[:, stds.columns.str.contains("test_|fit|score", regex=True)]
         if wrt_dummy:
-            dummy_means = means.loc[means.index.str.contains("Dummy")]
-            dummy_stds = stds.loc[stds.index.str.contains("Dummy")]
-            means = means / dummy_means.squeeze()
-            stds = stds / dummy_stds.squeeze()
+            dummy_names = self._dummy_names()
+            if len(dummy_names) != 1:
+                raise ValueError(
+                    f"wrt_dummy=True requires exactly one dummy estimator, "
+                    f"found {len(dummy_names)}: {dummy_names}."
+                )
+            dummy_means = means.loc[dummy_names[0]]
+            means = means / dummy_means
+            stds = stds.copy()
+            stds[:] = np.nan
         if std:
             return means, stds
         else:
             return means
+
+    def _dummy_names(self) -> list[str]:
+        """Names of pipelines whose final estimator is a sklearn dummy."""
+        return [
+            name
+            for name, pipeline in self.pipelines.items()
+            if isinstance(pipeline._final_estimator, (DummyClassifier, DummyRegressor))
+        ]
 
     def _process_results(self) -> None:
         """Compute mean and standard deviations of  experiment results."""
@@ -141,8 +158,9 @@ class ResultsMixin:
                 else:
                     results[name] = np.where(result == y, 1, 0)
         results = pd.DataFrame(results)
+        dummy_names = self._dummy_names()
         if self.poniard_task == "classification":
-            estimator_names = [x for x in results.columns if x != "DummyClassifier"]
+            estimator_names = [x for x in results.columns if x not in dummy_names]
             table = pd.DataFrame(
                 data=np.nan, index=estimator_names, columns=estimator_names
             )
@@ -156,5 +174,5 @@ class ResultsMixin:
                     table.loc[row, col] = cramer
                     table.loc[col, row] = cramer
         else:
-            table = results.drop("DummyRegressor", axis=1).corr()
+            table = results.drop(dummy_names, axis=1).corr()
         return table

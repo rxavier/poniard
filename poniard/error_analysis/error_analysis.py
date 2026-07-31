@@ -510,7 +510,7 @@ class ErrorAnalyzer:
         self, X, y, estimator_name: str, n_repeats: int = 10
     ) -> np.ndarray:
         """Compute permutation importances averaged over the Poniard CV folds."""
-        model = self._poniard[estimator_name]
+        model = self._poniard.get_estimator(estimator_name)
         scoring = self._poniard._first_scorer(sklearn_scorer=True)
         random_state = self._poniard.random_state
         cv = self._poniard.cv
