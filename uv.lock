@@ -354,7 +354,7 @@ wheels = [
 
 [[package]]
 name = "poniard"
-version = "0.5.0"
+version = "0.6.0"
 source = { editable = "." }
 dependencies = [
     { name = "joblib" },
@@ -381,6 +381,9 @@ plot = [
 
 [package.dev-dependencies]
 dev = [
+    { name = "poniard", extra = ["plot"] },
+    { name = "pre-commit" },
+    { name = "pytest" },
     { name = "ruff" },
 ]
 
@@ -401,7 +404,12 @@ requires-dist = [
 provides-extras = ["plot", "dev"]
 
 [package.metadata.requires-dev]
-dev = [{ name = "ruff", specifier = ">=0.16.0" }]
+dev = [
+    { name = "poniard", extras = ["plot"] },
+    { name = "pre-commit" },
+    { name = "pytest" },
+    { name = "ruff", specifier = ">=0.16.0" },
+]
 
 [[package]]
 name = "pre-commit"

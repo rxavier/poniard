@@ -86,7 +86,7 @@ def test_save_load_after_tuning(tmp_path):
         "LogisticRegression",
         X,
         y,
-        grid={"LogisticRegression__C": [0.1, 1.0]},
+        grid={"C": [0.1, 1.0]},
     )
     clf.fit(X, y)
     path = tmp_path / "tuned.joblib"

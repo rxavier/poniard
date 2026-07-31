@@ -62,6 +62,24 @@ Without `retrain=True`, the returned pipeline is an unfitted clone you can
 inspect. Use it to extract any estimator from the comparison — defaults,
 hyperparameter-optimized ones after `tune_estimator`, or ensemble members.
 
+## Hyperparameter tuning (stays in the experiment)
+
+`tune_estimator` runs a search on the **same** preprocessor/pipeline, then adds
+the winner as a new named estimator (default `{name}_tuned`) so it can be
+cross-validated and compared with everything else — no prep drift, no overwrite.
+
+No default grids: you always pass `grid`. Bare param names are fine; they are
+prefixed with the estimator step automatically:
+
+```python
+clf.tune_estimator("LogisticRegression", X, y, grid={"C": [0.1, 1.0, 10.0]})
+clf.fit(X, y)  # CV the tuned pipeline into the results table
+clf.get_results()
+clf.get_tuning_results("LogisticRegression_tuned")  # best_params_, search, ...
+```
+
+Pipeline-style keys (`LogisticRegression__C`, `preprocessor__...`) still work.
+
 ## Plotting
 
 Plotting is a separate module (requires `pip install poniard[plot]`):
