@@ -464,8 +464,8 @@ class PoniardPlotFactory:
             labels={"x": "Predicted", "y": "Ground truth", "color": "Count"},
             color_continuous_scale="Blues",
             text_auto=True,
+            template=self._template,
             title="Confusion matrix with cross-validated predictions",
-            **self._px_kwargs(),
         )
         fig.update_yaxes(nticks=len(np.unique(y)) + 1)
         fig.update_xaxes(nticks=len(np.unique(y)) + 1)
@@ -504,9 +504,10 @@ class PoniardPlotFactory:
             estimator, X, features=[feature], kind="average", **kwargs
         )
         response = partial_dep["average"].reshape(-1)
-        n_values = len(partial_dep["values"][0])
+        grid_values = partial_dep.get("grid_values", partial_dep.get("values"))
+        n_values = len(grid_values[0])
         n_repeats = int(len(response) / n_values)
-        values = np.tile(partial_dep["values"][0], n_repeats)
+        values = np.tile(grid_values[0], n_repeats)
         data = pd.DataFrame({"Target": response, f"Feature: {feature}": values})
         hide_legend = False
         if n_repeats > 1 and self._estimator.poniard_task == "classification":
@@ -612,9 +613,30 @@ class PoniardPlotFactory:
         self._apply_layout(fig)
         return fig
 
-    def _full_estimator_analysis(
+    def full_estimator_analysis(
         self, estimator_name: str, height: int = 800, width: int = 800
     ) -> Figure:
+        """Build a 2x2 dashboard for a single estimator.
+
+        Combines the estimator's metric rankings, its performance relative to
+        the nearest better/worse estimators, and its ROC curve / confusion
+        matrix (classification) or residuals (regression), plus permutation
+        importance. This is the most complete single-figure view of one model.
+
+        Parameters
+        ----------
+        estimator_name :
+            Estimator name.
+        height :
+            Figure height. Default 800.
+        width :
+            Figure width. Default 800.
+
+        Returns
+        -------
+        plotly.graph_objects.Figure
+            The dashboard.
+        """
         main_scorer = self._estimator._first_scorer(sklearn_scorer=False)
         sorted_means = self._estimator._long_results.query(
             f"Metric == 'test_{main_scorer}' & Type=='Mean'"
