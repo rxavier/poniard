@@ -844,27 +844,35 @@ class PoniardBaseEstimator(ResultsMixin, EnsembleMixin, TuningMixin, ABC):
         y: pd.DataFrame | np.ndarray | list | None = None,
         retrain: bool = False,
     ) -> Pipeline | ClassifierMixin | RegressorMixin:
-        """Obtain an estimator in `pipelines` by name. This is useful for extracting default
-        estimators or hyperparmeter-optimized estimators (after using
-        `PoniardBaseEstimator.tune_estimator`).
+        """Export an estimator as a plain scikit-learn object you own.
+
+        This is the supported way to leave Poniard: the returned object is a
+        plain `sklearn.pipeline.Pipeline` (or a bare estimator when
+        ``include_preprocessor=False``) with no poniard references, so you can
+        save it, deploy it, or continue working on it without Poniard installed.
+        Use it to extract default estimators or hyperparameter-optimized
+        estimators (after using `PoniardBaseEstimator.tune_estimator`).
 
         Parameters
         ----------
         estimator_name :
             Estimator name.
         include_preprocessor :
-            Whether to return a pipeline with a preprocessor or just the estimator. Default True.
+            Whether to return a pipeline with a preprocessor or just the
+            estimator. Default True.
         X :
             Features. Required if retrain is True.
         y :
             Target. Required if retrain is True.
         retrain :
-            Whether to retrain with full data. Default False.
+            Whether to retrain the clone with full data. Pass X and y to get a
+            fitted pipeline ready to predict. Default False returns an
+            unfitted clone.
 
         Returns
         -------
-        ClassifierMixin
-            Estimator.
+        sklearn.pipeline.Pipeline | ClassifierMixin | RegressorMixin
+            A plain scikit-learn pipeline or estimator with no poniard references.
         """
         model = self.pipelines[estimator_name]
         if not include_preprocessor:
