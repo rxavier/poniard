@@ -46,6 +46,22 @@ clf.fit(X, y)      # cross-validate all estimators
 clf.get_results()  # comparison table
 ```
 
+## Exporting a model (leaving Poniard)
+
+`get_estimator` is the supported way to leave Poniard. It returns a plain
+scikit-learn `Pipeline` (or a bare estimator with
+`include_preprocessor=False`) with **no poniard references** — you can save it,
+deploy it, or keep working on it without Poniard installed:
+
+```python
+model = clf.get_estimator("LogisticRegression", retrain=True, X=X, y=y)
+# model is a fitted sklearn.pipeline.Pipeline you fully own
+```
+
+Without `retrain=True`, the returned pipeline is an unfitted clone you can
+inspect. Use it to extract any estimator from the comparison — defaults,
+hyperparameter-optimized ones after `tune_estimator`, or ensemble members.
+
 ## Plotting
 
 Plotting is a separate module (requires `pip install poniard[plot]`):
