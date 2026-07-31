@@ -256,6 +256,18 @@ class TestAnalyzeTarget:
         with pytest.raises(ValueError, match="y"):
             ea.analyze_target(errors_idx=merged.index)
 
+    def test_known_error_region(self):
+        """Errors confined to one class must be surfaced by error_rate."""
+        y = pd.Series(["easy"] * 50 + ["hard"] * 50)
+        errors_idx = y.index[y == "hard"]
+        ea = ErrorAnalyzer(task="classification")
+        ea.type_of_target = "multiclass"
+        analysis = ea.analyze_target(errors_idx=errors_idx, y=y)
+        assert analysis.loc["hard", "error_count"] == 50
+        assert analysis.loc["hard", "error_rate"] == pytest.approx(1.0)
+        assert analysis.loc["easy", "error_count"] == 0
+        assert analysis.loc["easy", "error_rate"] == 0.0
+
 
 class TestAnalyzeFeatures:
     def test_all_features(self, binary_data):
@@ -359,6 +371,48 @@ class TestAnalyzeFeatures:
             ea.analyze_features(
                 errors_idx=pd.Index([0]), X=X, y=y, estimator_name="lr"
             )
+
+    def test_categorical_known_error_region(self):
+        """Errors confined to one category must surface as a high error_rate."""
+        n = 100
+        X = pd.DataFrame(
+            {
+                "num": np.random.normal(size=n),
+                "cat": np.array(["a", "b"] * 50),
+            }
+        )
+        errors_idx = X.index[X["cat"] == "b"]
+        ea = ErrorAnalyzer(task="classification")
+        summary = ea.analyze_features(errors_idx=errors_idx, X=X)
+        cat_table = summary["cat"]
+        assert cat_table.loc["b", "errors"] == 50
+        assert cat_table.loc["b", "error_rate"] == pytest.approx(1.0)
+        assert cat_table.loc["a", "errors"] == 0
+        assert cat_table.loc["a", "error_rate"] == 0.0
+
+    def test_numeric_known_error_region(self):
+        """Errors confined to one end of a numeric range must separate the
+        mean of the two error groups."""
+        X = pd.DataFrame({"num": np.linspace(-5, 5, 100)})
+        errors_idx = X.index[X["num"] > 0]
+        ea = ErrorAnalyzer(task="classification")
+        summary = ea.analyze_features(errors_idx=errors_idx, X=X)
+        num_table = summary["num"]
+        assert num_table.loc[1, "mean"] > 0
+        assert num_table.loc[0, "mean"] < 0
+
+    def test_permutation_importances_deterministic(self, binary_data):
+        clf, X, y = binary_data
+        ea = _make_ea(clf)
+        errors = ea.rank_errors(X=X, y=y)
+        merged = ErrorAnalyzer.merge_errors(errors)
+        first = ea.analyze_features(
+            errors_idx=merged.index, X=X, y=y, estimator_name="lr", n_features=2
+        )
+        second = ea.analyze_features(
+            errors_idx=merged.index, X=X, y=y, estimator_name="lr", n_features=2
+        )
+        assert set(first) == set(second)
 
 
 class TestAnalyze:
