@@ -380,7 +380,7 @@ class PoniardBaseEstimator(ResultsMixin, EnsembleMixin, TuningMixin, ABC):
             name: self._make_pipeline(name, estimator)
             for name, estimator in estimators.items()
         }
-        self._fitted_pipeline_ids = []
+        self._fitted_pipeline_names = set()
         return pipelines
 
     def _add_dummy_estimators(self, estimators: dict):
@@ -476,7 +476,7 @@ class PoniardBaseEstimator(ResultsMixin, EnsembleMixin, TuningMixin, ABC):
         filtered_pipelines = {
             name: pipeline
             for name, pipeline in self.pipelines.items()
-            if id(pipeline) not in self._fitted_pipeline_ids
+            if name not in self._fitted_pipeline_names
         }
         pbar = tqdm(filtered_pipelines.items(), leave=self._tqdm_leave)
         for i, (name, pipeline) in enumerate(pbar):
@@ -497,7 +497,7 @@ class PoniardBaseEstimator(ResultsMixin, EnsembleMixin, TuningMixin, ABC):
                     n_jobs=self.n_jobs,
                 )
             results.update({name: result})
-            self._fitted_pipeline_ids.append(id(pipeline))
+            self._fitted_pipeline_names.add(name)
             if i == len(pbar) - 1:
                 pbar.set_description("Completed")
         if hasattr(self, "_experiment_results"):
