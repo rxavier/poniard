@@ -66,8 +66,10 @@ class ResultsMixin:
         ]
         means = results.apply(lambda x: np.mean(np.stack(x.values), axis=1))
         stds = results.apply(lambda x: np.std(np.stack(x.values), axis=1))
-        means = means[list(means.columns[2:]) + ["fit_time", "score_time"]]
-        stds = stds[list(stds.columns[2:]) + ["fit_time", "score_time"]]
+        time_columns = ["fit_time", "score_time"]
+        metric_columns = [c for c in means.columns if c not in time_columns]
+        means = means[metric_columns + time_columns]
+        stds = stds[metric_columns + time_columns]
         self._means = means.sort_values(means.columns[0], ascending=False)
         self._stds = stds.reindex(self._means.index)
 

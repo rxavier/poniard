@@ -6,6 +6,7 @@ from abc import ABC, abstractmethod
 from collections.abc import Callable, Iterable
 from typing import Sequence
 
+import joblib
 import numpy as np
 import pandas as pd
 from sklearn.base import ClassifierMixin, RegressorMixin, TransformerMixin, clone
@@ -883,6 +884,36 @@ class PoniardBaseEstimator(ResultsMixin, EnsembleMixin, TuningMixin, ABC):
                 raise ValueError("X and y must be provided when retrain=True.")
             model.fit(X, y)
         return model
+
+    def save(self, path: str | os.PathLike) -> None:
+        """Save the fitted estimator to disk with joblib.
+
+        Use `PoniardClassifier.load` / `PoniardRegressor.load` to restore it.
+        A fitted estimator round-trips `fit` → `save` → `load` → `get_results`
+        without losing results.
+
+        Parameters
+        ----------
+        path :
+            Where to write the estimator.
+        """
+        joblib.dump(self, path)
+
+    @classmethod
+    def load(cls, path: str | os.PathLike) -> PoniardBaseEstimator:
+        """Load an estimator saved with `save`.
+
+        Parameters
+        ----------
+        path :
+            Location of the saved estimator.
+
+        Returns
+        -------
+        PoniardBaseEstimator
+            The restored estimator.
+        """
+        return joblib.load(path)
 
     def _train_test_split_from_cv(self, X, y):
         """Split data in a 80/20 fashion following the cross-validation strategy defined in the constructor."""

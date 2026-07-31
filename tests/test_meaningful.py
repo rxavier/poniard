@@ -184,6 +184,23 @@ class TestTypeInference:
         preprocessor.build(X=X, y=y, task="classification")
         assert "many_ints" in preprocessor.feature_types["numeric"]
 
+    def test_float_thresholds_stay_pristine_after_build(self):
+        """build() must not convert the float thresholds to ints in place, so a
+        second build() on different data uses the same constructor values."""
+        preprocessor = PoniardPreprocessor(
+            numeric_threshold=0.5,
+            cardinality_threshold=0.5,
+        )
+        X1 = pd.DataFrame({"a": np.arange(20)})
+        y = np.zeros(20, dtype=int)
+        preprocessor.build(X=X1, y=y, task="classification")
+        assert preprocessor.numeric_threshold == 0.5
+        assert preprocessor.cardinality_threshold == 0.5
+        X2 = pd.DataFrame({"a": np.arange(100)})
+        preprocessor.build(X=X2, y=y, task="classification")
+        assert preprocessor.numeric_threshold == 0.5
+        assert preprocessor.cardinality_threshold == 0.5
+
 
 # ===========================================================================
 # 2. Preprocessing tests
