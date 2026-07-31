@@ -191,6 +191,7 @@ class PoniardBaseEstimator(ResultsMixin, EnsembleMixin, TuningMixin, ABC):
             else:
                 self.preprocessor = self._build_preprocessor(X, y)
             self._pass_instance_attrs(self.preprocessor)
+            self._ensure_pandas_output(self.preprocessor)
 
         if self.show_info:
             self._print_setup_info()
@@ -285,13 +286,39 @@ class PoniardBaseEstimator(ResultsMixin, EnsembleMixin, TuningMixin, ABC):
         return []
 
     def _make_pipeline(self, name: str, estimator) -> Pipeline:
-        """Create a Pipeline for an estimator, optionally including the preprocessor."""
+        """Create a Pipeline for an estimator, optionally including the preprocessor.
+
+        The wrapping pipeline is configured to output pandas DataFrames on
+        ``transform``. This propagates to any preprocessor step (including a
+        user-supplied custom one) so downstream code keeps the pandas contract
+        without relying on a global sklearn config.
+        """
         if self.preprocess:
-            return Pipeline(
+            pipe = Pipeline(
                 [("preprocessor", self.preprocessor), (name, estimator)],
                 memory=self._memory,
             )
-        return Pipeline([(name, estimator)])
+        else:
+            pipe = Pipeline([(name, estimator)])
+        if self.preprocess:
+            pipe.set_output(transform="pandas")
+        return pipe
+
+    @staticmethod
+    def _ensure_pandas_output(estimator) -> None:
+        """Configure a preprocessor (Pipeline or ColumnTransformer) to output
+        pandas DataFrames on ``transform``.
+
+        Called for user-supplied custom preprocessors that are not
+        ``PoniardPreprocessor`` instances, so the pandas in/out contract is
+        honored without relying on a global sklearn config.
+        """
+        set_output = getattr(estimator, "set_output", None)
+        if callable(set_output):
+            try:
+                estimator.set_output(transform="pandas")
+            except (TypeError, ValueError):
+                pass
 
     @staticmethod
     def _generate_estimator_name(
@@ -435,6 +462,7 @@ class PoniardBaseEstimator(ResultsMixin, EnsembleMixin, TuningMixin, ABC):
             else:
                 self.preprocessor = self._build_preprocessor(X, y)
             self._pass_instance_attrs(self.preprocessor)
+            self._ensure_pandas_output(self.preprocessor)
 
         if self.show_info:
             self._print_setup_info()

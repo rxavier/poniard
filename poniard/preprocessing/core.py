@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import os
+import tempfile
 import warnings
 from typing import TYPE_CHECKING
 
@@ -58,6 +60,10 @@ class PoniardPreprocessor:
     cache_transformations :
         Whether to cache transformations and set the `memory` parameter for Pipelines. This can
         speed up slow transformations as they are not recalculated for each estimator.
+    cache_dir :
+        Directory used to cache transformations when ``cache_transformations`` is True. If None
+        (the default), a temporary directory is created and cleaned up when the preprocessor is
+        garbage collected. If a path is provided, the user is responsible for its contents.
     verbose :
         Verbosity level. Propagated to every scikit-learn function and estimator.
     random_state :
@@ -81,6 +87,7 @@ class PoniardPreprocessor:
         random_state: int | None = None,
         n_jobs: int | None = None,
         cache_transformations: bool = False,
+        cache_dir: str | os.PathLike | None = None,
     ):
         self._init_params = get_kwargs()
         self.task = task
@@ -92,8 +99,14 @@ class PoniardPreprocessor:
         self.verbose = verbose
         self.random_state = random_state or 0
         self.n_jobs = n_jobs
+        self._cache_tempdir = None
         if cache_transformations:
-            self._memory = joblib.Memory("transformation_cache", verbose=self.verbose)
+            if cache_dir is None:
+                self._cache_tempdir = tempfile.TemporaryDirectory(
+                    prefix="poniard_cache_"
+                )
+                cache_dir = self._cache_tempdir.name
+            self._memory = joblib.Memory(str(cache_dir), verbose=self.verbose)
         else:
             self._memory = None
 
@@ -207,6 +220,7 @@ class PoniardPreprocessor:
         type_preprocessor.transformers = non_empty_transformers
         if len(type_preprocessor.transformers) == 1:
             type_preprocessor = type_preprocessor.transformers[0][1]
+        type_preprocessor.set_output(transform="pandas")
         preprocessor = Pipeline(
             [
                 ("type_preprocessor", type_preprocessor),
@@ -214,6 +228,7 @@ class PoniardPreprocessor:
             ],
             memory=self._memory,
         )
+        preprocessor.set_output(transform="pandas")
         self.preprocessor = preprocessor
         return self
 

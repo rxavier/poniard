@@ -16,7 +16,6 @@ from ..utils.estimate import element_to_list_maybe
 
 try:
     import plotly.express as px
-    import plotly.io as pio
     from plotly.graph_objs._figure import Figure
     from plotly.subplots import make_subplots
 except ImportError as e:
@@ -62,18 +61,34 @@ class PoniardPlotFactory:
         self._font_family = plot_config.get("font_family", "Helvetica")
         self._font_color = plot_config.get("font_color", "#8C8C8C")
 
-        pio.templates.default = self._template
-        pio.templates["plotly_white"].layout.font = {
-            "family": self._font_family,
-            "color": self._font_color,
+    def _apply_layout(self, fig: Figure) -> Figure:
+        """Apply the configured template, font, margin, and legend to a figure.
+
+        No global plotly state is mutated.
+        """
+        fig.update_layout(
+            template=self._template,
+            font={"family": self._font_family, "color": self._font_color},
+            margin={"l": 20, "r": 20},
+            legend={
+                "yanchor": "top",
+                "y": -0.2,
+                "xanchor": "left",
+                "x": 0.0,
+                "orientation": "h",
+            },
+        )
+        return fig
+
+    def _px_kwargs(self, kwargs: dict | None = None) -> dict:
+        """Build the kwargs dict for `px.*` calls, including plot_config defaults."""
+        merged = {
+            "template": self._template,
+            "color_discrete_sequence": self._discrete_colors,
         }
-        pio.templates["plotly_white"].layout.margin = {"l": 20, "r": 20}
-        pio.templates["plotly_white"].layout.legend.yanchor = "top"
-        pio.templates["plotly_white"].layout.legend.y = -0.2
-        pio.templates["plotly_white"].layout.legend.xanchor = "left"
-        pio.templates["plotly_white"].layout.legend.x = 0.0
-        pio.templates["plotly_white"].layout.legend.orientation = "h"
-        px.defaults.color_discrete_sequence = self._discrete_colors
+        if kwargs:
+            merged.update(kwargs)
+        return merged
 
     def metrics(
         self,
@@ -140,7 +155,7 @@ class PoniardPlotFactory:
                 facet_col=facet_col,
                 title="Model scores",
                 height=height,
-                **kwargs,
+                **self._px_kwargs(kwargs),
             )
         else:
             stds = self._estimator._stds.reset_index().melt(id_vars="index")
@@ -164,10 +179,11 @@ class PoniardPlotFactory:
                 orientation="h",
                 title="Model scores",
                 height=height,
-                **kwargs,
+                **self._px_kwargs(kwargs),
             )
         fig.update_xaxes(matches=None)
         fig.update_layout(yaxis_title="")
+        self._apply_layout(fig)
 
         return fig
 
@@ -210,8 +226,10 @@ class PoniardPlotFactory:
             y="Model",
             x=results.columns[0],
             title=f"{metric} overfitness",
+            **self._px_kwargs(),
         )
         fig.update_layout(xaxis_title="Train / test ratio", yaxis_title="")
+        self._apply_layout(fig)
         return fig
 
     def permutation_importance(
@@ -290,13 +308,21 @@ class PoniardPlotFactory:
                 y="Feature",
                 color="Type",
                 title=title,
+                **self._px_kwargs(),
             )
         else:
             importances = importances.loc[
                 -importances["Type"].isin(["Repetition", "Std"])
             ]
-            fig = px.bar(importances, x="Importance", y="Feature", title=title)
+            fig = px.bar(
+                importances,
+                x="Importance",
+                y="Feature",
+                title=title,
+                **self._px_kwargs(),
+            )
             fig.update_layout(yaxis={"categoryorder": "total ascending"})
+        self._apply_layout(fig)
         return fig
 
     def roc_curve(
@@ -392,6 +418,7 @@ class PoniardPlotFactory:
                 "False positive rate": ":.2f",
                 "AUC": ":.2f",
             },
+            **self._px_kwargs(),
         )
         fig.update_layout(
             shapes=[
@@ -407,6 +434,7 @@ class PoniardPlotFactory:
                 }
             ]
         )
+        self._apply_layout(fig)
         return fig
 
     def confusion_matrix(self, estimator_name: str, **kwargs) -> Figure:
@@ -437,10 +465,12 @@ class PoniardPlotFactory:
             color_continuous_scale="Blues",
             text_auto=True,
             title="Confusion matrix with cross-validated predictions",
+            **self._px_kwargs(),
         )
         fig.update_yaxes(nticks=len(np.unique(y)) + 1)
         fig.update_xaxes(nticks=len(np.unique(y)) + 1)
         fig.update(layout_coloraxis_showscale=False)
+        self._apply_layout(fig)
         return fig
 
     def partial_dependence(
@@ -493,9 +523,11 @@ class PoniardPlotFactory:
             y="Target",
             color="Class",
             title=f"Average partial dependence between feature '{feature}' and target",
+            **self._px_kwargs(),
         )
         if hide_legend:
             fig.update_layout(showlegend=False)
+        self._apply_layout(fig)
         return fig
 
     def _build_residuals_data(self, estimator_names: list[str]) -> pd.DataFrame:
@@ -544,7 +576,9 @@ class PoniardPlotFactory:
             color="Estimator",
             symbol="Target" if "Target" in data.columns else None,
             title="Residuals plot with cross validated predictions",
+            **self._px_kwargs(),
         )
+        self._apply_layout(fig)
         return fig
 
     def residuals_histogram(self, estimator_names: list[str]) -> Figure:
@@ -573,7 +607,9 @@ class PoniardPlotFactory:
             histnorm="percent",
             barmode="overlay",
             title="Residuals histogram plot with cross validated predictions",
+            **self._px_kwargs(),
         )
+        self._apply_layout(fig)
         return fig
 
     def _full_estimator_analysis(
@@ -611,7 +647,11 @@ class PoniardPlotFactory:
             ascending=False
         )
         rankings = pd.concat([metric_rankings, time_rankings], axis=1)
-        rank = px.bar(rankings.loc[estimator_name, :], text_auto=True)
+        rank = px.bar(
+            rankings.loc[estimator_name, :],
+            text_auto=True,
+            **self._px_kwargs(),
+        )
         rank_title = f"Metrics rank (best={len(self._estimator.pipelines)})"
         rank.update_layout(dict(xaxis_title=None, yaxis_title="Rank"), showlegend=False)
 
@@ -677,4 +717,5 @@ class PoniardPlotFactory:
                 "showscale": False,
             }
         )
+        self._apply_layout(plot_array)
         return plot_array
