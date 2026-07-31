@@ -60,6 +60,45 @@ plotter.confusion_matrix("LogisticRegression")
 plotter.permutation_importance("LogisticRegression")
 ```
 
+## Error analysis
+
+`ErrorAnalyzer` answers *where and why* your models fail. Build it from a
+fitted `PoniardClassifier` / `PoniardRegressor` and run the full workflow with
+a single call:
+
+```python
+from poniard.error_analysis import ErrorAnalyzer
+
+ea = ErrorAnalyzer.from_poniard(clf, estimator_names=["LogisticRegression", "RandomForestClassifier"])
+report = ea.analyze(X, y)  # X, y = the data you fitted on
+```
+
+`report` contains:
+
+- `ranked_errors` — per estimator, samples sorted by error magnitude
+- `merged_errors` — per sample, how many estimators failed and their average error
+- `summary` — per estimator: number of errors and error rate
+- `by_target` — error counts and error rate per target class/bin
+- `by_feature` — per feature, the distribution of errors across its values
+
+The individual steps are also exposed:
+
+```python
+ranked = ea.rank_errors(X, y)                       # per-estimator ranked errors
+merged = ErrorAnalyzer.merge_errors(ranked)         # cross-estimator view
+ea.analyze_target(errors_idx=merged.index, y=y)     # errors vs target distribution
+ea.analyze_features(errors_idx=merged.index, X=X)   # errors vs feature values
+```
+
+How errors are defined:
+
+- **Classification**: misclassified samples, ranked by `1 - probability of the
+  truth` (how confidently wrong the model is). Multilabel targets rank by the
+  mean per-label deviation.
+- **Regression**: samples whose absolute residual exceeds a threshold, ranked by
+  residual magnitude. The threshold defaults to the 90th percentile of residuals
+  and can be configured with `error_quantile` in `rank_errors` / `analyze`.
+
 ## Estimator naming
 
 Each estimator gets a name automatically (its class name). You can override with tuple syntax:
@@ -88,6 +127,7 @@ clf = PoniardClassifier(estimators=[('my_lr', LogisticRegression())])
 - **Cross-validated comparison**: Fits multiple estimators with cross-validation and collects results
 - **Hyperparameter tuning**: Grid, random, and halving search for any estimator
 - **Ensemble building**: Create ensembles from fitted estimators
+- **Error analysis**: Rank prediction errors, and analyze them against the target and features to find *where and why* models fail
 - **Plotting**: Metrics comparison, ROC curves, confusion matrices, feature importance (optional, requires plotly)
 
 ## Python support
