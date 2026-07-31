@@ -29,7 +29,7 @@ except ImportError:
     pl = None
 
 from ..utils.estimate import get_target_info
-from ..utils.utils import get_kwargs, non_default_repr
+from ..utils.utils import non_default_repr
 from .datetime import DatetimeEncoder
 
 if TYPE_CHECKING:
@@ -89,7 +89,7 @@ class PoniardPreprocessor:
         cache_transformations: bool = False,
         cache_dir: str | os.PathLike | None = None,
     ):
-        self._init_params = get_kwargs()
+        self._init_params = {k: v for k, v in locals().items() if k != "self"}
         self.task = task
         self.scaler = scaler or "standard"
         self.high_cardinality_encoder = high_cardinality_encoder or "target"

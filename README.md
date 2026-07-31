@@ -74,6 +74,10 @@ plotter.metrics()
 plotter.roc_curve()
 plotter.confusion_matrix("LogisticRegression")
 plotter.permutation_importance("LogisticRegression")
+
+# Single-figure dashboard: metric rankings, model comparison, ROC/confusion
+# matrix (or residuals for regression) and permutation importance in one view
+plotter.full_estimator_analysis("LogisticRegression")
 ```
 
 ## Error analysis

@@ -15,7 +15,7 @@ if TYPE_CHECKING:
     from poniard.estimators.core import PoniardBaseEstimator
 from ..preprocessing import PoniardPreprocessor
 from ..utils.estimate import element_to_list_maybe, get_target_info
-from ..utils.utils import get_kwargs, non_default_repr
+from ..utils.utils import non_default_repr
 
 
 class ErrorAnalyzer:
@@ -44,7 +44,7 @@ class ErrorAnalyzer:
     """
 
     def __init__(self, task: str):
-        self._init_params = get_kwargs()
+        self._init_params = {k: v for k, v in locals().items() if k != "self"}
         self.task = task
         self._poniard: PoniardBaseEstimator | None = None
 
