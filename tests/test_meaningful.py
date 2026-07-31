@@ -687,6 +687,34 @@ class TestEdgeCases:
         # Pipelines dict should have the same keys after fit
         assert set(pipeline_ids_before.keys()) == set(clf.pipelines.keys())
 
+    def test_setup_and_fit_configure_identically(self):
+        """setup() and fit() must produce the same introspection surface
+        (feature_types, metrics, preprocessor and pipelines), so the
+        setup-then-adjust-then-fit flow is preserved."""
+        n = 60
+        X = pd.DataFrame(
+            {
+                "num": np.random.normal(size=n),
+                "cat": np.random.choice(["a", "b", "c"], size=n),
+            }
+        )
+        y = np.array([0, 1] * (n // 2))
+
+        setup_clf = PoniardClassifier(
+            estimators=[LogisticRegression()], cv=2, random_state=42
+        )
+        setup_clf.setup(X, y)
+
+        fit_clf = PoniardClassifier(
+            estimators=[LogisticRegression()], cv=2, random_state=42
+        )
+        fit_clf.fit(X, y)
+
+        assert setup_clf.feature_types == fit_clf.feature_types
+        assert setup_clf.metrics == fit_clf.metrics
+        assert set(setup_clf.pipelines) == set(fit_clf.pipelines)
+        assert isinstance(setup_clf.preprocessor, type(fit_clf.preprocessor))
+
     def test_random_state_propagation(self):
         """random_state should be propagated to estimators that support it."""
         n = 50

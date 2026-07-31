@@ -163,6 +163,21 @@ class PoniardBaseEstimator(ResultsMixin, EnsembleMixin, TuningMixin, ABC):
         PoniardBaseEstimator
             Self.
         """
+        self._configure(X, y, show_info)
+        return self
+
+    def _configure(self, X, y, show_info):
+        """Infer types, build preprocessing, pipelines and CV.
+
+        Shared by `setup` and `fit`. Re-running it with the same inputs
+        re-configures consistently, which keeps `setup(X, y)` → adjust →
+        `fit(X, y)` valid even after `reassign_types` / `add_preprocessing_step`.
+
+        Returns
+        -------
+        tuple
+            The converted `X` and `y`, which `fit` uses for cross-validation.
+        """
         if pl is not None and isinstance(X, (pl.DataFrame, pl.Series)):
             X = X.to_pandas()
         if pl is not None and isinstance(y, (pl.DataFrame, pl.Series)):
@@ -199,7 +214,7 @@ class PoniardBaseEstimator(ResultsMixin, EnsembleMixin, TuningMixin, ABC):
         self.pipelines = self._build_pipelines()
         self.cv = self._build_cv()
 
-        return self
+        return X, y
 
     def _print_setup_info(self):
         type_ = self.target_info["type_"]
@@ -430,46 +445,7 @@ class PoniardBaseEstimator(ResultsMixin, EnsembleMixin, TuningMixin, ABC):
         PoniardBaseEstimator
             Self.
         """
-        # Input conversion
-        if pl is not None and isinstance(X, (pl.DataFrame, pl.Series)):
-            X = X.to_pandas()
-        if pl is not None and isinstance(y, (pl.DataFrame, pl.Series)):
-            y = y.to_pandas()
-        if not isinstance(X, (pd.DataFrame, pd.Series, np.ndarray)):
-            X = np.array(X)
-        if not isinstance(y, (pd.DataFrame, pd.Series, np.ndarray)):
-            y = np.array(y)
-
-        # Type inference and metadata
-        self.show_info = show_info
-        self.target_info = get_target_info(y, self.poniard_task)
-        if self.target_info["type_"] == "multiclass-multioutput":
-            raise NotImplementedError(
-                "multiclass-multioutput targets are not supported as "
-                "no sklearn metrics support them."
-            )
-        if self.metrics:
-            self.metrics = element_to_list_maybe(self.metrics)
-        else:
-            self.metrics = self._build_metrics()
-
-        # Preprocessing
-        if self.preprocess:
-            if self.custom_preprocessor and not isinstance(
-                self.custom_preprocessor, PoniardPreprocessor
-            ):
-                self.preprocessor = self.custom_preprocessor
-            else:
-                self.preprocessor = self._build_preprocessor(X, y)
-            self._pass_instance_attrs(self.preprocessor)
-            self._ensure_pandas_output(self.preprocessor)
-
-        if self.show_info:
-            self._print_setup_info()
-
-        # Build pipelines and CV
-        self.pipelines = self._build_pipelines()
-        self.cv = self._build_cv()
+        X, y = self._configure(X, y, show_info)
 
         # Cross-validate
         results = {}
