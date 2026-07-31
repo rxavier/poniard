@@ -16,7 +16,6 @@ from sklearn.model_selection._split import BaseCrossValidator, BaseShuffleSplit
 from sklearn.naive_bayes import GaussianNB
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.pipeline import Pipeline
-from sklearn.svm import SVC
 from sklearn.tree import DecisionTreeClassifier
 
 from .core import PoniardBaseEstimator
@@ -85,12 +84,6 @@ class PoniardClassifier(PoniardBaseEstimator):
                 random_state=self.random_state, verbose=self.verbose, max_iter=5000
             ),
             GaussianNB(),
-            SVC(
-                kernel="linear",
-                probability=True,
-                random_state=self.random_state,
-                verbose=self.verbose,
-            ),
             KNeighborsClassifier(),
             DecisionTreeClassifier(random_state=self.random_state),
             RandomForestClassifier(
