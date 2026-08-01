@@ -749,6 +749,11 @@ class PoniardBaseEstimator(ResultsMixin, EnsembleMixin, TuningMixin, ABC):
         for new_estimator in new_estimators.values():
             self._pass_instance_attrs(new_estimator)
         self._added_estimators.update(new_estimators)
+        self._removed_estimators = [
+            name
+            for name in self._removed_estimators
+            if name not in new_estimators
+        ]
         self.pipelines.update({
             name: self._make_pipeline(name, estimator)
             for name, estimator in new_estimators.items()
@@ -782,15 +787,18 @@ class PoniardBaseEstimator(ResultsMixin, EnsembleMixin, TuningMixin, ABC):
         if len(pruned_estimators) == 0:
             raise ValueError("Cannot remove all estimators.")
         self.pipelines = pruned_estimators
-        if drop_results and hasattr(self, "_means"):
-            self._means = self._means.loc[~self._means.index.isin(estimator_names)]
-            self._stds = self._stds.loc[~self._stds.index.isin(estimator_names)]
-            self._experiment_results = {
-                k: v
-                for k, v in self._experiment_results.items()
-                if k not in estimator_names
-            }
-            self._process_long_results()
+        if drop_results:
+            if hasattr(self, "_fitted_pipeline_names"):
+                self._fitted_pipeline_names.difference_update(estimator_names)
+            if hasattr(self, "_means"):
+                self._means = self._means.loc[~self._means.index.isin(estimator_names)]
+                self._stds = self._stds.loc[~self._stds.index.isin(estimator_names)]
+                self._experiment_results = {
+                    k: v
+                    for k, v in self._experiment_results.items()
+                    if k not in estimator_names
+                }
+                self._process_long_results()
         return self
 
     def get_estimator(

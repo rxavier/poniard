@@ -40,6 +40,13 @@ class TestClassifierPlots:
         fig = PoniardPlotFactory(X, y, clf).metrics()
         assert isinstance(fig, go.Figure)
 
+    def test_metrics_single_metric_no_facet(self, clf_setup):
+        X, y, clf = clf_setup
+        fig = PoniardPlotFactory(X, y, clf).metrics(metrics="test_accuracy")
+        assert isinstance(fig, go.Figure)
+        # A single explicitly-selected metric must not produce a metric facet.
+        assert fig.layout.grid is None or fig.layout.grid.columns is None
+
     def test_metrics_bar(self, clf_setup):
         X, y, clf = clf_setup
         fig = PoniardPlotFactory(X, y, clf).metrics(kind="bar")
