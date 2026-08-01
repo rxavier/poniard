@@ -267,11 +267,11 @@ Break into small releases; each should be install-worthy alone.
 |---|---|---|
 | **P0** | Reposition + API diet + README | Done |
 | **P1** | Error analysis report wow (universal fails, lift, disagreement) | Done |
-| **P2** | Diversity-default ensemble + prediction cache | Open |
+| **P2** | Diversity-default ensemble + prediction cache | Done |
 | **P3** | Statistical `compare()` | Done |
 | **P4** | Pareto / best_under time-quality | Done |
 | **P5** | Tune glue redesign **or** deletion | Done |
-| **P6** | Plot pass aligned to P1–P4 | Open |
+| **P6** | Plot pass aligned to P1–P4 | Done |
 
 Parallelism: P0 first. P1 can start immediately after. P2 depends on similarity + cached preds (partially exists). P3 reads fold scores (exists). P4 is small and can slip between larger phases. P5 last among core so compare/error can support tuned deltas. P6 continuously skims off P1–P4.
 
