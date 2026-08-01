@@ -125,3 +125,66 @@ class TestRegressorPlots:
             "LinearRegression"
         )
         assert isinstance(fig, go.Figure)
+
+
+class TestNewPlots:
+    def test_error_lift_bars(self, clf_setup):
+        from poniard.error_analysis import ErrorAnalyzer
+
+        X, y, clf = clf_setup
+        ea = ErrorAnalyzer.from_poniard(clf)
+        report = ea.analyze(X=X, y=y)
+        fig = PoniardPlotFactory(X, y, clf).error_lift_bars(
+            lift_by_target=report.lift_by_target
+        )
+        assert isinstance(fig, go.Figure)
+
+    def test_error_lift_bars_top_n(self, clf_setup):
+        from poniard.error_analysis import ErrorAnalyzer
+
+        X, y, clf = clf_setup
+        ea = ErrorAnalyzer.from_poniard(clf)
+        report = ea.analyze(X=X, y=y)
+        fig = PoniardPlotFactory(X, y, clf).error_lift_bars(
+            lift_by_target=report.lift_by_target, top_n=1
+        )
+        assert isinstance(fig, go.Figure)
+
+    def test_error_lift_bars_requires_data(self, clf_setup):
+        X, y, clf = clf_setup
+        with pytest.raises(ValueError, match="lift_by_target"):
+            PoniardPlotFactory(X, y, clf).error_lift_bars()
+
+    def test_similarity_heatmap(self, clf_setup):
+        X, y, clf = clf_setup
+        fig = PoniardPlotFactory(X, y, clf).similarity_heatmap(X, y)
+        assert isinstance(fig, go.Figure)
+
+    def test_similarity_heatmap_on_predictions(self, clf_setup):
+        X, y, clf = clf_setup
+        fig = PoniardPlotFactory(X, y, clf).similarity_heatmap(
+            X, y, on_errors=False
+        )
+        assert isinstance(fig, go.Figure)
+
+    def test_similarity_heatmap_regressor(self, reg_setup):
+        X, y, reg = reg_setup
+        fig = PoniardPlotFactory(X, y, reg).similarity_heatmap(X, y)
+        assert isinstance(fig, go.Figure)
+
+    def test_time_quality_scatter(self, clf_setup):
+        X, y, clf = clf_setup
+        fig = PoniardPlotFactory(X, y, clf).time_quality_scatter()
+        assert isinstance(fig, go.Figure)
+
+    def test_time_quality_scatter_regressor(self, reg_setup):
+        X, y, reg = reg_setup
+        fig = PoniardPlotFactory(X, y, reg).time_quality_scatter()
+        assert isinstance(fig, go.Figure)
+
+    def test_time_quality_scatter_custom_metric(self, clf_setup):
+        X, y, clf = clf_setup
+        fig = PoniardPlotFactory(X, y, clf).time_quality_scatter(
+            metric="test_accuracy"
+        )
+        assert isinstance(fig, go.Figure)

@@ -16,6 +16,7 @@ from ..utils.estimate import element_to_list_maybe
 
 try:
     import plotly.express as px
+    import plotly.graph_objects as go
     from plotly.graph_objs._figure import Figure
     from plotly.subplots import make_subplots
 except ImportError as e:
@@ -739,3 +740,175 @@ class PoniardPlotFactory:
         )
         self._apply_layout(plot_array)
         return plot_array
+
+    def error_lift_bars(
+        self,
+        lift_by_target: pd.DataFrame | None = None,
+        estimator_names: str | Sequence[str] | None = None,
+        top_n: int | None = None,
+    ) -> Figure:
+        """Bar chart of error lift by target class or bin.
+
+        Lift = error_rate / global_error_rate. Values > 1 indicate the
+        class/bin is over-represented in errors.
+
+        Parameters
+        ----------
+        lift_by_target :
+            From ``ErrorReport.lift_by_target``. If None, computes it from
+            the estimator's last ``ErrorAnalyzer.analyze()`` call (requires
+            ``ErrorAnalyzer`` to have been run).
+        estimator_names :
+            Not used for this plot (lift is cross-estimator). Kept for
+            API consistency.
+        top_n :
+            Show only the top N classes/bins by lift. Default None (all).
+
+        Returns
+        -------
+        Figure
+            Plotly bar chart.
+        """
+        if lift_by_target is None:
+            raise ValueError(
+                "lift_by_target must be provided. "
+                "Run ErrorAnalyzer.from_poniard(clf).analyze(X, y) first, "
+                "then pass report.lift_by_target."
+            )
+        df = lift_by_target.copy()
+        if "lift" not in df.columns:
+            raise ValueError("lift_by_target must contain a 'lift' column.")
+        df = df.reset_index()
+        index_name = df.columns[0]
+        if top_n:
+            df = df.nlargest(top_n, "lift")
+        df = df.sort_values("lift", ascending=True)
+
+        fig = px.bar(
+            df,
+            x="lift",
+            y=index_name,
+            orientation="h",
+            title="Error lift by target (lift > 1 = over-represented in errors)",
+            hover_data={"lift": ":.2f", "error_rate": ":.3f"},
+            **self._px_kwargs(),
+        )
+        fig.add_vline(x=1.0, line_dash="dash", line_color="gray")
+        self._apply_layout(fig)
+        return fig
+
+    def similarity_heatmap(
+        self,
+        X: pd.DataFrame | np.ndarray | None = None,
+        y: pd.Series | np.ndarray | None = None,
+        on_errors: bool = True,
+    ) -> Figure:
+        """Heatmap of pairwise prediction similarity between estimators.
+
+        Parameters
+        ----------
+        X :
+            Features. Required to compute predictions.
+        y :
+            Target. Required to compute predictions.
+        on_errors :
+            Whether to compute similarity on prediction errors. Default True.
+
+        Returns
+        -------
+        Figure
+            Plotly heatmap.
+        """
+        if X is None:
+            X = self._X
+        if y is None:
+            y = self._y
+        sim = self._estimator.get_predictions_similarity(X=X, y=y, on_errors=on_errors)
+        labels = "error" if on_errors else "prediction"
+        fig = px.imshow(
+            sim,
+            text_auto=".2f",
+            title=f"Pairwise {labels} similarity between estimators",
+            zmin=0,
+            zmax=1,
+            color_continuous_scale="RdBu_r",
+            template=self._template,
+        )
+        fig.update_layout(
+            xaxis_title="Estimator",
+            yaxis_title="Estimator",
+        )
+        self._apply_layout(fig)
+        return fig
+
+    def time_quality_scatter(
+        self,
+        metric: str | None = None,
+        time_col: str = "fit_time",
+    ) -> Figure:
+        """Scatter plot of metric vs training/inference time.
+
+        Highlights the Pareto-optimal front.
+
+        Parameters
+        ----------
+        metric :
+            Metric column from ``get_results()``. If None, uses the first
+            (primary) metric.
+        time_col :
+            Column name for time. Default ``"fit_time"``.
+
+        Returns
+        -------
+        Figure
+            Plotly scatter plot.
+        """
+        from sklearn.dummy import DummyClassifier, DummyRegressor
+
+        results = self._estimator.get_results()
+        if metric is None:
+            metric = results.columns[0]
+        if metric not in results.columns:
+            raise ValueError(f"Metric '{metric}' not found.")
+        if time_col not in results.columns:
+            raise ValueError(f"Time column '{time_col}' not found.")
+
+        pareto = self._estimator.pareto(metric=metric, time_col=time_col)
+        pareto_names = set(pareto.index)
+
+        dummy = set()
+        for name, pipeline in self._estimator.pipelines.items():
+            if isinstance(pipeline._final_estimator, (DummyClassifier, DummyRegressor)):
+                dummy.add(name)
+
+        df = results[[metric, time_col]].copy()
+        df["type"] = "model"
+        df.loc[df.index.isin(pareto_names), "type"] = "pareto"
+        df.loc[df.index.isin(dummy), "type"] = "dummy"
+        df = df.reset_index().rename(columns={"index": "estimator"})
+
+        color_map = {"model": "#636EFA", "pareto": "#EF553B", "dummy": "#AB63FA"}
+        fig = px.scatter(
+            df,
+            x=time_col,
+            y=metric,
+            color="type",
+            hover_data={"estimator": True, metric: ":.3f", time_col: ":.4f"},
+            title=f"Metric vs {time_col} (Pareto front in red)",
+            color_discrete_map=color_map,
+            **self._px_kwargs(),
+        )
+        # Draw Pareto front line
+        pareto_line = pareto.sort_values(time_col)
+        fig.add_trace(
+            go.Scatter(
+                x=pareto_line[time_col],
+                y=pareto_line[metric],
+                mode="lines",
+                line=dict(color="red", width=1, dash="dot"),
+                showlegend=False,
+                hoverinfo="skip",
+            )
+        )
+        self._apply_layout(fig)
+        return fig
