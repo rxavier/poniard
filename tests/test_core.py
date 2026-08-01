@@ -128,6 +128,7 @@ def test_regressor_fit(target, metrics, estimators, cv):
 
 
 def test_multilabel_fit():
+    import warnings
     X, y = make_multilabel_classification(n_samples=1000, n_classes=3, n_labels=3)
     clf = PoniardClassifier(
         estimators={
@@ -136,14 +137,17 @@ def test_multilabel_fit():
         },
         random_state=0,
     )
-    clf.setup(X, y)
-    clf.fit(X, y)
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", message="TargetEncoder is not supported")
+        clf.setup(X, y)
+        clf.fit(X, y)
     results = clf.get_results(return_train_scores=True)
     assert results.isna().sum().sum() == 0
     assert results.shape == (3, 14)
 
 
 def test_multioutput_fit():
+    import warnings
     X, y = make_regression(n_targets=3)
     clf = PoniardRegressor(
         estimators={
@@ -152,8 +156,10 @@ def test_multioutput_fit():
         },
         random_state=0,
     )
-    clf.setup(X, y)
-    clf.fit(X, y)
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", message="TargetEncoder is not supported")
+        clf.setup(X, y)
+        clf.fit(X, y)
     results = clf.get_results(return_train_scores=True)
     assert results.isna().sum().sum() == 0
     assert results.shape == (3, 12)
@@ -167,7 +173,7 @@ def test_type_inference():
             "low_cardinality_int": [1] * 10,
             "high_cardinality_str": [str(x) for x in range(10)],
             "high_cardinality_int": [x for x in range(10)],
-            "datetime_H": pd.date_range("2020-01-01", freq="H", periods=10),
+            "datetime_H": pd.date_range("2020-01-01", freq="h", periods=10),
             "datetime_D": pd.date_range(
                 "2020-01-01", freq="D", periods=10, tz="Europe/Moscow"
             ),

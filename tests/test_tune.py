@@ -18,7 +18,7 @@ def _xy():
     [
         ({"LogisticRegression__C": np.linspace(0.1, 1, num=4)}, "grid"),
         ({"LogisticRegression__C": np.linspace(0.1, 1, num=4)}, "halving"),
-        ({"LogisticRegression__penalty": ["l2", None]}, "random"),
+        ({"LogisticRegression__C": np.linspace(0.1, 1, num=10)}, "random"),
     ],
 )
 def test_tune(grid, mode):

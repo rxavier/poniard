@@ -21,7 +21,7 @@ from poniard.preprocessing import PoniardPreprocessor
                     "A": [4, 3, 1, -1, np.nan],
                     "B": [-2, np.nan, 3, 7, 1],
                     "C": list("abcde"),
-                    "D": pd.date_range("2020-01-01", freq="M", periods=5),
+                    "D": pd.date_range("2020-01-01", freq="ME", periods=5),
                 }
             ),
             True,
@@ -36,7 +36,7 @@ from poniard.preprocessing import PoniardPreprocessor
                     "A": [4, 200, 1, -1, np.nan],
                     "B": [-2, np.nan, 3, 7, 1],
                     "C": list("abcde"),
-                    "D": pd.date_range("2020-01-01", freq="H", periods=5),
+                    "D": pd.date_range("2020-01-01", freq="h", periods=5),
                 }
             ),
             True,
@@ -51,7 +51,7 @@ from poniard.preprocessing import PoniardPreprocessor
                     "A": [4, 200, 1, -1, np.nan],
                     "B": [-2, np.nan, 3, 7, 1],
                     "C": list("abcde"),
-                    "D": pd.date_range("2020-01-01", freq="Y", periods=5),
+                    "D": pd.date_range("2020-01-01", freq="YE", periods=5),
                 }
             ),
             True,
@@ -141,7 +141,7 @@ def test_add_step(new_step, position, existing_step):
             "A": [4, 3, 1, -1, np.nan],
             "B": [-2, np.nan, 3, 7, 1],
             "C": list("abcde"),
-            "D": pd.date_range("2020-01-01", freq="M", periods=5),
+            "D": pd.date_range("2020-01-01", freq="ME", periods=5),
         }
     )
     y = np.random.uniform(0, 1, size=5)
