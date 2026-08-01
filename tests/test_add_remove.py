@@ -56,3 +56,14 @@ def test_get(include_preprocessor, output_type):
         "RandomForestClassifier", include_preprocessor=include_preprocessor
     )
     assert isinstance(estimator, output_type)
+
+
+def test_remove_then_readd_refits_estimator():
+    y = np.array([0, 0, 0, 1, 1, 1, 0, 0, 1, 1, 0, 1])
+    x = pd.DataFrame(np.random.normal(size=(len(y), 5)))
+    clf = PoniardClassifier(estimators=[RandomForestClassifier()]).setup(x, y)
+    clf.fit(x, y)
+    clf.remove_estimators(["RandomForestClassifier"])
+    clf.add_estimators({"RandomForestClassifier": RandomForestClassifier()})
+    clf.fit(x, y)
+    assert "RandomForestClassifier" in clf.get_results().index

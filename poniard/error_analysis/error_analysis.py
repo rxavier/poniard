@@ -276,16 +276,22 @@ class ErrorAnalyzer:
         exclude_correct: bool = True,
         error_quantile: float = 0.1,
     ) -> pd.DataFrame:
+        classes = np.unique(y)
         data = {"y": y, "prediction": predictions}
-        data.update({f"proba_{i}": probas[:, i] for i in range(len(np.unique(y)))})
+        data.update({f"proba_{i}": probas[:, i] for i in range(len(classes))})
         errors = pd.DataFrame(data)
         if exclude_correct:
             errors = errors.query("y != prediction")
-        errors = errors.assign(
-            truth_proba=errors.apply(
-                lambda row: row[f"proba_{int(row['y'])}"], axis=1
-            )
+        # Map each ground-truth label to its positional class index so any
+        # label encoding (strings, non-contiguous ints, ...) works. proba
+        # columns are indexed positionally, in np.unique order, matching
+        # sklearn's ``classes_`` ordering.
+        proba_matrix = np.column_stack(
+            [errors[f"proba_{i}"].to_numpy() for i in range(len(classes))]
         )
+        class_positions = np.searchsorted(classes, errors["y"].to_numpy())
+        truth_proba = proba_matrix[np.arange(len(errors)), class_positions]
+        errors = errors.assign(truth_proba=truth_proba)
         errors = errors.assign(error=(1 - errors["truth_proba"]).abs())
         return errors.sort_values("error", ascending=False)
 

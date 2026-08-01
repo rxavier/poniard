@@ -2,11 +2,13 @@ from __future__ import annotations
 
 __all__ = ["PoniardPlotFactory"]
 
+import re
 from collections.abc import Sequence
 from typing import TYPE_CHECKING
 
 import numpy as np
 import pandas as pd
+from sklearn.base import clone
 from sklearn.inspection import partial_dependence, permutation_importance
 from sklearn.metrics import auc, confusion_matrix, roc_curve
 
@@ -132,18 +134,20 @@ class PoniardPlotFactory:
             results = results.loc[results["Metric"].str.contains("test", case=False)]
         if exclude_dummy:
             results = results.loc[~results["Model"].str.contains("Dummy")]
+        metric_names = None
         if metrics:
-            metrics = element_to_list_maybe(metrics)
-            metrics = "|".join(metrics)
-            results = results.loc[results["Metric"].str.contains(metrics)]
+            metric_names = element_to_list_maybe(metrics)
+            pattern = "|".join(re.escape(m) for m in metric_names)
+            results = results.loc[results["Metric"].str.contains(pattern)]
         if not show_means:
             results = results.loc[~(results["Type"] == "Mean")]
         height = 100 * results["Model"].nunique()
+        facet_by_metric = metric_names is None or len(metric_names) > 1
         if facet == "col":
             facet_row = None
-            facet_col = "Metric" if not metrics or len(metrics) > 1 else None
+            facet_col = "Metric" if facet_by_metric else None
         else:
-            facet_row = "Metric" if not metrics or len(metrics) > 1 else None
+            facet_row = "Metric" if facet_by_metric else None
             facet_col = None
         if kind == "strip":
             fig = px.strip(
@@ -266,7 +270,7 @@ class PoniardPlotFactory:
             self._X, self._y
         )
         scoring = self._estimator._first_scorer(sklearn_scorer=True)
-        estimator = self._estimator.pipelines[estimator_name]
+        estimator = clone(self._estimator.pipelines[estimator_name])
         estimator.fit(X_train, y_train)
         raw_importances = permutation_importance(
             estimator,
@@ -497,7 +501,7 @@ class PoniardPlotFactory:
         """
         y = self._y
         X = self._X
-        estimator = self._estimator.pipelines[estimator_name]
+        estimator = clone(self._estimator.pipelines[estimator_name])
         estimator.fit(X, y)
         partial_dep = partial_dependence(
             estimator, X, features=[feature], kind="average", **kwargs

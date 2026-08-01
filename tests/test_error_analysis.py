@@ -526,3 +526,37 @@ def test_repr():
     ea = ErrorAnalyzer(task="classification")
     r = repr(ea)
     assert "ErrorAnalyzer" in r
+
+
+def test_rank_errors_multiclass_non_integer_labels():
+    """String class labels must not crash error ranking; proba lookup is positional."""
+    ea = ErrorAnalyzer(task="classification")
+    ea.type_of_target = "multiclass"
+    y = np.array(["cat", "dog", "mouse", "cat", "dog"])
+    preds = np.array(["cat", "cat", "mouse", "dog", "dog"])
+    probas = np.array(
+        [
+            [0.8, 0.1, 0.1],
+            [0.6, 0.3, 0.1],
+            [0.1, 0.1, 0.8],
+            [0.5, 0.4, 0.1],
+            [0.1, 0.8, 0.1],
+        ]
+    )
+    ranked = ea._rank_errors_multiclass(y, preds, probas)
+    # Only rows 1 and 3 are misclassified; row 1 (dog, truth-proba 0.3) ranks first.
+    assert list(ranked.index) == [1, 3]
+    assert list(ranked["error"]) == pytest.approx([0.7, 0.5])
+
+
+def test_analyze_multiclass_string_labels():
+    """End-to-end error analysis must work with non-integer class labels."""
+    X = pd.DataFrame(np.random.normal(size=(N, 2)))
+    y = pd.Series(np.random.choice(["a", "b", "c"], size=N))
+    clf = PoniardClassifier(
+        estimators={"lr": LogisticRegression(max_iter=5000)}, cv=2, random_state=0
+    )
+    clf.setup(X, y)
+    clf.fit(X, y)
+    report = ErrorAnalyzer.from_poniard(clf).analyze(X, y)
+    assert set(report.summary.index) == {"lr"}

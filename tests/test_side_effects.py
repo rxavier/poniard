@@ -192,3 +192,26 @@ def test_custom_sklearn_preprocessor_outputs_pandas_without_global_set_config():
         assert isinstance(out, pd.DataFrame)
     finally:
         set_config(transform_output="default")
+
+
+def test_plot_factory_does_not_fit_stored_pipelines():
+    """Plot methods that need a fitted model fit a clone, never the stored pipeline."""
+    from sklearn.linear_model import LogisticRegression
+
+    from poniard.plot import PoniardPlotFactory
+
+    X = pd.DataFrame(np.random.normal(size=(40, 3)), columns=list("abc"))
+    X["s"] = np.random.choice(["x", "y", "z"], size=40)
+    y = pd.Series(np.random.choice([0, 1], size=40))
+    clf = PoniardClassifier(estimators=[LogisticRegression()], cv=2, random_state=0)
+    clf.setup(X, y)
+    clf.fit(X, y)
+    stored = clf.pipelines["LogisticRegression"]
+    assert not hasattr(stored, "classes_")
+
+    plotter = PoniardPlotFactory(X, y, clf)
+    plotter.permutation_importance("LogisticRegression", n_repeats=1)
+    assert not hasattr(clf.pipelines["LogisticRegression"], "classes_")
+
+    plotter.partial_dependence("LogisticRegression", feature=0)
+    assert not hasattr(clf.pipelines["LogisticRegression"], "classes_")
