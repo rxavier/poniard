@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-__all__ = ["ErrorAnalyzer"]
+__all__ = ["ErrorAnalyzer", "ErrorReport"]
 
 from collections.abc import Sequence
+from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
 import numpy as np
@@ -16,6 +17,57 @@ if TYPE_CHECKING:
 from ..preprocessing import PoniardPreprocessor
 from ..utils.estimate import element_to_list_maybe, get_target_info
 from ..utils.utils import non_default_repr
+
+
+@dataclass
+class ErrorReport:
+    """Structured error-analysis report returned by ``ErrorAnalyzer.analyze``.
+
+    Attributes
+    ----------
+    ranked_errors :
+        Per-estimator DataFrames of samples ranked by error magnitude.
+    merged_errors :
+        Cross-estimator view: per sample, how many estimators failed,
+        their average error, and which estimators failed.
+    summary :
+        Per-estimator error counts, error rates, and mean error.
+    by_target :
+        Error counts and error rate per target class / bin.
+    by_feature :
+        Per-feature error distribution tables.
+    universal_failures :
+        Samples every selected estimator got wrong (``freq == n_estimators``).
+    disagreement_set :
+        Samples where models disagree (some correct, some wrong).
+    lift_by_target :
+        Per class/bin: error rate relative to the global error rate.
+        Values > 1 indicate the class is over-represented in errors.
+    lift_by_feature :
+        Per feature value/bin: error rate relative to the global error rate.
+    """
+
+    ranked_errors: dict[str, pd.DataFrame]
+    merged_errors: pd.DataFrame
+    summary: pd.DataFrame
+    by_target: pd.DataFrame
+    by_feature: dict[str, pd.DataFrame]
+    universal_failures: pd.DataFrame = field(default_factory=pd.DataFrame)
+    disagreement_set: pd.DataFrame = field(default_factory=pd.DataFrame)
+    lift_by_target: pd.DataFrame = field(default_factory=pd.DataFrame)
+    lift_by_feature: dict[str, pd.DataFrame] = field(default_factory=dict)
+
+    def __getitem__(self, key):
+        return getattr(self, key)
+
+    def __contains__(self, key):
+        return hasattr(self, key) and getattr(self, key) is not None
+
+    def __iter__(self):
+        return iter(self.keys())
+
+    def keys(self):
+        return [f.name for f in self.__dataclass_fields__.values()]
 
 
 class ErrorAnalyzer:
@@ -54,18 +106,23 @@ class ErrorAnalyzer:
 
     @classmethod
     def from_poniard(
-        cls, poniard: PoniardBaseEstimator, estimator_names: str | Sequence[str]
+        cls,
+        poniard: PoniardBaseEstimator,
+        estimator_names: str | Sequence[str] | None = None,
     ) -> ErrorAnalyzer:
         """Use a Poniard instance to instantiate `ErrorAnalyzer`.
 
         Automatically sets the task, the estimator names and the target type.
+        When ``estimator_names`` is None, all non-dummy fitted estimators are
+        selected.
 
         Parameters
         ----------
         poniard :
             A `PoniardClassifier` or `PoniardRegressor` instance.
         estimator_names :
-            Array of estimators for which to compute errors.
+            Estimators for which to compute errors. If None, all non-dummy
+            fitted estimators are used.
 
         Returns
         -------
@@ -74,6 +131,17 @@ class ErrorAnalyzer:
         """
         error_analysis = cls(task=poniard.poniard_task)
         error_analysis._poniard = poniard
+        if estimator_names is None:
+            from sklearn.dummy import DummyClassifier, DummyRegressor
+
+            estimator_names = [
+                name
+                for name in poniard.pipelines
+                if not isinstance(
+                    poniard.pipelines[name]._final_estimator,
+                    (DummyClassifier, DummyRegressor),
+                )
+            ]
         error_analysis.estimator_names = element_to_list_maybe(estimator_names)
         error_analysis.type_of_target = poniard.target_info["type_"]
         return error_analysis
@@ -552,12 +620,12 @@ class ErrorAnalyzer:
         n_features: int | float | None = None,
         reg_bins: int = 5,
         error_quantile: float = 0.1,
-    ) -> dict:
-        """Run the full error-analysis workflow and return a single report.
+    ) -> ErrorReport:
+        """Run the full error-analysis workflow and return a structured report.
 
-        Convenience wrapper that computes ranked errors per estimator, the merged
-        cross-estimator view and the error distributions over the target and the
-        features, packaged into one dict.
+        Computes ranked errors per estimator, the merged cross-estimator view,
+        error distributions over target and features, plus diagnostic
+        aggregates: universal failures, disagreement set, and lift vs baseline.
 
         Parameters
         ----------
@@ -567,7 +635,7 @@ class ErrorAnalyzer:
             Ground truth target.
         estimator_names :
             Estimators to analyze. If None, the estimators selected at
-            `from_poniard` time are used.
+            `from_poniard` time are used (default: all non-dummy estimators).
         features :
             Subset of features to analyze. If None, all features are analyzed.
         n_features :
@@ -581,11 +649,10 @@ class ErrorAnalyzer:
 
         Returns
         -------
-        dict
-            Report with keys ``ranked_errors`` (dict of DataFrames),
-            ``merged_errors`` (DataFrame), ``summary`` (per-estimator error
-            counts and rates), ``by_target`` (DataFrame) and ``by_feature``
-            (dict of DataFrames).
+        ErrorReport
+            Structured report with keys ``ranked_errors``, ``merged_errors``,
+            ``summary``, ``by_target``, ``by_feature``, ``universal_failures``,
+            ``disagreement_set``, ``lift_by_target``, ``lift_by_feature``.
         """
         if estimator_names is not None:
             self.estimator_names = element_to_list_maybe(estimator_names)
@@ -613,13 +680,56 @@ class ErrorAnalyzer:
                 for estimator, frame in ranked.items()
             }
         ).T
-        return {
-            "ranked_errors": ranked,
-            "merged_errors": merged,
-            "summary": summary,
-            "by_target": by_target,
-            "by_feature": by_feature,
-        }
+
+        n_estimators = len(ranked)
+        universal = merged[merged["freq"] == n_estimators]
+        disagreement = merged[(merged["freq"] > 0) & (merged["freq"] < n_estimators)]
+
+        global_error_rate = len(merged) / len(y) if len(y) > 0 else 0
+        lift_by_target = self._compute_lift_by_target(by_target, global_error_rate)
+        lift_by_feature = self._compute_lift_by_feature(by_feature, global_error_rate)
+
+        return ErrorReport(
+            ranked_errors=ranked,
+            merged_errors=merged,
+            summary=summary,
+            by_target=by_target,
+            by_feature=by_feature,
+            universal_failures=universal,
+            disagreement_set=disagreement,
+            lift_by_target=lift_by_target,
+            lift_by_feature=lift_by_feature,
+        )
+
+    @staticmethod
+    def _compute_lift_by_target(
+        by_target: pd.DataFrame, global_error_rate: float
+    ) -> pd.DataFrame:
+        """Compute lift = error_rate / global_error_rate per class/bin."""
+        if global_error_rate == 0:
+            lift = by_target[["error_rate"]].copy()
+            lift["lift"] = 0.0
+        else:
+            lift = by_target[["error_rate"]].copy()
+            lift["lift"] = lift["error_rate"] / global_error_rate
+        return lift.sort_values("lift", ascending=False)
+
+    @staticmethod
+    def _compute_lift_by_feature(
+        by_feature: dict[str, pd.DataFrame], global_error_rate: float
+    ) -> dict[str, pd.DataFrame]:
+        """Compute lift per feature value/bin."""
+        if global_error_rate == 0:
+            return {k: v.copy() for k, v in by_feature.items()}
+        lift = {}
+        for fname, ftable in by_feature.items():
+            if "error_rate" in ftable.columns:
+                lifted = ftable[["error_rate"]].copy()
+                lifted["lift"] = lifted["error_rate"] / global_error_rate
+                lift[fname] = lifted.sort_values("lift", ascending=False)
+            else:
+                lift[fname] = ftable
+        return lift
 
     def __repr__(self):
         return non_default_repr(self)

@@ -7,17 +7,9 @@
 > A poniard /ˈpɒnjərd/ or poignard (Fr.) is a long, lightweight
 > thrusting knife ([Wikipedia](https://en.wikipedia.org/wiki/Poignard)).
 
-Poniard is a scikit-learn companion library that streamlines the process of fitting different machine learning models and comparing them.
+Poniard is a scikit-learn companion for **multi-model diagnostics**. Compare models to get oriented, then answer *where they fail, whether differences are real, and what to try next* — then export a plain sklearn object and leave.
 
-It can be used to provide quick answers to questions like these:
-
-- What is the reasonable range of scores for this task?
-- Is a simple and explainable linear model enough or should I work with forests and gradient boosters?
-- Are the features good enough as is or should I work on feature engineering?
-- How much can hyperparameter tuning improve metrics?
-- Do I need to work on a custom preprocessing strategy?
-
-This is not meant to be an end-to-end solution, and you should keep working on your models after you are done with Poniard.
+Not AutoML. Not end-to-end. Every feature earns its place.
 
 ## Installation
 
@@ -40,11 +32,67 @@ from poniard import PoniardClassifier
 X, y = make_classification(n_samples=200, n_features=10, random_state=42)
 
 clf = PoniardClassifier()
-clf.setup(X, y)    # configure: type inference, preprocessing, pipelines
-# optionally: clf.add_estimators(...), clf.reassign_types(...), etc.
 clf.fit(X, y)      # cross-validate all estimators
 clf.get_results()  # comparison table
 ```
+
+## Error analysis — the reason to install
+
+`ErrorAnalyzer` answers *where and why* your models fail. Build it from a
+fitted `PoniardClassifier` / `PoniardRegressor` and run the full workflow with
+a single call:
+
+```python
+from poniard.error_analysis import ErrorAnalyzer
+
+ea = ErrorAnalyzer.from_poniard(clf)  # all non-dummy estimators by default
+report = ea.analyze(X, y)
+```
+
+The `report` is a structured `ErrorReport` containing:
+
+- **`universal_failures`** — samples every model got wrong
+- **`disagreement_set`** — samples where models split (useful for ensembling)
+- **`lift_by_target`** — per class/bin, error rate relative to the global rate
+- **`lift_by_feature`** — per feature value, error rate relative to the global rate
+- **`ranked_errors`** — per estimator, samples sorted by error magnitude
+- **`merged_errors`** — cross-estimator view: frequency and mean error per sample
+- **`summary`** — per estimator: error count, error rate, mean error
+- **`by_target`** / **`by_feature`** — error distributions
+
+```python
+report.universal_failures   # what's toxic to every model
+report.lift_by_target       # which classes are over-represented in errors
+report.disagreement_set     # where models disagree (ensembling candidates)
+```
+
+How errors are defined:
+
+- **Classification**: misclassified samples, ranked by `1 - probability of the truth` (how confidently wrong the model is).
+- **Regression**: samples whose absolute residual exceeds a threshold (default: 90th percentile), ranked by residual magnitude.
+
+## Statistical comparison
+
+Stop pretending fold-mean leaderboards are truth. `compare()` runs paired
+tests on cross-validation folds:
+
+```python
+clf.compare()
+# pairwise: mean_diff, wins_a, wins_b, ties, p_value
+```
+
+## Time vs quality
+
+Pick "good enough and cheap" in one call:
+
+```python
+clf.pareto()                                              # best metric vs fit_time
+clf.pareto(time_col="score_time_per_sample")              # vs inference time per sample
+clf.best_under(seconds=0.5)                               # best metric where fit_time <= 0.5s
+clf.best_under(seconds=0.001, time_col="score_time_per_sample")  # fast inference
+```
+
+Available time columns: `fit_time`, `score_time`, `fit_time_per_sample`, `score_time_per_sample`.
 
 ## Exporting a model (leaving Poniard)
 
@@ -57,10 +105,6 @@ deploy it, or keep working on it without Poniard installed:
 model = clf.get_estimator("LogisticRegression", retrain=True, X=X, y=y)
 # model is a fitted sklearn.pipeline.Pipeline you fully own
 ```
-
-Without `retrain=True`, the returned pipeline is an unfitted clone you can
-inspect. Use it to extract any estimator from the comparison — defaults,
-hyperparameter-optimized ones after `tune_estimator`, or ensemble members.
 
 ## Hyperparameter tuning (stays in the experiment)
 
@@ -77,8 +121,6 @@ clf.fit(X, y)  # CV the tuned pipeline into the results table
 clf.get_results()
 clf.get_tuning_results("LogisticRegression_tuned")  # best_params_, search, ...
 ```
-
-Pipeline-style keys (`LogisticRegression__C`, `preprocessor__...`) still work.
 
 ## Plotting
 
@@ -98,53 +140,14 @@ plotter.permutation_importance("LogisticRegression")
 plotter.full_estimator_analysis("LogisticRegression")
 ```
 
-## Error analysis
-
-`ErrorAnalyzer` answers *where and why* your models fail. Build it from a
-fitted `PoniardClassifier` / `PoniardRegressor` and run the full workflow with
-a single call:
-
-```python
-from poniard.error_analysis import ErrorAnalyzer
-
-ea = ErrorAnalyzer.from_poniard(clf, estimator_names=["LogisticRegression", "RandomForestClassifier"])
-report = ea.analyze(X, y)  # X, y = the data you fitted on
-```
-
-`report` contains:
-
-- `ranked_errors` — per estimator, samples sorted by error magnitude
-- `merged_errors` — per sample, how many estimators failed and their average error
-- `summary` — per estimator: number of errors and error rate
-- `by_target` — error counts and error rate per target class/bin
-- `by_feature` — per feature, the distribution of errors across its values
-
-The individual steps are also exposed:
-
-```python
-ranked = ea.rank_errors(X, y)                       # per-estimator ranked errors
-merged = ErrorAnalyzer.merge_errors(ranked)         # cross-estimator view
-ea.analyze_target(errors_idx=merged.index, y=y)     # errors vs target distribution
-ea.analyze_features(errors_idx=merged.index, X=X)   # errors vs feature values
-```
-
-How errors are defined:
-
-- **Classification**: misclassified samples, ranked by `1 - probability of the
-  truth` (how confidently wrong the model is). Multilabel targets rank by the
-  mean per-label deviation.
-- **Regression**: samples whose absolute residual exceeds a threshold, ranked by
-  residual magnitude. The threshold defaults to the 90th percentile of residuals
-  and can be configured with `error_quantile` in `rank_errors` / `analyze`.
-
 ## Estimator naming
 
 Each estimator gets a name automatically (its class name). You can override with tuple syntax:
 
 ```python
-# Single of each class → class names
-clf = PoniardClassifier(estimators=[LogisticRegression(), SVC()])
-# pipelines: {'LogisticRegression': ..., 'SVC': ..., 'DummyClassifier': ...}
+# Tuple override
+clf = PoniardClassifier(estimators=[('my_lr', LogisticRegression())])
+# pipelines: {'my_lr': ..., 'DummyClassifier': ...}
 
 # Duplicates → collision handling
 clf = PoniardClassifier(estimators=[
@@ -152,20 +155,18 @@ clf = PoniardClassifier(estimators=[
     LogisticRegression(C=0.1),
 ])
 # pipelines: {'LogisticRegression': ..., 'LogisticRegression_2': ..., 'DummyClassifier': ...}
-
-# Tuple override
-clf = PoniardClassifier(estimators=[('my_lr', LogisticRegression())])
-# pipelines: {'my_lr': ..., 'DummyClassifier': ...}
 ```
 
 ## Features
 
+- **Error analysis**: Universal failures, disagreement sets, lift vs baseline — find *where and why* models fail
+- **Statistical comparison**: Paired fold tests to see if A really beats B
+- **Time-quality tradeoff**: Pareto front and best-under-budget helpers
 - **Automatic type inference**: Detects numeric, categorical, and datetime features
 - **Built-in preprocessing**: Imputation, encoding, scaling via a configurable pipeline
 - **Cross-validated comparison**: Fits multiple estimators with cross-validation and collects results
 - **Hyperparameter tuning**: Grid, random, and halving search for any estimator
 - **Ensemble building**: Create ensembles from fitted estimators
-- **Error analysis**: Rank prediction errors, and analyze them against the target and features to find *where and why* models fail
 - **Plotting**: Metrics comparison, ROC curves, confusion matrices, feature importance (optional, requires plotly)
 
 ## Environment variables

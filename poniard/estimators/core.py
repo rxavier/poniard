@@ -482,6 +482,13 @@ class PoniardBaseEstimator(ResultsMixin, EnsembleMixin, TuningMixin, ABC):
         else:
             self._experiment_results = results
 
+        # Store fold sizes for per-sample time computation
+        cv = self.cv
+        if hasattr(cv, "split"):
+            self._fold_sizes = [len(test) for _, test in cv.split(X, y)]
+        else:
+            self._fold_sizes = None
+
         self._process_results()
         self._process_long_results()
         return self
