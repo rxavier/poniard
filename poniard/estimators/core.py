@@ -121,23 +121,32 @@ class PoniardBaseEstimator(ResultsMixin, EnsembleMixin, TuningMixin, ABC):
         self._added_estimators = {}
         self._removed_estimators = []
 
+        # State is initialized here so every attribute exists from construction;
+        # methods mutate it instead of creating attributes implicitly. Derived
+        # state (means/stds, long results) is None until `fit` produces it.
+        self._cv_results = {}
+        self._prediction_cache = {}
+        self._means = None
+        self._stds = None
+        self._long_results = None
+        self._fold_sizes = None
+        self._tuning_results = {}
+        self._fitted_pipeline_names = set()
+        self.pipelines = {}
+        self.preprocessor = None
+        self.feature_types = {}
+        self._poniard_preprocessor = None
+        self.target_info = None
+        self.show_info = None
+
     @property
-    def poniard_task(self) -> str | None:
-        """Check whether self is a Poniard regressor or classifier.
+    @abstractmethod
+    def poniard_task(self) -> str:
+        """Return the task name: "regression" or "classification".
 
-        Returns
-        -------
-        str | None
-            "regression", "classification" or None
+        Implemented by `PoniardClassifier` and `PoniardRegressor`, so no
+        isinstance sniffing or deferred imports are needed.
         """
-        from poniard import PoniardClassifier, PoniardRegressor
-
-        if isinstance(self, PoniardRegressor):
-            return "regression"
-        elif isinstance(self, PoniardClassifier):
-            return "classification"
-        else:
-            return None
 
     def setup(
         self,
@@ -222,7 +231,7 @@ class PoniardBaseEstimator(ResultsMixin, EnsembleMixin, TuningMixin, ABC):
         shape = self.target_info["shape"]
         nunique = self.target_info["nunique"]
         main_metric = self._first_scorer(sklearn_scorer=False)
-        if hasattr(self, "_poniard_preprocessor"):
+        if self._poniard_preprocessor is not None:
             num_thresh = self._poniard_preprocessor.numeric_threshold
             cat_thresh = self._poniard_preprocessor.cardinality_threshold
         if _has_ipython:
@@ -239,7 +248,7 @@ class PoniardBaseEstimator(ResultsMixin, EnsembleMixin, TuningMixin, ABC):
                              """
                 )
             )
-            if hasattr(self, "_poniard_preprocessor"):
+            if self._poniard_preprocessor is not None:
                 display(
                     HTML(
                         f""" <h3>Feature type inference</h3>
@@ -266,7 +275,7 @@ class PoniardBaseEstimator(ResultsMixin, EnsembleMixin, TuningMixin, ABC):
                 sep="\n",
                 end="\n\n",
             )
-            if hasattr(self, "_poniard_preprocessor"):
+            if self._poniard_preprocessor is not None:
                 print(
                     "Thresholds",
                     "----------",
@@ -450,12 +459,7 @@ class PoniardBaseEstimator(ResultsMixin, EnsembleMixin, TuningMixin, ABC):
 
         # Cross-validate
         results = {}
-        filtered_pipelines = {
-            name: pipeline
-            for name, pipeline in self.pipelines.items()
-            if name not in self._fitted_pipeline_names
-        }
-        pbar = tqdm(filtered_pipelines.items(), leave=self._tqdm_leave)
+        pbar = tqdm(self.pipelines.items(), leave=self._tqdm_leave)
         for i, (name, pipeline) in enumerate(pbar):
             pbar.set_description(f"{name}")
             with warnings.catch_warnings():
@@ -477,10 +481,7 @@ class PoniardBaseEstimator(ResultsMixin, EnsembleMixin, TuningMixin, ABC):
             self._fitted_pipeline_names.add(name)
             if i == len(pbar) - 1:
                 pbar.set_description("Completed")
-        if hasattr(self, "_experiment_results"):
-            self._experiment_results.update(results)
-        else:
-            self._experiment_results = results
+        self._cv_results.update(results)
 
         # Store fold sizes for per-sample time computation
         cv = self.cv
@@ -498,7 +499,7 @@ class PoniardBaseEstimator(ResultsMixin, EnsembleMixin, TuningMixin, ABC):
     ) -> dict[str, np.ndarray]:
         """Helper method for predicting targets or target probabilities with cross validation.
         Accepts predict, predict_proba, predict_log_proba or decision_function."""
-        if not hasattr(self, "cv"):
+        if not self.pipelines:
             raise ValueError("`setup` must be called before `predict`.")
         estimator_names = element_to_list_maybe(estimator_names)
         if not estimator_names:
@@ -526,14 +527,7 @@ class PoniardBaseEstimator(ResultsMixin, EnsembleMixin, TuningMixin, ABC):
                 result = np.empty(y.shape)
                 result[:] = np.nan
             results.update({name: result})
-
-            if not hasattr(self, "_experiment_results"):
-                self._experiment_results = {}
-                self._experiment_results.update({name: {method: result}})
-            elif name not in self._experiment_results:
-                self._experiment_results.update({name: {method: result}})
-            else:
-                self._experiment_results[name][method] = result
+            self._prediction_cache[(name, method)] = result
 
             if i == len(pbar) - 1:
                 pbar.set_description("Completed")
@@ -788,14 +782,18 @@ class PoniardBaseEstimator(ResultsMixin, EnsembleMixin, TuningMixin, ABC):
             raise ValueError("Cannot remove all estimators.")
         self.pipelines = pruned_estimators
         if drop_results:
-            if hasattr(self, "_fitted_pipeline_names"):
-                self._fitted_pipeline_names.difference_update(estimator_names)
-            if hasattr(self, "_means"):
+            self._fitted_pipeline_names.difference_update(estimator_names)
+            self._prediction_cache = {
+                k: v
+                for k, v in self._prediction_cache.items()
+                if k[0] not in estimator_names
+            }
+            if self._means is not None:
                 self._means = self._means.loc[~self._means.index.isin(estimator_names)]
                 self._stds = self._stds.loc[~self._stds.index.isin(estimator_names)]
-                self._experiment_results = {
+                self._cv_results = {
                     k: v
-                    for k, v in self._experiment_results.items()
+                    for k, v in self._cv_results.items()
                     if k not in estimator_names
                 }
                 self._process_long_results()
@@ -905,11 +903,10 @@ class PoniardBaseEstimator(ResultsMixin, EnsembleMixin, TuningMixin, ABC):
     def _get_or_compute_prediction(self, X, y, estimator_name: str, method: str):
         """Get predictions (either predict, predict_proba or decision_function) for a given
         estimator or compute if not available."""
-        try:
-            return self._experiment_results[estimator_name][method]
-        except KeyError:
+        key = (estimator_name, method)
+        if key not in self._prediction_cache:
             self._predict(method=method, X=X, y=y, estimator_names=[estimator_name])
-            return self._experiment_results[estimator_name][method]
+        return self._prediction_cache[key]
 
     def __repr__(self):
         return non_default_repr(self)

@@ -117,8 +117,6 @@ class TuningMixin:
         best_final = clone(search.best_estimator_._final_estimator)
         self.add_estimators(estimators={tuned_estimator_name: best_final})
 
-        if not hasattr(self, "_tuning_results"):
-            self._tuning_results = {}
         self._tuning_results[tuned_estimator_name] = {
             "baseline": estimator_name,
             "mode": mode,
@@ -163,7 +161,7 @@ class TuningMixin:
             ``best_score_``, ``scorer``, and the fitted sklearn ``search``
             object (full escape hatch: ``cv_results_``, etc.).
         """
-        results = getattr(self, "_tuning_results", None)
+        results = self._tuning_results
         if not results:
             raise ValueError(
                 "No tuning results. Call tune_estimator(...) first."
