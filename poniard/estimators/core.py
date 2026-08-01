@@ -576,30 +576,6 @@ class PoniardBaseEstimator(ResultsMixin, EnsembleMixin, TuningMixin, ABC):
         """
         return self._predict(method="predict_proba", X=X, y=y, estimator_names=estimator_names)
 
-    def decision_function(
-        self, X, y, estimator_names: Sequence[str] | None = None
-    ) -> dict[str, np.ndarray]:
-        """Get cross validated decision function predictions where each sample belongs to a
-        single test set.
-
-        Parameters
-        ----------
-        X :
-            Features.
-        y :
-            Target.
-        estimator_names :
-            Estimators to include. If None, predict all estimators.
-
-        Returns
-        -------
-        dict
-            Dict where keys are estimator names and values are numpy arrays of decision functions.
-        """
-        return self._predict(
-            method="decision_function", X=X, y=y, estimator_names=estimator_names
-        )
-
     def reassign_types(
         self,
         numeric: list[str | int] | None = None,

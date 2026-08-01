@@ -8,7 +8,7 @@ import pandas as pd
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.utils.validation import validate_data
 
-__all__ = ['DateLevel', 'DatetimeEncoder']
+__all__ = ['DatetimeEncoder']
 
 
 class DateLevel(Enum):
