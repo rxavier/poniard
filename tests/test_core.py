@@ -72,7 +72,7 @@ def test_classifier_fit(target, metrics, estimators, cv):
     else:
         n_metrics = len(clf.metrics)
     assert results.isna().sum().sum() == 0
-    assert results.shape == (n_estimators + 1, n_metrics * 2 + 2)
+    assert results.shape == (n_estimators + 1, n_metrics * 2 + 4)
 
 
 @pytest.mark.parametrize(
@@ -124,7 +124,7 @@ def test_regressor_fit(target, metrics, estimators, cv):
     else:
         n_metrics = len(clf.metrics)
     assert results.isna().sum().sum() == 0
-    assert results.shape == (n_estimators + 1, n_metrics * 2 + 2)
+    assert results.shape == (n_estimators + 1, n_metrics * 2 + 4)
 
 
 def test_multilabel_fit():
@@ -140,7 +140,7 @@ def test_multilabel_fit():
     clf.fit(X, y)
     results = clf.get_results(return_train_scores=True)
     assert results.isna().sum().sum() == 0
-    assert results.shape == (3, 12)
+    assert results.shape == (3, 14)
 
 
 def test_multioutput_fit():
@@ -156,7 +156,7 @@ def test_multioutput_fit():
     clf.fit(X, y)
     results = clf.get_results(return_train_scores=True)
     assert results.isna().sum().sum() == 0
-    assert results.shape == (3, 10)
+    assert results.shape == (3, 12)
 
 
 def test_type_inference():

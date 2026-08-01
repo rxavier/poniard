@@ -1,3 +1,3 @@
-from poniard.error_analysis.error_analysis import ErrorAnalyzer
+from poniard.error_analysis.error_analysis import ErrorAnalyzer, ErrorReport
 
-__all__ = ["ErrorAnalyzer"]
+__all__ = ["ErrorAnalyzer", "ErrorReport"]

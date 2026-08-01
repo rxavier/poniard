@@ -426,6 +426,10 @@ class TestAnalyze:
             "summary",
             "by_target",
             "by_feature",
+            "universal_failures",
+            "disagreement_set",
+            "lift_by_target",
+            "lift_by_feature",
         }
         assert "lr" in report["ranked_errors"]
         assert isinstance(report["merged_errors"], pd.DataFrame)
@@ -453,6 +457,64 @@ class TestAnalyze:
         assert "error_rate" in report["summary"].columns
         assert not report["by_target"].empty
         assert len(report["by_feature"]) > 0
+
+    def test_universal_failures(self, binary_data):
+        clf, X, y = binary_data
+        ea = _make_ea(clf, estimator_names=["lr", "DummyClassifier"])
+        report = ea.analyze(X=X, y=y)
+        assert isinstance(report["universal_failures"], pd.DataFrame)
+        merged = report["merged_errors"]
+        n_estimators = len(report["ranked_errors"])
+        expected = merged[merged["freq"] == n_estimators]
+        assert len(report["universal_failures"]) == len(expected)
+
+    def test_disagreement_set(self, binary_data):
+        clf, X, y = binary_data
+        ea = _make_ea(clf, estimator_names=["lr", "DummyClassifier"])
+        report = ea.analyze(X=X, y=y)
+        assert isinstance(report["disagreement_set"], pd.DataFrame)
+        merged = report["merged_errors"]
+        n_estimators = len(report["ranked_errors"])
+        expected = merged[(merged["freq"] > 0) & (merged["freq"] < n_estimators)]
+        assert len(report["disagreement_set"]) == len(expected)
+
+    def test_lift_by_target(self, binary_data):
+        clf, X, y = binary_data
+        ea = _make_ea(clf)
+        report = ea.analyze(X=X, y=y)
+        assert isinstance(report["lift_by_target"], pd.DataFrame)
+        assert "lift" in report["lift_by_target"].columns
+        assert "error_rate" in report["lift_by_target"].columns
+
+    def test_lift_by_feature(self, binary_data):
+        clf, X, y = binary_data
+        ea = _make_ea(clf)
+        report = ea.analyze(X=X, y=y)
+        assert isinstance(report["lift_by_feature"], dict)
+        for fname, ftable in report["lift_by_feature"].items():
+            if "error_rate" in ftable.columns:
+                assert "lift" in ftable.columns
+
+    def test_report_bracket_access(self, binary_data):
+        clf, X, y = binary_data
+        ea = _make_ea(clf)
+        report = ea.analyze(X=X, y=y)
+        assert report["summary"] is report.summary
+        assert report["by_target"] is report.by_target
+
+    def test_report_contains(self, binary_data):
+        clf, X, y = binary_data
+        ea = _make_ea(clf)
+        report = ea.analyze(X=X, y=y)
+        assert "summary" in report
+        assert "nonexistent" not in report
+
+    def test_from_poniard_default_all_non_dummy(self, binary_data):
+        clf, X, y = binary_data
+        ea = ErrorAnalyzer.from_poniard(clf)
+        assert len(ea.estimator_names) >= 1
+        for name in ea.estimator_names:
+            assert "Dummy" not in name
 
 
 def test_repr():

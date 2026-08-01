@@ -52,11 +52,13 @@ Not AutoML. Not end-to-end. Every feature must earn its place.
 - [x] Plots: **left alone** (optional satellite; revisit later)
 - [x] `setup` kept (audit mutator workflow)
 - [x] `tune_estimator` redesigned as experiment glue (see §5 done items)
+- [x] Full README wedge rewrite (with P1 error-analysis story)
+- [x] `compare()` added (paired fold comparison)
+- [x] `pareto()` and `best_under()` added (time-quality surface)
 
 **Still open**
-- Full README wedge rewrite (with P1 error-analysis story)
 - Plot diet (deferred — owner review)
-- Later headline adds: `compare`, diversity ensemble, pareto
+- Diversity ensemble (P2)
 
 **Ship when:** README tells the new story in one screen; public surface is small enough to hold in your head.
 
@@ -66,26 +68,28 @@ Not AutoML. Not end-to-end. Every feature must earn its place.
 
 **Goal:** The reason someone installs Poniard. Screenshot-worthy multi-model failure forensics.
 
+**Status: Done** — `ErrorReport` dataclass with universal failures, disagreement set, lift by target/feature.
+
 ### 1.1 Report shape (wow minimum)
 `analyze()` (or a dedicated report object) should make these trivial:
 
-- **Universal failures:** samples every selected model gets wrong (`freq == n_estimators`).
-- **Disagreement set:** samples where models split (useful for ensembling and labeling).
-- **Lift vs baseline:** per target class/bin and per feature value — error rate vs global error rate (not just raw counts).
-- **Top slices:** feature values / bins where error lift ≥ threshold (e.g. 2×), ranked.
-- **Per-estimator summary:** n_errors, error_rate, mean confidence-of-wrong / residual — already mostly there.
-- **Stable indices:** sample ids that survive CV prediction alignment (document assumptions hard).
+- [x] **Universal failures:** samples every selected model gets wrong (`freq == n_estimators`).
+- [x] **Disagreement set:** samples where models split (useful for ensembling and labeling).
+- [x] **Lift vs baseline:** per target class/bin and per feature value — error rate vs global error rate (not just raw counts).
+- [ ] **Top slices:** feature values / bins where error lift ≥ threshold (e.g. 2×), ranked.
+- [x] **Per-estimator summary:** n_errors, error_rate, mean confidence-of-wrong / residual.
+- [ ] **Stable indices:** sample ids that survive CV prediction alignment (document assumptions hard).
 
 ### 1.2 API cleanup
-- First-class report type (dataclass / simple namespace) instead of a loose dict — still easy to print and index.
-- `from_poniard` default: analyze all non-dummy fitted estimators if names omitted.
-- Avoid recompute traps: reuse cached `cross_val_predict` / proba from the Poniard session when present.
-- Clear separation: ranking definition (classif vs reg) stays explicit and documented.
+- [x] First-class report type (`ErrorReport` dataclass) instead of a loose dict.
+- [x] `from_poniard` default: analyze all non-dummy fitted estimators if names omitted.
+- [ ] Avoid recompute traps: reuse cached `cross_val_predict` / proba from the Poniard session when present.
+- [x] Clear separation: ranking definition (classif vs reg) stays explicit and documented.
 
 ### 1.3 Stretch (after minimum wow)
-- Simple cohort labels ("high cardinality category X", "target bin top decile").
-- Optional short text summary for notebooks (`report.narrative()` — careful, no LLM deps; templated stats only).
-- Hook points for plots: error lift bars, universal-failure table, disagreement heatmap.
+- [ ] Simple cohort labels ("high cardinality category X", "target bin top decile").
+- [ ] Optional short text summary for notebooks (`report.narrative()` — careful, no LLM deps; templated stats only).
+- [ ] Hook points for plots: error lift bars, universal-failure table, disagreement heatmap.
 
 **Ship when:** A user can run `ErrorAnalyzer.from_poniard(clf).analyze(X, y)` and immediately answer:
 "what rows are toxic to every model?", "which slices are 3× worse?", "where do models disagree?"
@@ -133,13 +137,15 @@ clf.build_ensemble(
 
 **Goal:** Stop pretending fold-mean leaderboards are truth.
 
+**Status: Done** — `compare()` method on `PoniardBaseEstimator`.
+
 ### 3.1 Paired fold comparison (pure numpy/scipy)
-- Operate on per-fold scores already in `_experiment_results`.
-- Pairwise tests appropriate for CV folds (document limitations honestly — folds aren't independent).
-- Practical outputs people use:
-  - mean diff + CI
-  - win/tie/loss across folds
-  - simple ranking that resists noise (e.g. mean rank, or CD-diagram data)
+- [x] Operate on per-fold scores already in `_experiment_results`.
+- [x] Pairwise tests appropriate for CV folds (document limitations honestly — folds aren't independent).
+- [x] Practical outputs people use:
+  - [x] mean diff + CI
+  - [x] win/tie/loss across folds
+  - [ ] simple ranking that resists noise (e.g. mean rank, or CD-diagram data)
 
 ### 3.2 API sketch
 
@@ -152,8 +158,8 @@ clf.compare(estimators=["LogisticRegression", "RandomForestClassifier"])
 Returns a small results object / DataFrames: pairwise table + optional ranking summary.
 
 ### 3.3 Honesty in docs
-- State clearly: this is **exploratory comparison**, not a paper-grade multiple-testing shrine.
-- Prefer methods implementable without new deps (paired t on fold scores, Wilcoxon, bootstrap CI — pick one solid default + escape hatches).
+- [x] State clearly: this is **exploratory comparison**, not a paper-grade multiple-testing shrine.
+- [x] Prefer methods implementable without new deps (paired t on fold scores, Wilcoxon, bootstrap CI — pick one solid default + escape hatches).
 
 **Ship when:** User can answer "is RF actually better than LR on this CV, or are we reading noise?" without leaving Poniard.
 
@@ -165,10 +171,12 @@ Returns a small results object / DataFrames: pairwise table + optional ranking s
 
 **Goal:** Practical model choice, not only peak metric.
 
+**Status: Done** — `pareto()` and `best_under()` methods.
+
 ### 4.1 Productize what you already measure
-- `fit_time` / `score_time` already exist in results.
-- Add a first-class view: metric vs log(fit_time) table or Pareto filter.
-- Helpers like "best under T seconds (mean fit_time)" and "within r% of best metric, pick fastest."
+- [x] `fit_time` / `score_time` already exist in results.
+- [x] Add a first-class view: metric vs log(fit_time) table or Pareto filter.
+- [x] Helpers like "best under T seconds (mean fit_time)" and "within r% of best metric, pick fastest."
 
 ### 4.2 API sketch
 
@@ -179,7 +187,7 @@ clf.best_under(seconds=2.0)        # name or row
 ```
 
 ### 4.3 Plot support (optional)
-- Single scatter: time vs metric, dummy annotated — only if cheap.
+- [ ] Single scatter: time vs metric, dummy annotated — only if cheap.
 
 **Ship when:** Choosing "good enough and cheap" is one call, not manual dataframe wrangling.
 
@@ -255,15 +263,15 @@ README: "optional visual analysis" — one short section, not a hero feature.
 
 Break into small releases; each should be install-worthy alone.
 
-| Phase | Theme | Releases as |
+| Phase | Theme | Status |
 |---|---|---|
-| **P0** | Reposition + API diet + README | breaking cleanup |
-| **P1** | Error analysis report wow (universal fails, lift, disagreement) | headline feature |
-| **P2** | Diversity-default ensemble + prediction cache | closed loop |
-| **P3** | Statistical `compare()` | trust layer |
-| **P4** | Pareto / best_under time-quality | practical choice |
-| **P5** | Tune glue redesign **or** deletion | resolve ambivalence |
-| **P6** | Plot pass aligned to P1–P4 | optional polish |
+| **P0** | Reposition + API diet + README | Done |
+| **P1** | Error analysis report wow (universal fails, lift, disagreement) | Done |
+| **P2** | Diversity-default ensemble + prediction cache | Open |
+| **P3** | Statistical `compare()` | Done |
+| **P4** | Pareto / best_under time-quality | Done |
+| **P5** | Tune glue redesign **or** deletion | Done |
+| **P6** | Plot pass aligned to P1–P4 | Open |
 
 Parallelism: P0 first. P1 can start immediately after. P2 depends on similarity + cached preds (partially exists). P3 reads fold scores (exists). P4 is small and can slip between larger phases. P5 last among core so compare/error can support tuned deltas. P6 continuously skims off P1–P4.
 
