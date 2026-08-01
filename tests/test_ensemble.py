@@ -26,9 +26,7 @@ def test_ensemble(method, estimator_names, top_n, sort_by):
     )
     reg.setup(x, y)
     reg.fit(x, y)
-    reg.build_ensemble(
-        method=method, estimator_names=estimator_names, top_n=top_n, sort_by=sort_by
-    )
+    reg.build_ensemble(method=method, estimator_names=estimator_names, top_n=top_n, sort_by=sort_by)
     reg.fit(x, y)
     results = reg.get_results()
     ensemble_class_name = method.capitalize() + "Regressor"
@@ -42,7 +40,8 @@ def test_ensemble(method, estimator_names, top_n, sort_by):
     else:
         sorter = sort_by or results.columns[0]
         sorted_names = [
-            n for n in results.sort_values(sorter, ascending=False).index
+            n
+            for n in results.sort_values(sorter, ascending=False).index
             if n != ensemble_class_name and n not in dummy
         ]
         assert all(x in ensemble_estimators for x in sorted_names[:top_n])
@@ -96,7 +95,9 @@ def test_ensemble_top_n_strategy():
         random_state=0,
     )
     clf.fit(X, y)
-    clf.build_ensemble(method="voting", strategy="top_n", top_n=2, ensemble_name="topn", voting="soft")
+    clf.build_ensemble(
+        method="voting", strategy="top_n", top_n=2, ensemble_name="topn", voting="soft"
+    )
     clf.fit(X, y)
     results = clf.get_results()
     assert "topn" in results.index
@@ -117,7 +118,9 @@ def test_ensemble_diversity_fallback_to_top_n():
         random_state=0,
     )
     clf.fit(X, y)
-    clf.build_ensemble(method="voting", strategy="diversity", top_n=2, ensemble_name="fallback", voting="soft")
+    clf.build_ensemble(
+        method="voting", strategy="diversity", top_n=2, ensemble_name="fallback", voting="soft"
+    )
     clf.fit(X, y)
     results = clf.get_results()
     assert "fallback" in results.index
@@ -128,7 +131,9 @@ def test_ensemble_diversity_single_estimator():
     n = 30
     X = pd.DataFrame(np.random.normal(size=(n, 3)))
     y = np.random.choice([0, 1], size=n)
-    clf = PoniardClassifier(estimators={"lr": LogisticRegression(max_iter=1000)}, cv=2, random_state=0)
+    clf = PoniardClassifier(
+        estimators={"lr": LogisticRegression(max_iter=1000)}, cv=2, random_state=0
+    )
     clf.fit(X, y)
     selected = clf._select_diverse(top_n=3, sort_by=None, similarity_threshold=0.5, X=X, y=y)
     assert len(selected) >= 1
@@ -139,7 +144,9 @@ def test_ensemble_invalid_strategy():
     n = 30
     X = pd.DataFrame(np.random.normal(size=(n, 3)))
     y = np.random.choice([0, 1], size=n)
-    clf = PoniardClassifier(estimators={"lr": LogisticRegression(max_iter=1000)}, cv=2, random_state=0)
+    clf = PoniardClassifier(
+        estimators={"lr": LogisticRegression(max_iter=1000)}, cv=2, random_state=0
+    )
     clf.fit(X, y)
     with pytest.raises(ValueError, match="Strategy"):
         clf.build_ensemble(strategy="invalid", X=X, y=y)
@@ -151,9 +158,7 @@ def test_predictions_similarity(reg_or_clf, on_errors):
         est = PoniardRegressor(estimators=[LinearRegression(), DecisionTreeRegressor()])
         y = np.random.normal(size=10)
     else:
-        est = PoniardClassifier(
-            estimators=[LogisticRegression(), DecisionTreeClassifier()]
-        )
+        est = PoniardClassifier(estimators=[LogisticRegression(), DecisionTreeClassifier()])
         y = np.array([0, 0, 0, 1, 1, 1, 0, 0, 1, 1, 0, 1])
     x = pd.DataFrame(np.random.normal(size=(len(y), 5)))
     est.setup(x, y)

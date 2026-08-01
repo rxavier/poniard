@@ -8,7 +8,7 @@ import pandas as pd
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.utils.validation import validate_data
 
-__all__ = ['DatetimeEncoder']
+__all__ = ["DatetimeEncoder"]
 
 
 class DateLevel(Enum):
@@ -45,9 +45,7 @@ class DatetimeEncoder(BaseEstimator, TransformerMixin):
         Follows standard Pandas/stdlib formatting, e.g. '%Y-%m-%d %H:%M:%S'.
     """
 
-    def __init__(
-        self, levels: Sequence[DateLevel] | None = None, fmt: str | None = None
-    ):
+    def __init__(self, levels: Sequence[DateLevel] | None = None, fmt: str | None = None):
         self.levels = levels
         self.fmt = fmt
 
@@ -71,8 +69,7 @@ class DatetimeEncoder(BaseEstimator, TransformerMixin):
                 pd.api.types.is_datetime64_any_dtype(dt) for dt in X.dtypes
             ):
                 raise ValueError(
-                    "If data contains more than one type, "
-                    "they all have to be datetime64 (any)."
+                    "If data contains more than one type, they all have to be datetime64 (any)."
                 )
             elif X.dtypes.iloc[0] in (object, str):
                 X = X.apply(pd.to_datetime, format=self.fmt)
@@ -96,9 +93,7 @@ class DatetimeEncoder(BaseEstimator, TransformerMixin):
 
         self.n_features_in_ = X.shape[1]
         self.feature_names_in_ = input_names
-        self.n_features_out_ = sum(
-            len(features) for features in self.valid_features_.values()
-        )
+        self.n_features_out_ = sum(len(features) for features in self.valid_features_.values())
         return self
 
     def transform(self, X: pd.DataFrame | np.ndarray | list) -> np.ndarray:
@@ -119,8 +114,7 @@ class DatetimeEncoder(BaseEstimator, TransformerMixin):
                 pd.api.types.is_datetime64_any_dtype(dt) for dt in X.dtypes
             ):
                 raise ValueError(
-                    "If data contains more than one type, "
-                    "they all have to be datetime64 (any)."
+                    "If data contains more than one type, they all have to be datetime64 (any)."
                 )
             elif X.dtypes.iloc[0] in (object, str):
                 X = X.apply(pd.to_datetime, format=self.fmt)

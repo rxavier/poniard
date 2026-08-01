@@ -13,9 +13,7 @@ N = 100
 
 @pytest.fixture
 def fitted_clf():
-    X, y = make_classification(
-        n_samples=N, n_features=5, random_state=42, n_informative=3
-    )
+    X, y = make_classification(n_samples=N, n_features=5, random_state=42, n_informative=3)
     X = pd.DataFrame(X, columns=[f"f{i}" for i in range(X.shape[1])])
     clf = PoniardClassifier(
         estimators={

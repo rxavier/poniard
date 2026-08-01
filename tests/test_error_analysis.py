@@ -26,9 +26,7 @@ def binary_data():
         }
     )
     y = pd.Series(np.random.choice([0, 1], size=N))
-    clf = PoniardClassifier(
-        estimators={"lr": LogisticRegression()}, cv=2, random_state=0
-    )
+    clf = PoniardClassifier(estimators={"lr": LogisticRegression()}, cv=2, random_state=0)
     clf.setup(X, y)
     clf.fit(X, y)
     return clf, X, y
@@ -55,9 +53,7 @@ def multiclass_data():
 
 @pytest.fixture
 def multilabel_data():
-    X, y = make_multilabel_classification(
-        n_samples=N, n_features=3, n_classes=3, random_state=0
-    )
+    X, y = make_multilabel_classification(n_samples=N, n_features=3, n_classes=3, random_state=0)
     X = pd.DataFrame(X, columns=[f"f{i}" for i in range(X.shape[1])])
     clf = PoniardClassifier(
         estimators={"lr": OneVsRestClassifier(LogisticRegression(max_iter=5000))},
@@ -80,9 +76,7 @@ def reg_data():
         }
     )
     y = pd.Series(np.random.normal(size=N))
-    reg = PoniardRegressor(
-        estimators={"lr": LinearRegression()}, cv=2, random_state=0
-    )
+    reg = PoniardRegressor(estimators={"lr": LinearRegression()}, cv=2, random_state=0)
     reg.setup(X, y)
     reg.fit(X, y)
     return reg, X, y
@@ -90,14 +84,10 @@ def reg_data():
 
 @pytest.fixture
 def multioutput_reg_data():
-    X, y = make_regression(
-        n_samples=N, n_features=3, n_targets=2, random_state=0
-    )
+    X, y = make_regression(n_samples=N, n_features=3, n_targets=2, random_state=0)
     X = pd.DataFrame(X, columns=[f"f{i}" for i in range(X.shape[1])])
     y = pd.DataFrame(y, columns=[f"t{i}" for i in range(y.shape[1])])
-    reg = PoniardRegressor(
-        estimators={"lr": LinearRegression()}, cv=2, random_state=0
-    )
+    reg = PoniardRegressor(estimators={"lr": LinearRegression()}, cv=2, random_state=0)
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore", message="TargetEncoder is not supported")
         reg.setup(X, y)
@@ -190,8 +180,38 @@ class TestRankErrors:
     def test_standalone_mode(self):
         n = 30
         y = np.array(
-            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-             1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+            [
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+            ]
         )
         predictions = np.zeros(n, dtype=int)
         probas = np.array([[0.9, 0.1]] * 15 + [[0.6, 0.4]] * 15)
@@ -291,9 +311,7 @@ class TestAnalyzeFeatures:
         ea = _make_ea(clf)
         errors = ea.rank_errors(X=X, y=y)
         merged = ErrorAnalyzer.merge_errors(errors)
-        summary = ea.analyze_features(
-            errors_idx=merged.index, X=X, features=["a", "b"]
-        )
+        summary = ea.analyze_features(errors_idx=merged.index, X=X, features=["a", "b"])
         assert set(summary.keys()) == {"a", "b"}
 
     def test_with_feature_subset_by_index(self, binary_data):
@@ -365,17 +383,13 @@ class TestAnalyzeFeatures:
         errors = ea.rank_errors(X=X, y=y)
         merged = ErrorAnalyzer.merge_errors(errors)
         with pytest.raises(ValueError, match="y"):
-            ea.analyze_features(
-                errors_idx=merged.index, X=X, estimator_name="lr"
-            )
+            ea.analyze_features(errors_idx=merged.index, X=X, estimator_name="lr")
 
     def test_estimator_name_requires_from_poniard(self, reg_data):
         clf, X, y = reg_data
         ea = ErrorAnalyzer(task="regression")
         with pytest.raises(ValueError, match="from_poniard"):
-            ea.analyze_features(
-                errors_idx=pd.Index([0]), X=X, y=y, estimator_name="lr"
-            )
+            ea.analyze_features(errors_idx=pd.Index([0]), X=X, y=y, estimator_name="lr")
 
     def test_categorical_known_error_region(self):
         """Errors confined to one category must surface as a high error_rate."""

@@ -26,9 +26,7 @@ def _reg_data():
 
 def test_save_load_round_trip_classifier(tmp_path):
     X, y = _clf_data()
-    clf = PoniardClassifier(
-        estimators=[LogisticRegression()], cv=2, random_state=0
-    )
+    clf = PoniardClassifier(estimators=[LogisticRegression()], cv=2, random_state=0)
     clf.setup(X, y)
     clf.fit(X, y)
     results_before = clf.get_results()
@@ -44,9 +42,7 @@ def test_save_load_round_trip_classifier(tmp_path):
 
 def test_save_load_round_trip_regressor(tmp_path):
     X, y = _reg_data()
-    reg = PoniardRegressor(
-        estimators=[LinearRegression()], cv=2, random_state=0
-    )
+    reg = PoniardRegressor(estimators=[LinearRegression()], cv=2, random_state=0)
     reg.setup(X, y)
     reg.fit(X, y)
     results_before = reg.get_results()
@@ -61,25 +57,19 @@ def test_save_load_round_trip_regressor(tmp_path):
 
 def test_loaded_estimator_can_export_pipeline(tmp_path):
     X, y = _clf_data()
-    clf = PoniardClassifier(
-        estimators=[LogisticRegression()], cv=2, random_state=0
-    )
+    clf = PoniardClassifier(estimators=[LogisticRegression()], cv=2, random_state=0)
     clf.setup(X, y)
     clf.fit(X, y)
     path = tmp_path / "clf.joblib"
     clf.save(path)
     loaded = PoniardClassifier.load(path)
-    model = loaded.get_estimator(
-        "LogisticRegression", retrain=True, X=X, y=y
-    )
+    model = loaded.get_estimator("LogisticRegression", retrain=True, X=X, y=y)
     assert len(model.predict(X)) == len(X)
 
 
 def test_save_load_after_tuning(tmp_path):
     X, y = _clf_data()
-    clf = PoniardClassifier(
-        estimators=[LogisticRegression()], cv=2, random_state=0
-    )
+    clf = PoniardClassifier(estimators=[LogisticRegression()], cv=2, random_state=0)
     clf.setup(X, y)
     clf.fit(X, y)
     clf.tune_estimator(
