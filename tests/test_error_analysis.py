@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import warnings
 from collections.abc import Sequence
 
 import numpy as np
@@ -63,8 +64,10 @@ def multilabel_data():
         cv=2,
         random_state=0,
     )
-    clf.setup(X, y)
-    clf.fit(X, y)
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", message="TargetEncoder is not supported")
+        clf.setup(X, y)
+        clf.fit(X, y)
     return clf, X, y
 
 
@@ -95,8 +98,10 @@ def multioutput_reg_data():
     reg = PoniardRegressor(
         estimators={"lr": LinearRegression()}, cv=2, random_state=0
     )
-    reg.setup(X, y)
-    reg.fit(X, y)
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", message="TargetEncoder is not supported")
+        reg.setup(X, y)
+        reg.fit(X, y)
     return reg, X, y
 
 

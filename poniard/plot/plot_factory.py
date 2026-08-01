@@ -124,9 +124,8 @@ class PoniardPlotFactory:
         Figure
             Plotly strip or bar plot.
         """
-        results = self._estimator._long_results.replace(
-            "Classifier|Regressor", "", regex=True
-        )
+        results = self._estimator._long_results.copy()
+        results["Model"] = results["Model"].str.replace("Classifier|Regressor", "", regex=True)
         results = results.loc[~results["Metric"].isin(["fit_time", "score_time"])]
         if only_test:
             results = results.loc[results["Metric"].str.contains("test", case=False)]
@@ -208,9 +207,8 @@ class PoniardPlotFactory:
         """
         if not metric:
             metric = self._estimator._first_scorer(sklearn_scorer=False)
-        results = self._estimator._long_results.replace(
-            "Classifier|Regressor", "", regex=True
-        )
+        results = self._estimator._long_results.copy()
+        results["Model"] = results["Model"].str.replace("Classifier|Regressor", "", regex=True)
         results = results.loc[
             (results["Type"] == "Mean") & (results["Metric"].str.contains(metric))
         ]
@@ -293,7 +291,7 @@ class PoniardPlotFactory:
         importances["Type"] = "Repetition"
         aggs = (
             importances.groupby("Feature")["Importance"]
-            .agg(Mean=np.mean, Std=np.std)
+            .agg(Mean="mean", Std="std")
             .reset_index()
         )
         aggs = aggs.melt(id_vars="Feature", var_name="Type", value_name="Importance")

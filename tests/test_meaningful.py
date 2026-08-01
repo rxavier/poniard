@@ -639,7 +639,10 @@ class TestEdgeCases:
             cv=3,
             random_state=42,
         )
-        clf.fit(X, y)
+        import warnings
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", message="Skipping features without any observed values")
+            clf.fit(X, y)
         results = clf.get_results()
         assert results.shape[0] == 2
 
