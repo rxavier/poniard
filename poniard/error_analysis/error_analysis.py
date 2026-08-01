@@ -13,9 +13,9 @@ from sklearn.inspection import permutation_importance
 from sklearn.model_selection import train_test_split
 
 if TYPE_CHECKING:
-    from poniard.estimators.core import PoniardBaseEstimator
-from ..preprocessing import PoniardPreprocessor
-from ..utils.estimate import element_to_list_maybe, get_target_info
+    from poniard.estimators.core import EstimatorView
+from ..preprocessing import infer_feature_types
+from ..utils.estimate import coerce_input, element_to_list_maybe, get_target_info
 from ..utils.utils import non_default_repr
 
 
@@ -96,9 +96,9 @@ class ErrorAnalyzer:
     """
 
     def __init__(self, task: str):
-        self._init_params = {k: v for k, v in locals().items() if k != "self"}
+        self._init_params = {"task": task}
         self.task = task
-        self._poniard: PoniardBaseEstimator | None = None
+        self._poniard: EstimatorView | None = None
 
     @property
     def _has_poniard(self) -> bool:
@@ -107,7 +107,7 @@ class ErrorAnalyzer:
     @classmethod
     def from_poniard(
         cls,
-        poniard: PoniardBaseEstimator,
+        poniard: EstimatorView,
         estimator_names: str | Sequence[str] | None = None,
     ) -> ErrorAnalyzer:
         """Use a Poniard instance to instantiate `ErrorAnalyzer`.
@@ -132,15 +132,8 @@ class ErrorAnalyzer:
         error_analysis = cls(task=poniard.poniard_task)
         error_analysis._poniard = poniard
         if estimator_names is None:
-            from sklearn.dummy import DummyClassifier, DummyRegressor
-
             estimator_names = [
-                name
-                for name in poniard.pipelines
-                if not isinstance(
-                    poniard.pipelines[name]._final_estimator,
-                    (DummyClassifier, DummyRegressor),
-                )
+                name for name in poniard.pipelines if name not in poniard._dummy_names()
             ]
         error_analysis.estimator_names = element_to_list_maybe(estimator_names)
         error_analysis.type_of_target = poniard.target_info["type_"]
@@ -520,11 +513,9 @@ class ErrorAnalyzer:
         if self._has_poniard:
             feature_types = self._poniard.feature_types.items()
         else:
-            feature_types = (
-                PoniardPreprocessor(task="placeholder")
-                .build(X, np.zeros((X.shape[0],)))
-                .feature_types.items()
-            )
+            feature_types = infer_feature_types(
+                coerce_input(X), numeric_threshold=0.1, cardinality_threshold=20
+            ).items()
         inverted_feature_types = {}
         for k, v in feature_types:
             for i in v:

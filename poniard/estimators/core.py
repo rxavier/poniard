@@ -3,8 +3,8 @@ from __future__ import annotations
 import os
 import warnings
 from abc import ABC, abstractmethod
-from collections.abc import Callable, Iterable
-from typing import Sequence
+from collections.abc import Callable, Iterable, Sequence
+from typing import Protocol
 
 import joblib
 import numpy as np
@@ -23,11 +23,6 @@ from sklearn.pipeline import Pipeline
 from tqdm import tqdm
 
 try:
-    import polars as pl
-except ImportError:
-    pl = None
-
-try:
     from IPython.display import HTML, display
 
     _has_ipython = True
@@ -35,13 +30,45 @@ except ImportError:
     _has_ipython = False
 
 from ..preprocessing import PoniardPreprocessor
-from ..utils.estimate import element_to_list_maybe, get_target_info
+from ..utils.estimate import coerce_input, element_to_list_maybe, get_target_info
 from ..utils.utils import non_default_repr
 from .ensemble import EnsembleMixin
 from .results import ResultsMixin
 from .tuning import TuningMixin
 
-__all__ = ["PoniardBaseEstimator"]
+__all__ = ["PoniardBaseEstimator", "EstimatorView"]
+
+
+class EstimatorView(Protocol):
+    """Internal estimator surface used by plotting and error analysis.
+
+    Satellite modules (`PoniardPlotFactory`, `ErrorAnalyzer`) interact with a
+    Poniard estimator only through the members declared here. These are
+    private-by-convention but form a stable contract between the core estimator
+    and its satellites; reaching past this surface into implementation detail
+    is a defect.
+    """
+
+    poniard_task: str
+    pipelines: dict
+    feature_types: dict
+    target_info: dict
+    random_state: int
+    n_jobs: int | None
+    verbose: bool
+    cv: object
+    _means: pd.DataFrame | None
+    _stds: pd.DataFrame | None
+    _long_results: pd.DataFrame | None
+    _cv_results: dict
+
+    def get_results(self, *args, **kwargs) -> pd.DataFrame: ...
+    def pareto(self, *args, **kwargs) -> pd.DataFrame: ...
+    def get_predictions_similarity(self, X, y, on_errors: bool = True) -> pd.DataFrame: ...
+    def _first_scorer(self, sklearn_scorer: bool) -> str | Callable: ...
+    def _dummy_names(self) -> list[str]: ...
+    def _train_test_split_from_cv(self, X, y): ...
+    def _get_or_compute_prediction(self, X, y, estimator_name: str, method: str) -> np.ndarray: ...
 
 
 class PoniardBaseEstimator(ResultsMixin, EnsembleMixin, TuningMixin, ABC):
@@ -91,7 +118,16 @@ class PoniardBaseEstimator(ResultsMixin, EnsembleMixin, TuningMixin, ABC):
         n_jobs: int | None = None,
     ):
 
-        self._init_params = {k: v for k, v in locals().items() if k != "self"}
+        self._init_params = {
+            "estimators": estimators,
+            "metrics": metrics,
+            "preprocess": preprocess,
+            "custom_preprocessor": custom_preprocessor,
+            "cv": cv,
+            "verbose": verbose,
+            "random_state": random_state,
+            "n_jobs": n_jobs,
+        }
         if metrics and (
             (isinstance(metrics, Sequence) and not all(isinstance(m, str) for m in metrics))
             or (
@@ -186,14 +222,8 @@ class PoniardBaseEstimator(ResultsMixin, EnsembleMixin, TuningMixin, ABC):
         tuple
             The converted `X` and `y`, which `fit` uses for cross-validation.
         """
-        if pl is not None and isinstance(X, (pl.DataFrame, pl.Series)):
-            X = X.to_pandas()
-        if pl is not None and isinstance(y, (pl.DataFrame, pl.Series)):
-            y = y.to_pandas()
-        if not isinstance(X, (pd.DataFrame, pd.Series, np.ndarray)):
-            X = np.array(X)
-        if not isinstance(y, (pd.DataFrame, pd.Series, np.ndarray)):
-            y = np.array(y)
+        X = coerce_input(X)
+        y = coerce_input(y)
         self.show_info = show_info
         self.target_info = get_target_info(y, self.poniard_task)
         if self.target_info["type_"] == "multiclass-multioutput":
@@ -210,7 +240,7 @@ class PoniardBaseEstimator(ResultsMixin, EnsembleMixin, TuningMixin, ABC):
             if self.custom_preprocessor and not isinstance(
                 self.custom_preprocessor, PoniardPreprocessor
             ):
-                self.preprocessor = self.custom_preprocessor
+                self.preprocessor = clone(self.custom_preprocessor)
             else:
                 self.preprocessor = self._build_preprocessor(X, y)
             self._pass_instance_attrs(self.preprocessor)
@@ -315,11 +345,14 @@ class PoniardBaseEstimator(ResultsMixin, EnsembleMixin, TuningMixin, ABC):
     def _make_pipeline(self, name: str, estimator) -> Pipeline:
         """Create a Pipeline for an estimator, optionally including the preprocessor.
 
-        The wrapping pipeline is configured to output pandas DataFrames on
-        ``transform``. This propagates to any preprocessor step (including a
-        user-supplied custom one) so downstream code keeps the pandas contract
+        The estimator is cloned and configured (random_state, verbose) so the
+        user's original object is never mutated. The wrapping pipeline is
+        configured to output pandas DataFrames on ``transform``, propagating to
+        any preprocessor step so downstream code keeps the pandas contract
         without relying on a global sklearn config.
         """
+        estimator = clone(estimator)
+        self._pass_instance_attrs(estimator)
         if self.preprocess:
             pipe = Pipeline(
                 [("preprocessor", self.preprocessor), (name, estimator)],
@@ -348,7 +381,7 @@ class PoniardBaseEstimator(ResultsMixin, EnsembleMixin, TuningMixin, ABC):
                 pass
 
     @staticmethod
-    def _generate_estimator_name(estimator, existing_names: set[str], all_estimators: list) -> str:
+    def _generate_estimator_name(estimator, existing_names: set[str]) -> str:
         """Generate a name for an estimator.
 
         Default is the class name. If it clashes, append _2, _3, etc.
@@ -381,25 +414,18 @@ class PoniardBaseEstimator(ResultsMixin, EnsembleMixin, TuningMixin, ABC):
                 if isinstance(item, tuple):
                     name, estimator = item
                 else:
-                    name = self._generate_estimator_name(
-                        item, set(estimators.keys()), self.estimators
-                    )
+                    name = self._generate_estimator_name(item, set(estimators.keys()))
                     estimator = item
                 estimators[name] = estimator
         else:
             estimators = {}
             for estimator in self._default_estimators:
-                name = self._generate_estimator_name(
-                    estimator, set(estimators.keys()), self._default_estimators
-                )
+                name = self._generate_estimator_name(estimator, set(estimators.keys()))
                 estimators[name] = estimator
         estimators.update(self._added_estimators)
         for name in self._removed_estimators:
             estimators.pop(name, None)
         estimators = self._add_dummy_estimators(estimators)
-
-        for estimator in estimators.values():
-            self._pass_instance_attrs(estimator)
 
         pipelines = {
             name: self._make_pipeline(name, estimator) for name, estimator in estimators.items()
@@ -413,11 +439,11 @@ class PoniardBaseEstimator(ResultsMixin, EnsembleMixin, TuningMixin, ABC):
             return estimators
         if self.poniard_task == "classification":
             dummy = DummyClassifier(strategy="prior")
-            name = self._generate_estimator_name(dummy, existing_names, list(estimators.values()))
+            name = self._generate_estimator_name(dummy, existing_names)
             estimators[name] = dummy
         elif self.poniard_task == "regression":
             dummy = DummyRegressor(strategy="mean")
-            name = self._generate_estimator_name(dummy, existing_names, list(estimators.values()))
+            name = self._generate_estimator_name(dummy, existing_names)
             estimators[name] = dummy
         return estimators
 
@@ -508,7 +534,14 @@ class PoniardBaseEstimator(ResultsMixin, EnsembleMixin, TuningMixin, ABC):
         for i, name in enumerate(pbar):
             pbar.set_description(f"{name}")
             pipeline = self.pipelines[name]
-            try:
+            if not hasattr(pipeline, method):
+                warnings.warn(
+                    f"{name} does not support `{method}` method. Filling with nan.",
+                    stacklevel=2,
+                )
+                result = np.empty(y.shape)
+                result[:] = np.nan
+            else:
                 result = cross_val_predict(
                     pipeline,
                     X,
@@ -518,13 +551,6 @@ class PoniardBaseEstimator(ResultsMixin, EnsembleMixin, TuningMixin, ABC):
                     verbose=self.verbose,
                     n_jobs=self.n_jobs,
                 )
-            except AttributeError:
-                warnings.warn(
-                    f"{name} does not support `{method}` method. Filling with nan.",
-                    stacklevel=2,
-                )
-                result = np.empty(y.shape)
-                result[:] = np.nan
             results.update({name: result})
             self._prediction_cache[(name, method)] = result
 
@@ -685,7 +711,10 @@ class PoniardBaseEstimator(ResultsMixin, EnsembleMixin, TuningMixin, ABC):
             elif position == "end":
                 position = len(existing_preprocessor.steps)
         if isinstance(existing_preprocessor, Pipeline):
-            existing_preprocessor.steps.insert(position, step)
+            # Work on a clone so a user-supplied custom preprocessor is never
+            # mutated in place; pipelines are rebuilt below with the result.
+            self.preprocessor = clone(existing_preprocessor)
+            self.preprocessor.steps.insert(position, step)
         else:
             if isinstance(position, int):
                 raise ValueError(
@@ -729,17 +758,14 @@ class PoniardBaseEstimator(ResultsMixin, EnsembleMixin, TuningMixin, ABC):
         else:
             new_estimators = {}
             existing_names = set(self.pipelines.keys())
-            all_estimators = list(estimators)
             for item in estimators:
                 if isinstance(item, tuple):
                     name, estimator = item
                 else:
-                    name = self._generate_estimator_name(item, existing_names, all_estimators)
+                    name = self._generate_estimator_name(item, existing_names)
                     estimator = item
                     existing_names.add(name)
                 new_estimators[name] = estimator
-        for new_estimator in new_estimators.values():
-            self._pass_instance_attrs(new_estimator)
         self._added_estimators.update(new_estimators)
         self._removed_estimators = [
             name for name in self._removed_estimators if name not in new_estimators

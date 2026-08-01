@@ -2,10 +2,9 @@ from __future__ import annotations
 
 __all__ = ["PoniardRegressor"]
 
-from collections.abc import Callable
-from typing import Sequence
+from collections.abc import Callable, Sequence
 
-from sklearn.base import RegressorMixin, TransformerMixin
+from sklearn.base import RegressorMixin, TransformerMixin, clone
 from sklearn.ensemble import (
     HistGradientBoostingRegressor,
     RandomForestRegressor,
@@ -109,5 +108,7 @@ class PoniardRegressor(PoniardBaseEstimator):
         if isinstance(cv, int):
             return KFold(n_splits=cv, shuffle=True, random_state=self.random_state)
         else:
+            if isinstance(cv, (BaseCrossValidator, BaseShuffleSplit)):
+                cv = clone(cv, safe=False)
             self._pass_instance_attrs(cv)
             return cv
