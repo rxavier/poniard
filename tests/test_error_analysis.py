@@ -574,3 +574,62 @@ def test_analyze_multiclass_string_labels():
     clf.fit(X, y)
     report = ErrorAnalyzer.from_poniard(clf).analyze(X, y)
     assert set(report.summary.index) == {"lr"}
+
+
+def test_analyze_caches_cv_predictions():
+    """Repeated analyze() must reuse cached CV predictions, not rerun them."""
+    from unittest import mock
+
+    from sklearn.model_selection import cross_val_predict as real_cross_val_predict
+
+    X = pd.DataFrame({"a": np.random.normal(size=N), "b": np.random.normal(size=N)})
+    y = pd.Series(np.random.choice([0, 1], size=N))
+    clf = PoniardClassifier(
+        estimators={"lr": LogisticRegression(max_iter=5000)}, cv=2, random_state=0
+    )
+    clf.setup(X, y)
+    clf.fit(X, y)
+    ea = ErrorAnalyzer.from_poniard(clf)
+
+    with mock.patch(
+        "poniard.estimators.core.cross_val_predict", wraps=real_cross_val_predict
+    ) as spy:
+        ea.analyze(X=X, y=y)
+        first = spy.call_count
+        ea.analyze(X=X, y=y)
+        second = spy.call_count
+
+    # One proba CV pass per estimator on the first analyze; none on the second.
+    assert first == len(ea.estimator_names)
+    assert second == first
+
+
+def test_proba_derived_predictions_match_predict():
+    """Hard predictions derived from probas must equal the CV predict output."""
+    X = pd.DataFrame({"a": np.random.normal(size=N), "b": np.random.normal(size=N)})
+    y = pd.Series(np.random.choice([0, 1], size=N))
+    clf = PoniardClassifier(
+        estimators={"lr": LogisticRegression(max_iter=5000)}, cv=2, random_state=0
+    )
+    clf.setup(X, y)
+    clf.fit(X, y)
+    ea = ErrorAnalyzer.from_poniard(clf)
+
+    predictions, probas = ea._compute_predictions(X, y)
+    hard = clf.predict(X=X, y=y)
+    for name in predictions:
+        np.testing.assert_array_equal(predictions[name], hard[name])
+    assert probas["lr"].shape == (N, 2)
+
+
+def test_analyze_falls_back_without_predict_proba():
+    """Estimators lacking predict_proba must still be analyzed via predict()."""
+    from sklearn.svm import LinearSVC
+
+    X = pd.DataFrame({"a": np.random.normal(size=N), "b": np.random.normal(size=N)})
+    y = pd.Series(np.random.choice([0, 1], size=N))
+    clf = PoniardClassifier(estimators={"svc": LinearSVC(max_iter=5000)}, cv=2, random_state=0)
+    clf.setup(X, y)
+    clf.fit(X, y)
+    report = ErrorAnalyzer.from_poniard(clf).analyze(X=X, y=y)
+    assert "svc" in report.summary.index
