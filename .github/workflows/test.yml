@@ -30,8 +30,11 @@ jobs:
       - name: Lint
         run: uv run ruff check poniard/ tests/
 
-      - name: Test
-        run: uv run pytest
+      - name: Format check
+        run: uv run ruff format --check poniard/ tests/
+
+      - name: Test (with coverage gate)
+        run: uv run pytest --cov=poniard --cov-report=term-missing --cov-fail-under=85
 
   publish:
     if: startsWith(github.ref, 'refs/tags')
