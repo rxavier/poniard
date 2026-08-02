@@ -357,7 +357,7 @@ class PoniardPlotFactory:
         y = self._y
         if y.ndim > 1:
             raise ValueError("ROC curve is only available for binary classification.")
-        results = self._estimator._experiment_results
+        results = self._estimator._cv_results
         estimator_names = element_to_list_maybe(estimator_names)
         if not estimator_names:
             estimator_names = list(results.keys())

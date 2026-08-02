@@ -114,7 +114,7 @@ class ResultsMixin:
         for metric in metric_cols:
             fold_data = {}
             for name in names:
-                raw = self._experiment_results[name].get(metric)
+                raw = self._cv_results[name].get(metric)
                 if raw is None:
                     continue
                 fold_data[name] = np.array(raw)
@@ -261,15 +261,7 @@ class ResultsMixin:
         Also computes per-sample fit and score times when fold sizes are
         available (set by ``PoniardBaseEstimator.fit``).
         """
-        results = pd.DataFrame(self._experiment_results).T
-        results = results.loc[
-            :,
-            [
-                x
-                for x in results.columns
-                if x not in ["predict", "predict_proba", "decision_function"]
-            ],
-        ]
+        results = pd.DataFrame(self._cv_results).T
         means = results.apply(lambda x: np.mean(np.stack(x.values), axis=1))
         stds = results.apply(lambda x: np.std(np.stack(x.values), axis=1))
         time_columns = ["fit_time", "score_time"]
@@ -278,13 +270,13 @@ class ResultsMixin:
         stds = stds[metric_columns + time_columns]
 
         # Per-sample times: divide fold times by test fold sizes
-        fold_sizes = getattr(self, "_fold_sizes", None)
+        fold_sizes = self._fold_sizes
         if fold_sizes is not None:
             sizes = np.array(fold_sizes, dtype=float)
             per_sample_cols = {}
             for estimator_name in means.index:
-                raw_fit = np.array(self._experiment_results[estimator_name].get("fit_time", []))
-                raw_score = np.array(self._experiment_results[estimator_name].get("score_time", []))
+                raw_fit = np.array(self._cv_results[estimator_name].get("fit_time", []))
+                raw_score = np.array(self._cv_results[estimator_name].get("score_time", []))
                 fit_ps = np.mean(raw_fit / sizes) if len(raw_fit) == len(sizes) else np.nan
                 score_ps = np.mean(raw_score / sizes) if len(raw_score) == len(sizes) else np.nan
                 per_sample_cols.setdefault("fit_time_per_sample", []).append(fit_ps)
@@ -298,7 +290,7 @@ class ResultsMixin:
 
     def _process_long_results(self) -> None:
         """Prepare experiment results for plotting."""
-        base = pd.DataFrame(self._experiment_results).T
+        base = pd.DataFrame(self._cv_results).T
         melted = (
             base.rename_axis("Model")
             .reset_index()

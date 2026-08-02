@@ -39,7 +39,7 @@ def test_save_load_round_trip_classifier(tmp_path):
 
     assert isinstance(loaded, PoniardClassifier)
     pd.testing.assert_frame_equal(loaded.get_results(), results_before)
-    assert loaded._experiment_results.keys() == clf._experiment_results.keys()
+    assert loaded._cv_results.keys() == clf._cv_results.keys()
 
 
 def test_save_load_round_trip_regressor(tmp_path):

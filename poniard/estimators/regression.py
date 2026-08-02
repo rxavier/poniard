@@ -78,6 +78,11 @@ class PoniardRegressor(PoniardBaseEstimator):
         )
 
     @property
+    def poniard_task(self) -> str:
+        """Return the task name."""
+        return "regression"
+
+    @property
     def _default_estimators(self) -> list[RegressorMixin]:
         return [
             LinearRegression(),

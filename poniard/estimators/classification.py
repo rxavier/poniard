@@ -78,6 +78,11 @@ class PoniardClassifier(PoniardBaseEstimator):
         )
 
     @property
+    def poniard_task(self) -> str:
+        """Return the task name."""
+        return "classification"
+
+    @property
     def _default_estimators(self) -> list[ClassifierMixin]:
         return [
             LogisticRegression(
