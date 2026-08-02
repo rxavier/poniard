@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
+from typing import Literal
 
 import numpy as np
 from sklearn.ensemble import (
@@ -18,12 +19,12 @@ class EnsembleMixin:
 
     def build_ensemble(
         self,
-        method: str = "stacking",
+        method: Literal["stacking", "voting"] = "stacking",
         estimator_names: Sequence[str] | None = None,
         top_n: int | None = 3,
         sort_by: str | None = None,
         ensemble_name: str | None = None,
-        strategy: str = "diversity",
+        strategy: Literal["diversity", "top_n"] = "diversity",
         similarity_threshold: float = 0.5,
         X=None,
         y=None,

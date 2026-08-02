@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
+from typing import Literal
 
 import numpy as np
 import pandas as pd
@@ -10,6 +11,9 @@ try:
     import polars as pl
 except ImportError:
     pl = None
+
+Task = Literal["regression", "classification"]
+"""The two supported tasks."""
 
 
 def coerce_input(X):
@@ -25,7 +29,7 @@ def coerce_input(X):
     return X
 
 
-def get_target_info(y: pd.DataFrame | pd.Series | np.ndarray, task: str) -> dict:
+def get_target_info(y: pd.DataFrame | pd.Series | np.ndarray, task: Task) -> dict:
     """Return a dict containing basic information about the target array."""
     y = np.array(y)
     type_of_target_ = type_of_target(y)

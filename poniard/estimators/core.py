@@ -7,7 +7,7 @@ import warnings
 from abc import ABC, abstractmethod
 from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass
-from typing import Protocol
+from typing import Literal, Protocol
 
 import joblib
 import numpy as np
@@ -33,13 +33,16 @@ except ImportError:
     _has_ipython = False
 
 from ..preprocessing import PoniardPreprocessor
-from ..utils.estimate import coerce_input, element_to_list_maybe, get_target_info
+from ..utils.estimate import Task, coerce_input, element_to_list_maybe, get_target_info
 from ..utils.utils import non_default_repr
 from .ensemble import EnsembleMixin
 from .results import ResultsMixin
 from .tuning import TuningMixin
 
 __all__ = ["PoniardBaseEstimator", "EstimatorView"]
+
+PredictionMethod = Literal["predict", "predict_proba", "predict_log_proba", "decision_function"]
+"""Prediction methods accepted by ``_predict`` and the internal prediction cache."""
 
 
 def _array_fingerprint(arr) -> str:
@@ -88,7 +91,7 @@ class EstimatorView(Protocol):
     is a defect.
     """
 
-    poniard_task: str
+    poniard_task: Task
     pipelines: dict
     feature_types: dict
     target_info: dict
@@ -107,7 +110,9 @@ class EstimatorView(Protocol):
     def _first_scorer(self, sklearn_scorer: bool) -> str | Callable: ...
     def _dummy_names(self) -> list[str]: ...
     def _train_test_split_from_cv(self, X, y): ...
-    def _get_or_compute_prediction(self, X, y, estimator_name: str, method: str) -> np.ndarray: ...
+    def _get_or_compute_prediction(
+        self, X, y, estimator_name: str, method: PredictionMethod
+    ) -> np.ndarray: ...
 
 
 class PoniardBaseEstimator(ResultsMixin, EnsembleMixin, TuningMixin, ABC):
@@ -214,7 +219,7 @@ class PoniardBaseEstimator(ResultsMixin, EnsembleMixin, TuningMixin, ABC):
 
     @property
     @abstractmethod
-    def poniard_task(self) -> str:
+    def poniard_task(self) -> Task:
         """Return the task name: "regression" or "classification".
 
         Implemented by `PoniardClassifier` and `PoniardRegressor`, so no
@@ -553,7 +558,11 @@ class PoniardBaseEstimator(ResultsMixin, EnsembleMixin, TuningMixin, ABC):
         return self
 
     def _predict(
-        self, method: str, X, y, estimator_names: Sequence[str] | None = None
+        self,
+        method: PredictionMethod,
+        X,
+        y,
+        estimator_names: Sequence[str] | None = None,
     ) -> dict[str, np.ndarray]:
         """Helper method for predicting targets or target probabilities with cross validation.
         Accepts predict, predict_proba, predict_log_proba or decision_function.
@@ -720,7 +729,7 @@ class PoniardBaseEstimator(ResultsMixin, EnsembleMixin, TuningMixin, ABC):
             | ColumnTransformer
             | tuple[str, Pipeline | TransformerMixin | ColumnTransformer]
         ),
-        position: str | int = "end",
+        position: Literal["start", "end"] | int = "end",
     ) -> Pipeline:
         """Add a preprocessing step.
 
@@ -954,7 +963,7 @@ class PoniardBaseEstimator(ResultsMixin, EnsembleMixin, TuningMixin, ABC):
             if hasattr(obj, attr):
                 setattr(obj, attr, value)
 
-    def _get_or_compute_prediction(self, X, y, estimator_name: str, method: str):
+    def _get_or_compute_prediction(self, X, y, estimator_name: str, method: PredictionMethod):
         """Get predictions (either predict, predict_proba or decision_function) for a given
         estimator, reusing the cache only when the input data hashes to the same fingerprint."""
         key = (estimator_name, method)

@@ -3,6 +3,7 @@ from __future__ import annotations
 __all__ = ["PoniardClassifier"]
 
 from collections.abc import Callable, Sequence
+from typing import Literal
 
 from sklearn.base import ClassifierMixin, TransformerMixin, clone
 from sklearn.ensemble import (
@@ -77,7 +78,7 @@ class PoniardClassifier(PoniardBaseEstimator):
         )
 
     @property
-    def poniard_task(self) -> str:
+    def poniard_task(self) -> Literal["classification"]:
         """Return the task name."""
         return "classification"
 

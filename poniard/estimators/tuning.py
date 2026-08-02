@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Literal
+
 from sklearn.base import clone
 from sklearn.experimental import enable_halving_search_cv  # noqa: F401
 from sklearn.model_selection import (
@@ -18,7 +20,7 @@ class TuningMixin:
         X,
         y,
         grid: dict | None = None,
-        mode: str = "grid",
+        mode: Literal["grid", "random", "halving"] = "grid",
         tuned_estimator_name: str | None = None,
         **kwargs,
     ):

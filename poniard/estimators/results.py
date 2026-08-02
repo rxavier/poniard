@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import itertools
 from collections.abc import Callable, Sequence
+from typing import Literal
 
 import numpy as np
 import pandas as pd
@@ -9,6 +10,9 @@ from sklearn.dummy import DummyClassifier, DummyRegressor
 
 from ..utils.estimate import element_to_list_maybe
 from ..utils.stats import cramers_v
+
+TimeColumn = Literal["fit_time", "score_time", "fit_time_per_sample", "score_time_per_sample"]
+"""Time columns available in ``get_results`` for time/quality helpers."""
 
 
 class ResultsMixin:
@@ -146,7 +150,7 @@ class ResultsMixin:
         df = df.set_index(["metric", "estimator_a", "estimator_b"])
         return df
 
-    def pareto(self, metric: str | None = None, time_col: str = "fit_time") -> pd.DataFrame:
+    def pareto(self, metric: str | None = None, time_col: TimeColumn = "fit_time") -> pd.DataFrame:
         """Return the Pareto-optimal set of estimators (best metric vs lowest time).
 
         An estimator is Pareto-optimal if no other estimator is both faster
@@ -202,7 +206,7 @@ class ResultsMixin:
         self,
         seconds: float = 2.0,
         metric: str | None = None,
-        time_col: str = "fit_time",
+        time_col: TimeColumn = "fit_time",
     ) -> str:
         """Return the name of the best non-dummy estimator under a time budget.
 
