@@ -412,7 +412,7 @@ class TestResults:
         """DummyClassifier(strategy='prior') on balanced data should get ~0.5 accuracy."""
         X, y = classification_data
         clf = PoniardClassifier(
-            estimators=[],
+            estimators=[LogisticRegression()],
             cv=3,
             random_state=42,
         )

@@ -4,7 +4,7 @@ from sklearn.datasets import make_classification
 
 from poniard import PoniardClassifier
 
-X, y = make_classification(n_samples=200, n_features=10, random_state=42)
+X, y = make_classification(n_samples=100, n_features=10, random_state=42)
 
 # Type inference, preprocessing, and cross-validation for every estimator,
 # plus an automatic dummy baseline.

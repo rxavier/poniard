@@ -6,7 +6,7 @@ from sklearn.linear_model import LogisticRegression
 from poniard import PoniardClassifier
 from poniard.plot import PoniardPlotFactory
 
-X, y = make_classification(n_samples=200, n_features=8, random_state=42)
+X, y = make_classification(n_samples=150, n_features=8, random_state=42)
 
 clf = PoniardClassifier(estimators=[LogisticRegression()])
 clf.fit(X, y, show_info=False)

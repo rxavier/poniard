@@ -1,15 +1,15 @@
 """Error analysis: where and why your models fail."""
 
 from sklearn.datasets import make_classification
-from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
+from sklearn.tree import DecisionTreeClassifier
 
 from poniard import PoniardClassifier
 from poniard.error_analysis import ErrorAnalyzer
 
-X, y = make_classification(n_samples=300, n_features=12, n_informative=6, random_state=42)
+X, y = make_classification(n_samples=200, n_features=12, n_informative=6, random_state=42)
 
-clf = PoniardClassifier(estimators=[LogisticRegression(), RandomForestClassifier(random_state=0)])
+clf = PoniardClassifier(estimators=[LogisticRegression(), DecisionTreeClassifier()])
 clf.fit(X, y, show_info=False)
 
 # One call runs the full workflow and packages it into a structured report.
