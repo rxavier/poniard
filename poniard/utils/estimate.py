@@ -6,6 +6,24 @@ import numpy as np
 import pandas as pd
 from sklearn.utils.multiclass import type_of_target
 
+try:
+    import polars as pl
+except ImportError:
+    pl = None
+
+
+def coerce_input(X):
+    """Convert polars input to pandas and coerce other sequences to numpy.
+
+    Shared by the estimator and preprocessor configuration paths so both
+    accept the same input types (polars, pandas, numpy, lists).
+    """
+    if pl is not None and isinstance(X, (pl.DataFrame, pl.Series)):
+        X = X.to_pandas()
+    if not isinstance(X, (pd.DataFrame, pd.Series, np.ndarray)):
+        X = np.array(X)
+    return X
+
 
 def get_target_info(y: pd.DataFrame | pd.Series | np.ndarray, task: str) -> dict:
     """Return a dict containing basic information about the target array."""

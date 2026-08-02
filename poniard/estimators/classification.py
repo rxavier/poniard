@@ -2,10 +2,9 @@ from __future__ import annotations
 
 __all__ = ["PoniardClassifier"]
 
-from collections.abc import Callable
-from typing import Sequence
+from collections.abc import Callable, Sequence
 
-from sklearn.base import ClassifierMixin, TransformerMixin
+from sklearn.base import ClassifierMixin, TransformerMixin, clone
 from sklearn.ensemble import (
     HistGradientBoostingClassifier,
     RandomForestClassifier,
@@ -130,5 +129,7 @@ class PoniardClassifier(PoniardBaseEstimator):
             else:
                 return KFold(n_splits=cv, shuffle=True, random_state=self.random_state)
         else:
+            if isinstance(cv, (BaseCrossValidator, BaseShuffleSplit)):
+                cv = clone(cv, safe=False)
             self._pass_instance_attrs(cv)
             return cv

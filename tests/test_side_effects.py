@@ -213,3 +213,41 @@ def test_plot_factory_does_not_fit_stored_pipelines():
 
     plotter.partial_dependence("LogisticRegression", feature=0)
     assert not hasattr(clf.pipelines["LogisticRegression"], "classes_")
+
+
+def test_does_not_mutate_user_estimators_or_cv():
+    """User-supplied estimators and CV splitters must not be mutated."""
+    from sklearn.model_selection import KFold
+
+    lr = LogisticRegression()
+    kf = KFold(n_splits=2, shuffle=True, random_state=123)
+    X = pd.DataFrame(np.random.normal(size=(30, 3)), columns=list("abc"))
+    y = np.random.choice([0, 1], size=30)
+
+    clf = PoniardClassifier(estimators=[lr], cv=kf, random_state=0)
+    clf.setup(X, y)
+    clf.fit(X, y)
+
+    assert lr.random_state is None
+    assert kf.random_state == 123
+    assert clf.cv is not kf
+
+
+def test_does_not_mutate_custom_preprocessor():
+    """The user's custom preprocessor must not be mutated by Poniard."""
+    from sklearn.pipeline import Pipeline
+    from sklearn.preprocessing import StandardScaler
+
+    custom = Pipeline([("scaler", StandardScaler())])
+    X = pd.DataFrame(np.random.normal(size=(30, 3)), columns=list("abc"))
+    y = np.random.choice([0, 1], size=30)
+
+    clf = PoniardClassifier(
+        estimators=[LogisticRegression()], custom_preprocessor=custom, cv=2, random_state=0
+    )
+    clf.setup(X, y)
+    assert clf.preprocessor is not custom
+    assert len(custom.steps) == 1
+
+    clf.add_preprocessing_step(("s2", StandardScaler()))
+    assert len(custom.steps) == 1

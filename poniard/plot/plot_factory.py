@@ -13,7 +13,7 @@ from sklearn.inspection import partial_dependence, permutation_importance
 from sklearn.metrics import auc, confusion_matrix, roc_curve
 
 if TYPE_CHECKING:
-    from poniard.estimators.core import PoniardBaseEstimator
+    from poniard.estimators.core import EstimatorView
 from ..utils.estimate import element_to_list_maybe
 
 try:
@@ -48,12 +48,12 @@ class PoniardPlotFactory:
         self,
         X,
         y,
-        estimator: PoniardBaseEstimator,
+        estimator: EstimatorView,
         **plot_config,
     ):
         self._X = X
         self._y = y
-        self._estimator = estimator
+        self._estimator: EstimatorView = estimator
 
         self._template = plot_config.get("template", "plotly_white")
         self._discrete_colors = plot_config.get("discrete_colors", px.colors.qualitative.Bold)
@@ -342,6 +342,8 @@ class PoniardPlotFactory:
             raise ValueError("ROC curve is not available for regressors.")
         y = self._y
         if y.ndim > 1:
+            raise ValueError("ROC curve is only available for binary classification.")
+        if len(np.unique(y)) != 2:
             raise ValueError("ROC curve is only available for binary classification.")
         results = self._estimator._cv_results
         estimator_names = element_to_list_maybe(estimator_names)
@@ -716,7 +718,6 @@ class PoniardPlotFactory:
     def error_lift_bars(
         self,
         lift_by_target: pd.DataFrame | None = None,
-        estimator_names: str | Sequence[str] | None = None,
         top_n: int | None = None,
     ) -> Figure:
         """Bar chart of error lift by target class or bin.
@@ -727,12 +728,8 @@ class PoniardPlotFactory:
         Parameters
         ----------
         lift_by_target :
-            From ``ErrorReport.lift_by_target``. If None, computes it from
-            the estimator's last ``ErrorAnalyzer.analyze()`` call (requires
-            ``ErrorAnalyzer`` to have been run).
-        estimator_names :
-            Not used for this plot (lift is cross-estimator). Kept for
-            API consistency.
+            From ``ErrorReport.lift_by_target``. Required: pass
+            ``ErrorAnalyzer.from_poniard(clf).analyze(X, y).lift_by_target``.
         top_n :
             Show only the top N classes/bins by lift. Default None (all).
 
@@ -835,8 +832,6 @@ class PoniardPlotFactory:
         Figure
             Plotly scatter plot.
         """
-        from sklearn.dummy import DummyClassifier, DummyRegressor
-
         results = self._estimator.get_results()
         if metric is None:
             metric = results.columns[0]
@@ -848,10 +843,7 @@ class PoniardPlotFactory:
         pareto = self._estimator.pareto(metric=metric, time_col=time_col)
         pareto_names = set(pareto.index)
 
-        dummy = set()
-        for name, pipeline in self._estimator.pipelines.items():
-            if isinstance(pipeline._final_estimator, (DummyClassifier, DummyRegressor)):
-                dummy.add(name)
+        dummy = set(self._estimator._dummy_names())
 
         df = results[[metric, time_col]].copy()
         df["type"] = "model"
