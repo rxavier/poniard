@@ -146,3 +146,42 @@ def test_add_step(new_step, position, existing_step):
     reg = PoniardRegressor(custom_preprocessor=existing_step).setup(X, y)
     reg.add_preprocessing_step(new_step, position)
     assert isinstance(reg.preprocessor, Pipeline)
+
+
+def test_feature_names_stable_across_type_compositions():
+    base = pd.DataFrame(
+        {
+            "A": [1.0, 2.0, 3.0, 4.0, 5.0],
+            "B": ["a", "b", "a", "b", "a"],
+            "D": pd.date_range("2020-01-01", periods=5),
+        }
+    )
+    y = np.array([0, 1, 0, 1, 0])
+    pp_full = PoniardPreprocessor().build(X=base, y=y, task="classification")
+    pp_numeric = PoniardPreprocessor().build(X=base[["A"]], y=y, task="classification")
+    pp_full.preprocessor.fit(base, y)
+    pp_numeric.preprocessor.fit(base[["A"]], y)
+    full_names = pp_full.preprocessor.get_feature_names_out()
+    numeric_names = pp_numeric.preprocessor.get_feature_names_out()
+    assert list(full_names) == ["A", "B_b", "D_day", "D_weekday", "D_dayofyear"]
+    assert list(numeric_names) == ["A"]
+
+
+def test_datetime_features_scaled_and_imputed():
+    dates = pd.date_range("2020-01-01", freq="h", periods=99).to_list()
+    dates.insert(0, pd.NaT)
+    X = pd.DataFrame({"D": dates})
+    y = np.random.RandomState(0).randint(0, 2, size=100)
+    pp = PoniardPreprocessor().build(X=X, y=y, task="classification")
+    out = pp.preprocessor.fit_transform(X, y)
+    assert not out.isna().any().any()
+    assert {"D_day", "D_hour", "D_weekday", "D_dayofyear"} <= set(out.columns)
+    for col in ("D_day", "D_hour", "D_weekday", "D_dayofyear"):
+        assert np.allclose(out[col].mean(), 0, atol=1e-8)
+        assert np.allclose(out[col].std(ddof=0), 1, atol=1e-8)
+
+
+def test_build_without_data_raises_clear_error():
+    pp = PoniardPreprocessor(task="classification")
+    with pytest.raises(ValueError, match="X and y must be passed to build"):
+        pp.build()
