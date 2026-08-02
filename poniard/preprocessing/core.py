@@ -65,6 +65,9 @@ def infer_feature_types(
     categorical_low: list = []
     datetime_cols: list = []
 
+    if isinstance(X, np.ndarray):
+        X = pd.DataFrame(X)
+
     cardinality_threshold = (
         cardinality_threshold
         if isinstance(cardinality_threshold, int)
@@ -76,44 +79,25 @@ def infer_feature_types(
         else int(numeric_threshold * X.shape[0])
     )
 
-    if isinstance(X, pd.DataFrame):
-        for col in X.columns:
-            dtype = X[col].dtype
-            nunique = X[col].nunique()
+    for col in X.columns:
+        dtype = X[col].dtype
+        nunique = X[col].nunique()
 
-            if pd.api.types.is_datetime64_any_dtype(dtype):
-                datetime_cols.append(col)
-            elif pd.api.types.is_numeric_dtype(dtype):
-                if nunique > numeric_threshold:
-                    numeric.append(col)
-                elif nunique > cardinality_threshold:
-                    categorical_high.append(col)
-                else:
-                    categorical_low.append(col)
+        if pd.api.types.is_datetime64_any_dtype(dtype):
+            datetime_cols.append(col)
+        elif pd.api.types.is_numeric_dtype(dtype) and not pd.api.types.is_bool_dtype(dtype):
+            if nunique > numeric_threshold:
+                numeric.append(col)
+            elif nunique > cardinality_threshold:
+                categorical_high.append(col)
             else:
-                # strings, objects, categorical, boolean
-                if nunique > cardinality_threshold:
-                    categorical_high.append(col)
-                else:
-                    categorical_low.append(col)
-    else:
-        for i in range(X.shape[1]):
-            col = X[:, i]
-            nunique = len(np.unique(col))
-            if np.issubdtype(col.dtype, np.datetime64):
-                datetime_cols.append(i)
-            elif np.issubdtype(col.dtype, np.number):
-                if nunique > numeric_threshold:
-                    numeric.append(i)
-                elif nunique > cardinality_threshold:
-                    categorical_high.append(i)
-                else:
-                    categorical_low.append(i)
+                categorical_low.append(col)
+        else:
+            # strings, objects, categorical, boolean
+            if nunique > cardinality_threshold:
+                categorical_high.append(col)
             else:
-                if nunique > cardinality_threshold:
-                    categorical_high.append(i)
-                else:
-                    categorical_low.append(i)
+                categorical_low.append(col)
 
     return {
         "numeric": numeric,
