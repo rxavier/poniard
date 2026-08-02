@@ -10,6 +10,7 @@ from sklearn.preprocessing import StandardScaler
 
 from poniard import PoniardClassifier, PoniardRegressor
 from poniard.preprocessing import PoniardPreprocessor, infer_feature_types
+from poniard.preprocessing.datetime import DateLevel, DatetimeEncoder
 
 
 @pytest.mark.parametrize(
@@ -228,3 +229,43 @@ def test_inference_parity_dataframe_vs_ndarray(array, frame):
     from_array = infer_feature_types(array, numeric_threshold=2, cardinality_threshold=3)
     from_frame = infer_feature_types(frame, numeric_threshold=2, cardinality_threshold=3)
     assert from_array == from_frame
+
+
+def test_categorical_imputer_constant_creates_missing_category():
+    X = pd.DataFrame({"cat": ["a", "b", np.nan, "a", "b"]})
+    y = np.array([0, 1, 0, 1, 0])
+    pp = PoniardPreprocessor(categorical_imputer="constant").build(X=X, y=y, task="classification")
+    out = pp.preprocessor.fit_transform(X, y)
+    assert "cat_missing" in out.columns
+
+
+def test_cyclical_datetime_emits_sin_cos_pairs():
+    X = pd.DataFrame({"D": pd.date_range("2020-01-01", freq="h", periods=100)})
+    y = np.random.RandomState(0).randint(0, 2, size=100)
+    pp = PoniardPreprocessor(cyclical_datetime=True).build(X=X, y=y, task="classification")
+    out = pp.preprocessor.fit_transform(X, y)
+    cols = set(out.columns)
+    assert {"D_hour_sin", "D_hour_cos"} <= cols
+    assert {"D_dayofyear_sin", "D_dayofyear_cos"} <= cols
+
+
+def test_datetime_encoder_cyclical_wrap_around():
+    enc = DatetimeEncoder(levels=[DateLevel.HOUR], cyclical=True)
+    X = pd.DataFrame({"D": pd.to_datetime(["2020-01-01 23:00", "2020-01-02 00:00"])})
+    enc.fit(X)
+    out = enc.transform(X)
+    assert out.shape == (2, 2)
+    assert np.allclose(out[0, 0], out[1, 0], atol=0.5)
+    assert np.allclose(out[0, 1], out[1, 1], atol=0.5)
+    assert enc.get_feature_names_out() == ["D_hour_sin", "D_hour_cos"]
+
+
+def test_ordinal_encoder_unknown_yields_nan():
+    X = pd.DataFrame({"high": [f"cat_{i}" for i in range(50)]})
+    y = np.random.RandomState(0).randint(0, 2, size=50)
+    pp = PoniardPreprocessor(high_cardinality_encoder="ordinal", cardinality_threshold=5).build(
+        X=X, y=y, task="classification"
+    )
+    pp.preprocessor.fit(X, y)
+    out = pp.preprocessor.transform(pd.DataFrame({"high": ["unseen"]}))
+    assert np.isnan(out.iloc[0, 0])
