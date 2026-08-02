@@ -11,6 +11,13 @@ from sklearn.utils.validation import validate_data
 __all__ = ["DatetimeEncoder"]
 
 
+def _is_string_typed(X: pd.DataFrame) -> bool:
+    """Whether the first column is string-like (object, str, or pandas ``string``)."""
+    return pd.api.types.is_string_dtype(X.dtypes.iloc[0]) and not isinstance(
+        X.dtypes.iloc[0], pd.CategoricalDtype
+    )
+
+
 class DateLevel(Enum):
     """An enum representing different date levels."""
 
@@ -93,7 +100,7 @@ class DatetimeEncoder(BaseEstimator, TransformerMixin):
                 raise ValueError(
                     "If data contains more than one type, they all have to be datetime64 (any)."
                 )
-            elif X.dtypes.iloc[0] in (object, str):
+            elif _is_string_typed(X):
                 X = X.apply(pd.to_datetime, format=self.fmt)
             input_names = list(X.columns)
         else:
@@ -141,7 +148,7 @@ class DatetimeEncoder(BaseEstimator, TransformerMixin):
                 raise ValueError(
                     "If data contains more than one type, they all have to be datetime64 (any)."
                 )
-            elif X.dtypes.iloc[0] in (object, str):
+            elif _is_string_typed(X):
                 X = X.apply(pd.to_datetime, format=self.fmt)
         X = validate_data(self, X=X, y=None, ensure_all_finite="allow-nan", reset=False)
 
@@ -160,7 +167,7 @@ class DatetimeEncoder(BaseEstimator, TransformerMixin):
                     all_encoded.append(encoded)
         return np.column_stack(all_encoded)
 
-    def get_feature_names_out(self, input_features=None) -> list[str]:
+    def get_feature_names_out(self, input_features=None) -> np.ndarray:
         """Get feature names for output."""
         feature_names = []
         input_names = getattr(self, "feature_names_in_", None)
@@ -172,4 +179,4 @@ class DatetimeEncoder(BaseEstimator, TransformerMixin):
                     feature_names.append(f"{prefix}_{level.value}_cos")
                 else:
                     feature_names.append(f"{prefix}_{level.value}")
-        return feature_names
+        return np.asarray(feature_names)
