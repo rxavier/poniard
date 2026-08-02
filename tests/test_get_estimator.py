@@ -27,9 +27,7 @@ def _data():
 
 def _fitted_clf():
     X, y = _data()
-    clf = PoniardClassifier(
-        estimators=[LogisticRegression()], cv=2, random_state=0
-    )
+    clf = PoniardClassifier(estimators=[LogisticRegression()], cv=2, random_state=0)
     clf.setup(X, y)
     clf.fit(X, y)
     return clf, X, y
@@ -46,9 +44,7 @@ def test_get_estimator_without_preprocessor_is_bare_estimator():
     n = 50
     X = pd.DataFrame(np.random.normal(size=(n, 2)), columns=["a", "b"])
     y = pd.Series(np.random.choice([0, 1], size=n))
-    clf = PoniardClassifier(
-        estimators=[LogisticRegression()], cv=2, random_state=0
-    )
+    clf = PoniardClassifier(estimators=[LogisticRegression()], cv=2, random_state=0)
     clf.setup(X, y)
     clf.fit(X, y)
     est = clf.get_estimator(

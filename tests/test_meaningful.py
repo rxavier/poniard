@@ -21,6 +21,7 @@ from poniard.preprocessing import PoniardPreprocessor
 # Fixtures
 # ---------------------------------------------------------------------------
 
+
 @pytest.fixture
 def iris_binary():
     """Iris dataset reduced to binary (setosa vs versicolor), 4 numeric features."""
@@ -36,14 +37,16 @@ def mixed_df():
     """DataFrame with numeric, string, boolean, and datetime columns."""
     rng = np.random.RandomState(42)
     n = 60
-    return pd.DataFrame({
-        "num_high": rng.normal(size=n),                     # numeric (many unique)
-        "num_low": rng.choice([1, 2, 3], size=n),           # numeric few unique -> cat_low
-        "str_low": rng.choice(["a", "b", "c"], size=n),     # string low cardinality
-        "str_high": [f"cat_{i}" for i in range(n)],         # string high cardinality
-        "bool_col": rng.choice([True, False], size=n),       # boolean
-        "dt": pd.date_range("2020-01-01", periods=n),       # datetime
-    }), pd.Series(rng.choice([0, 1], size=n), name="target")
+    return pd.DataFrame(
+        {
+            "num_high": rng.normal(size=n),  # numeric (many unique)
+            "num_low": rng.choice([1, 2, 3], size=n),  # numeric few unique -> cat_low
+            "str_low": rng.choice(["a", "b", "c"], size=n),  # string low cardinality
+            "str_high": [f"cat_{i}" for i in range(n)],  # string high cardinality
+            "bool_col": rng.choice([True, False], size=n),  # boolean
+            "dt": pd.date_range("2020-01-01", periods=n),  # datetime
+        }
+    ), pd.Series(rng.choice([0, 1], size=n), name="target")
 
 
 @pytest.fixture
@@ -85,6 +88,7 @@ def fitted_regressor(regression_data):
 # ===========================================================================
 # 1. Type inference tests
 # ===========================================================================
+
 
 class TestTypeInference:
     def test_numeric_many_unique_values_classified_as_numeric(self):
@@ -170,7 +174,10 @@ class TestTypeInference:
         preprocessor = PoniardPreprocessor()
         preprocessor.build(X=X, y=y, task="classification")
         assert set(preprocessor.feature_types.keys()) == {
-            "numeric", "categorical_high", "categorical_low", "datetime"
+            "numeric",
+            "categorical_high",
+            "categorical_low",
+            "datetime",
         }
 
     def test_numeric_threshold_as_float(self):
@@ -206,14 +213,17 @@ class TestTypeInference:
 # 2. Preprocessing tests
 # ===========================================================================
 
+
 class TestPreprocessing:
     def test_default_preprocessor_has_expected_structure(self):
         """Default preprocessor should be a Pipeline with type_preprocessor and VarianceThreshold."""
         n = 50
-        X = pd.DataFrame({
-            "num": np.random.normal(size=n),
-            "cat": np.random.choice(["a", "b"], size=n),
-        })
+        X = pd.DataFrame(
+            {
+                "num": np.random.normal(size=n),
+                "cat": np.random.choice(["a", "b"], size=n),
+            }
+        )
         y = np.zeros(n, dtype=int)
         y[::2] = 1
         pp = PoniardPreprocessor()
@@ -237,7 +247,9 @@ class TestPreprocessing:
         else:
             # Single transformer — the whole preprocessor IS the numeric one
             numeric_pipeline = ct
-        step_names = [s for s, _ in numeric_pipeline.steps] if hasattr(numeric_pipeline, 'steps') else []
+        step_names = (
+            [s for s, _ in numeric_pipeline.steps] if hasattr(numeric_pipeline, "steps") else []
+        )
         has_scaler = any("scaler" in s.lower() for s in step_names)
         assert has_scaler or isinstance(numeric_pipeline, Pipeline)
 
@@ -253,10 +265,12 @@ class TestPreprocessing:
         """Categorical low should get OneHotEncoder."""
         n = 50
         rng = np.random.RandomState(0)
-        X = pd.DataFrame({
-            "num": rng.normal(size=n),
-            "cat": rng.choice(["a", "b", "c"], size=n),
-        })
+        X = pd.DataFrame(
+            {
+                "num": rng.normal(size=n),
+                "cat": rng.choice(["a", "b", "c"], size=n),
+            }
+        )
         y = np.zeros(n, dtype=int)
         y[::2] = 1
         pp = PoniardPreprocessor()
@@ -271,10 +285,12 @@ class TestPreprocessing:
         """Categorical high should get TargetEncoder by default."""
         n = 60
         rng = np.random.RandomState(0)
-        X = pd.DataFrame({
-            "num": rng.normal(size=n),
-            "high": [f"cat_{i}" for i in range(n)],
-        })
+        X = pd.DataFrame(
+            {
+                "num": rng.normal(size=n),
+                "high": [f"cat_{i}" for i in range(n)],
+            }
+        )
         y = np.zeros(n, dtype=int)
         y[::2] = 1
         pp = PoniardPreprocessor(cardinality_threshold=5)
@@ -303,7 +319,7 @@ class TestPreprocessing:
         assert isinstance(clf.preprocessor, Pipeline)
         assert "imputer" in clf.preprocessor.named_steps or "imputer" in dict(
             clf.preprocessor.named_steps.get("type_preprocessor", {}).steps
-            if hasattr(clf.preprocessor.named_steps.get("type_preprocessor"), 'steps')
+            if hasattr(clf.preprocessor.named_steps.get("type_preprocessor"), "steps")
             else []
         )
 
@@ -329,10 +345,12 @@ class TestPreprocessing:
         """When high_cardinality_encoder='ordinal', OrdinalEncoder should be used."""
         n = 60
         rng = np.random.RandomState(0)
-        X = pd.DataFrame({
-            "num": rng.normal(size=n),
-            "high": [f"cat_{i}" for i in range(n)],
-        })
+        X = pd.DataFrame(
+            {
+                "num": rng.normal(size=n),
+                "high": [f"cat_{i}" for i in range(n)],
+            }
+        )
         y = np.zeros(n, dtype=int)
         y[::2] = 1
         pp = PoniardPreprocessor(high_cardinality_encoder="ordinal", cardinality_threshold=5)
@@ -349,10 +367,12 @@ class TestPreprocessing:
 
         n = 50
         rng = np.random.RandomState(0)
-        X = pd.DataFrame({
-            "num": rng.normal(size=n),
-            "dt": pd.date_range("2020-01-01", periods=n),
-        })
+        X = pd.DataFrame(
+            {
+                "num": rng.normal(size=n),
+                "dt": pd.date_range("2020-01-01", periods=n),
+            }
+        )
         y = np.zeros(n, dtype=int)
         y[::2] = 1
         pp = PoniardPreprocessor()
@@ -366,6 +386,7 @@ class TestPreprocessing:
 # ===========================================================================
 # 3. Results tests
 # ===========================================================================
+
 
 class TestResults:
     def test_get_results_returns_dataframe(self, fitted_classifier):
@@ -472,10 +493,12 @@ class TestResults:
 # 4. Estimator management tests
 # ===========================================================================
 
+
 class TestEstimatorManagement:
     def test_add_estimators_adds_to_pipelines(self, fitted_classifier):
         """add_estimators should add new pipelines."""
         from sklearn.tree import DecisionTreeClassifier
+
         initial_count = len(fitted_classifier.pipelines)
         fitted_classifier.add_estimators([DecisionTreeClassifier()])
         assert len(fitted_classifier.pipelines) == initial_count + 1
@@ -504,8 +527,6 @@ class TestEstimatorManagement:
         est = fitted_classifier.get_estimator("LogisticRegression", include_preprocessor=False)
         assert isinstance(est, LogisticRegression)
 
-
-
     def test_remove_all_estimators_raises(self, fitted_classifier):
         """Removing all estimators should raise ValueError."""
         all_names = list(fitted_classifier.pipelines.keys())
@@ -522,6 +543,7 @@ class TestEstimatorManagement:
 # ===========================================================================
 # 5. Ensemble tests
 # ===========================================================================
+
 
 class TestEnsemble:
     def test_voting_ensemble_classification(self, fitted_classifier):
@@ -596,6 +618,7 @@ class TestEnsemble:
 # 6. Edge cases
 # ===========================================================================
 
+
 class TestEdgeCases:
     def test_single_feature_dataset(self):
         """Classifier should work with a single numeric feature."""
@@ -628,10 +651,12 @@ class TestEdgeCases:
     def test_all_nan_columns(self):
         """DataFrame with all-NaN columns should handle gracefully."""
         n = 50
-        X = pd.DataFrame({
-            "nan_col": [np.nan] * n,
-            "valid_col": np.random.normal(size=n),
-        })
+        X = pd.DataFrame(
+            {
+                "nan_col": [np.nan] * n,
+                "valid_col": np.random.normal(size=n),
+            }
+        )
         y = np.zeros(n, dtype=int)
         y[::2] = 1
         clf = PoniardClassifier(
@@ -640,8 +665,11 @@ class TestEdgeCases:
             random_state=42,
         )
         import warnings
+
         with warnings.catch_warnings():
-            warnings.filterwarnings("ignore", message="Skipping features without any observed values")
+            warnings.filterwarnings(
+                "ignore", message="Skipping features without any observed values"
+            )
             clf.fit(X, y)
         results = clf.get_results()
         assert results.shape[0] == 2
@@ -718,14 +746,10 @@ class TestEdgeCases:
         )
         y = np.array([0, 1] * (n // 2))
 
-        setup_clf = PoniardClassifier(
-            estimators=[LogisticRegression()], cv=2, random_state=42
-        )
+        setup_clf = PoniardClassifier(estimators=[LogisticRegression()], cv=2, random_state=42)
         setup_clf.setup(X, y)
 
-        fit_clf = PoniardClassifier(
-            estimators=[LogisticRegression()], cv=2, random_state=42
-        )
+        fit_clf = PoniardClassifier(estimators=[LogisticRegression()], cv=2, random_state=42)
         fit_clf.fit(X, y)
 
         assert setup_clf.feature_types == fit_clf.feature_types
@@ -750,6 +774,7 @@ class TestEdgeCases:
     def test_verbose_propagation(self):
         """verbose should be propagated to estimators that support it."""
         from sklearn.ensemble import RandomForestClassifier
+
         n = 50
         X = pd.DataFrame({"a": np.random.normal(size=n), "b": np.random.normal(size=n)})
         y = np.array([0, 1] * (n // 2))

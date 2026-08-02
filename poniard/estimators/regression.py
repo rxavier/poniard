@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-__all__ = ['PoniardRegressor']
+__all__ = ["PoniardRegressor"]
 
 from collections.abc import Callable
 from typing import Sequence
@@ -87,17 +87,13 @@ class PoniardRegressor(PoniardBaseEstimator):
         return [
             LinearRegression(),
             ElasticNet(random_state=self.random_state),
-            LinearSVR(
-                verbose=self.verbose, random_state=self.random_state, max_iter=5000
-            ),
+            LinearSVR(verbose=self.verbose, random_state=self.random_state, max_iter=5000),
             KNeighborsRegressor(),
             DecisionTreeRegressor(random_state=self.random_state),
             RandomForestRegressor(
                 random_state=self.random_state, verbose=self.verbose, n_jobs=self.n_jobs
             ),
-            HistGradientBoostingRegressor(
-                random_state=self.random_state, verbose=self.verbose
-            ),
+            HistGradientBoostingRegressor(random_state=self.random_state, verbose=self.verbose),
         ]
 
     def _build_metrics(self) -> dict[str, Callable] | list[str]:

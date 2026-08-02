@@ -77,10 +77,7 @@ class EnsembleMixin:
             raise ValueError("Strategy must be either 'diversity' or 'top_n'.")
         estimator_names = element_to_list_maybe(estimator_names)
         if estimator_names:
-            models = [
-                (name, self.pipelines[name]._final_estimator)
-                for name in estimator_names
-            ]
+            models = [(name, self.pipelines[name]._final_estimator) for name in estimator_names]
         elif strategy == "diversity" and X is not None and y is not None:
             selected = self._select_diverse(
                 top_n=top_n or 3,
@@ -89,9 +86,7 @@ class EnsembleMixin:
                 X=X,
                 y=y,
             )
-            models = [
-                (name, self.pipelines[name]._final_estimator) for name in selected
-            ]
+            models = [(name, self.pipelines[name]._final_estimator) for name in selected]
         else:
             if sort_by:
                 sorter = sort_by
@@ -103,19 +98,12 @@ class EnsembleMixin:
                 for name in self._means.sort_values(sorter, ascending=False).index
                 if name not in dummy
             ]
-            models = [
-                (name, self.pipelines[name]._final_estimator)
-                for name in eligible[:top_n]
-            ]
+            models = [(name, self.pipelines[name]._final_estimator) for name in eligible[:top_n]]
         if method == "voting":
             if self.poniard_task == "classification":
-                ensemble = VotingClassifier(
-                    estimators=models, verbose=self.verbose, **kwargs
-                )
+                ensemble = VotingClassifier(estimators=models, verbose=self.verbose, **kwargs)
             else:
-                ensemble = VotingRegressor(
-                    estimators=models, verbose=self.verbose, **kwargs
-                )
+                ensemble = VotingRegressor(estimators=models, verbose=self.verbose, **kwargs)
         else:
             if self.poniard_task == "classification":
                 ensemble = StackingClassifier(
@@ -180,11 +168,7 @@ class EnsembleMixin:
                 break
             if name not in sim_matrix.index:
                 continue
-            max_sim = max(
-                abs(sim_matrix.loc[name, s])
-                for s in selected
-                if s in sim_matrix.columns
-            )
+            max_sim = max(abs(sim_matrix.loc[name, s]) for s in selected if s in sim_matrix.columns)
             if np.isnan(max_sim) or max_sim <= similarity_threshold:
                 selected.append(name)
 

@@ -62,8 +62,7 @@ class TuningMixin:
         """
         if estimator_name not in self.pipelines:
             raise KeyError(
-                f"Unknown estimator {estimator_name!r}. "
-                f"Available: {list(self.pipelines)}"
+                f"Unknown estimator {estimator_name!r}. Available: {list(self.pipelines)}"
             )
         if not grid:
             raise ValueError(
@@ -163,14 +162,11 @@ class TuningMixin:
         """
         results = self._tuning_results
         if not results:
-            raise ValueError(
-                "No tuning results. Call tune_estimator(...) first."
-            )
+            raise ValueError("No tuning results. Call tune_estimator(...) first.")
         if estimator_name is not None:
             if estimator_name not in results:
                 raise KeyError(
-                    f"No tuning results for {estimator_name!r}. "
-                    f"Available: {list(results)}"
+                    f"No tuning results for {estimator_name!r}. Available: {list(results)}"
                 )
             return results[estimator_name]
         if len(results) == 1:

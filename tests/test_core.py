@@ -57,9 +57,7 @@ def test_classifier_fit(target, metrics, estimators, cv):
     features.columns = features.columns.astype(str)
     features["strings"] = np.random.choice(["a", "b", "c"], size=len(target))
     features["dates"] = pd.date_range("2020-01-01", periods=len(target))
-    clf = PoniardClassifier(
-        estimators=estimators, cv=cv, metrics=metrics, random_state=0
-    )
+    clf = PoniardClassifier(estimators=estimators, cv=cv, metrics=metrics, random_state=0)
     clf.setup(features, target)
     clf.fit(features, target)
     results = clf.get_results(return_train_scores=True)
@@ -95,9 +93,7 @@ def test_classifier_fit(target, metrics, estimators, cv):
             np.random.normal(size=(20,)),
             {
                 "mse": make_scorer(mean_squared_error, greater_is_better=False),
-                "mape": make_scorer(
-                    mean_absolute_percentage_error, greater_is_better=False
-                ),
+                "mape": make_scorer(mean_absolute_percentage_error, greater_is_better=False),
             },
             [LinearRegression(), RandomForestRegressor()],
             KFold(n_splits=3),
@@ -109,9 +105,7 @@ def test_regressor_fit(target, metrics, estimators, cv):
     features.columns = features.columns.astype(str)
     features["strings"] = np.random.choice(["a", "b", "c"], size=len(target))
     features["dates"] = pd.date_range("2020-01-01", periods=len(target))
-    clf = PoniardRegressor(
-        estimators=estimators, cv=cv, metrics=metrics, random_state=0
-    )
+    clf = PoniardRegressor(estimators=estimators, cv=cv, metrics=metrics, random_state=0)
     clf.setup(features, target)
     clf.fit(features, target)
     results = clf.get_results(return_train_scores=True)
@@ -129,6 +123,7 @@ def test_regressor_fit(target, metrics, estimators, cv):
 
 def test_multilabel_fit():
     import warnings
+
     X, y = make_multilabel_classification(n_samples=1000, n_classes=3, n_labels=3)
     clf = PoniardClassifier(
         estimators={
@@ -148,6 +143,7 @@ def test_multilabel_fit():
 
 def test_multioutput_fit():
     import warnings
+
     X, y = make_regression(n_targets=3)
     clf = PoniardRegressor(
         estimators={
@@ -174,9 +170,7 @@ def test_type_inference():
             "high_cardinality_str": [str(x) for x in range(10)],
             "high_cardinality_int": [x for x in range(10)],
             "datetime_H": pd.date_range("2020-01-01", freq="h", periods=10),
-            "datetime_D": pd.date_range(
-                "2020-01-01", freq="D", periods=10, tz="Europe/Moscow"
-            ),
+            "datetime_D": pd.date_range("2020-01-01", freq="D", periods=10, tz="Europe/Moscow"),
         }
     )
     # Add random nan to 10% per column: https://stackoverflow.com/a/61018279
@@ -192,12 +186,8 @@ def test_type_inference():
     )
     clf.setup(x, y)
     clf.fit(x, y)
-    assert all(
-        x in clf.feature_types["numeric"] for x in ["numeric", "high_cardinality_int"]
-    )
-    assert all(
-        x in clf.feature_types["categorical_high"] for x in ["high_cardinality_str"]
-    )
+    assert all(x in clf.feature_types["numeric"] for x in ["numeric", "high_cardinality_int"])
+    assert all(x in clf.feature_types["categorical_high"] for x in ["high_cardinality_str"])
     assert all(
         x in clf.feature_types["categorical_low"]
         for x in ["low_cardinality_str", "low_cardinality_int"]

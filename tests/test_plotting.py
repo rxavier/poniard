@@ -13,9 +13,7 @@ def clf_setup():
     n = 60
     X = pd.DataFrame(np.random.normal(size=(n, 4)), columns=list("abcd"))
     y = pd.Series(np.random.choice([0, 1], size=n))
-    clf = PoniardClassifier(
-        estimators=[LogisticRegression()], cv=2, random_state=0
-    )
+    clf = PoniardClassifier(estimators=[LogisticRegression()], cv=2, random_state=0)
     clf.setup(X, y)
     clf.fit(X, y)
     return X, y, clf
@@ -26,9 +24,7 @@ def reg_setup():
     n = 60
     X = pd.DataFrame(np.random.normal(size=(n, 4)), columns=list("abcd"))
     y = pd.Series(np.random.normal(size=n))
-    reg = PoniardRegressor(
-        estimators=[LinearRegression()], cv=2, random_state=0
-    )
+    reg = PoniardRegressor(estimators=[LinearRegression()], cv=2, random_state=0)
     reg.setup(X, y)
     reg.fit(X, y)
     return X, y, reg
@@ -76,16 +72,12 @@ class TestClassifierPlots:
 
     def test_partial_dependence(self, clf_setup):
         X, y, clf = clf_setup
-        fig = PoniardPlotFactory(X, y, clf).partial_dependence(
-            "LogisticRegression", feature=0
-        )
+        fig = PoniardPlotFactory(X, y, clf).partial_dependence("LogisticRegression", feature=0)
         assert isinstance(fig, go.Figure)
 
     def test_full_estimator_analysis(self, clf_setup):
         X, y, clf = clf_setup
-        fig = PoniardPlotFactory(X, y, clf).full_estimator_analysis(
-            "LogisticRegression"
-        )
+        fig = PoniardPlotFactory(X, y, clf).full_estimator_analysis("LogisticRegression")
         assert isinstance(fig, go.Figure)
 
 
@@ -102,16 +94,12 @@ class TestRegressorPlots:
 
     def test_permutation_importance(self, reg_setup):
         X, y, reg = reg_setup
-        fig = PoniardPlotFactory(X, y, reg).permutation_importance(
-            "LinearRegression", n_repeats=2
-        )
+        fig = PoniardPlotFactory(X, y, reg).permutation_importance("LinearRegression", n_repeats=2)
         assert isinstance(fig, go.Figure)
 
     def test_partial_dependence(self, reg_setup):
         X, y, reg = reg_setup
-        fig = PoniardPlotFactory(X, y, reg).partial_dependence(
-            "LinearRegression", feature=0
-        )
+        fig = PoniardPlotFactory(X, y, reg).partial_dependence("LinearRegression", feature=0)
         assert isinstance(fig, go.Figure)
 
     def test_residuals(self, reg_setup):
@@ -121,16 +109,12 @@ class TestRegressorPlots:
 
     def test_residuals_histogram(self, reg_setup):
         X, y, reg = reg_setup
-        fig = PoniardPlotFactory(X, y, reg).residuals_histogram(
-            ["LinearRegression"]
-        )
+        fig = PoniardPlotFactory(X, y, reg).residuals_histogram(["LinearRegression"])
         assert isinstance(fig, go.Figure)
 
     def test_full_estimator_analysis(self, reg_setup):
         X, y, reg = reg_setup
-        fig = PoniardPlotFactory(X, y, reg).full_estimator_analysis(
-            "LinearRegression"
-        )
+        fig = PoniardPlotFactory(X, y, reg).full_estimator_analysis("LinearRegression")
         assert isinstance(fig, go.Figure)
 
 
@@ -141,9 +125,7 @@ class TestNewPlots:
         X, y, clf = clf_setup
         ea = ErrorAnalyzer.from_poniard(clf)
         report = ea.analyze(X=X, y=y)
-        fig = PoniardPlotFactory(X, y, clf).error_lift_bars(
-            lift_by_target=report.lift_by_target
-        )
+        fig = PoniardPlotFactory(X, y, clf).error_lift_bars(lift_by_target=report.lift_by_target)
         assert isinstance(fig, go.Figure)
 
     def test_error_lift_bars_top_n(self, clf_setup):
@@ -169,9 +151,7 @@ class TestNewPlots:
 
     def test_similarity_heatmap_on_predictions(self, clf_setup):
         X, y, clf = clf_setup
-        fig = PoniardPlotFactory(X, y, clf).similarity_heatmap(
-            X, y, on_errors=False
-        )
+        fig = PoniardPlotFactory(X, y, clf).similarity_heatmap(X, y, on_errors=False)
         assert isinstance(fig, go.Figure)
 
     def test_similarity_heatmap_regressor(self, reg_setup):
@@ -191,7 +171,5 @@ class TestNewPlots:
 
     def test_time_quality_scatter_custom_metric(self, clf_setup):
         X, y, clf = clf_setup
-        fig = PoniardPlotFactory(X, y, clf).time_quality_scatter(
-            metric="test_accuracy"
-        )
+        fig = PoniardPlotFactory(X, y, clf).time_quality_scatter(metric="test_accuracy")
         assert isinstance(fig, go.Figure)

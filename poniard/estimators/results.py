@@ -43,9 +43,7 @@ class ResultsMixin:
         means = self._means
         stds = self._stds
         if not return_train_scores:
-            means = means.loc[
-                :, means.columns.str.contains("test_|fit|score", regex=True)
-            ]
+            means = means.loc[:, means.columns.str.contains("test_|fit|score", regex=True)]
             stds = stds.loc[:, stds.columns.str.contains("test_|fit|score", regex=True)]
         if wrt_dummy:
             dummy_names = self._dummy_names()
@@ -130,25 +128,25 @@ class ResultsMixin:
                     _, p = sp_stats.ttest_rel(sa, sb)
                 else:
                     p = np.nan
-                all_pairs.append({
-                    "metric": metric,
-                    "estimator_a": a,
-                    "estimator_b": b,
-                    "mean_diff": float(np.mean(diff)),
-                    "wins_a": wins_a,
-                    "wins_b": wins_b,
-                    "ties": ties,
-                    "p_value": float(p) if not np.isnan(p) else np.nan,
-                })
+                all_pairs.append(
+                    {
+                        "metric": metric,
+                        "estimator_a": a,
+                        "estimator_b": b,
+                        "mean_diff": float(np.mean(diff)),
+                        "wins_a": wins_a,
+                        "wins_b": wins_b,
+                        "ties": ties,
+                        "p_value": float(p) if not np.isnan(p) else np.nan,
+                    }
+                )
         if not all_pairs:
             return pd.DataFrame()
         df = pd.DataFrame(all_pairs)
         df = df.set_index(["metric", "estimator_a", "estimator_b"])
         return df
 
-    def pareto(
-        self, metric: str | None = None, time_col: str = "fit_time"
-    ) -> pd.DataFrame:
+    def pareto(self, metric: str | None = None, time_col: str = "fit_time") -> pd.DataFrame:
         """Return the Pareto-optimal set of estimators (best metric vs lowest time).
 
         An estimator is Pareto-optimal if no other estimator is both faster
@@ -313,9 +311,7 @@ class ResultsMixin:
             else:
                 return list(self.metrics.keys())[0]
         else:
-            raise ValueError(
-                "self.metrics can only be a sequence of str or dict of str: callable."
-            )
+            raise ValueError("self.metrics can only be a sequence of str or dict of str: callable.")
 
     def get_predictions_similarity(
         self,
@@ -359,12 +355,8 @@ class ResultsMixin:
         dummy_names = self._dummy_names()
         if self.poniard_task == "classification":
             estimator_names = [x for x in results.columns if x not in dummy_names]
-            table = pd.DataFrame(
-                data=np.nan, index=estimator_names, columns=estimator_names
-            )
-            for row, col in itertools.combinations_with_replacement(
-                table.index[::-1], 2
-            ):
+            table = pd.DataFrame(data=np.nan, index=estimator_names, columns=estimator_names)
+            for row, col in itertools.combinations_with_replacement(table.index[::-1], 2):
                 cramer = cramers_v(results[row], results[col])
                 if row == col:
                     table.loc[row, col] = 1

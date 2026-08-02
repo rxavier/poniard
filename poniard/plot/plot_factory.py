@@ -22,9 +22,7 @@ try:
     from plotly.graph_objs._figure import Figure
     from plotly.subplots import make_subplots
 except ImportError as e:
-    raise ImportError(
-        "plotly is required for plotting. Install it with: pip install plotly"
-    ) from e
+    raise ImportError("plotly is required for plotting. Install it with: pip install plotly") from e
 
 
 class PoniardPlotFactory:
@@ -58,9 +56,7 @@ class PoniardPlotFactory:
         self._estimator = estimator
 
         self._template = plot_config.get("template", "plotly_white")
-        self._discrete_colors = plot_config.get(
-            "discrete_colors", px.colors.qualitative.Bold
-        )
+        self._discrete_colors = plot_config.get("discrete_colors", px.colors.qualitative.Bold)
         self._font_family = plot_config.get("font_family", "Helvetica")
         self._font_color = plot_config.get("font_color", "#8C8C8C")
 
@@ -164,9 +160,7 @@ class PoniardPlotFactory:
         else:
             stds = self._estimator._stds.reset_index().melt(id_vars="index")
             stds.columns = ["Model", "Metric", "Score"]
-            stds["Model"] = stds["Model"].str.replace(
-                "Classifier|Regressor", "", regex=True
-            )
+            stds["Model"] = stds["Model"].str.replace("Classifier|Regressor", "", regex=True)
             results = results.loc[results["Type"] == "Mean"].merge(
                 stds, how="left", on=["Model", "Metric"], suffixes=(None, "_y")
             )
@@ -191,9 +185,7 @@ class PoniardPlotFactory:
 
         return fig
 
-    def overfitness(
-        self, metric: str | None = None, exclude_dummy: bool = True
-    ) -> Figure:
+    def overfitness(self, metric: str | None = None, exclude_dummy: bool = True) -> Figure:
         """Plot the ratio of test scores to train scores for every estimator.
 
         Parameters
@@ -290,14 +282,10 @@ class PoniardPlotFactory:
         importances.rename_axis("Feature", inplace=True)
         importances.reset_index(inplace=True)
 
-        importances = importances.melt(
-            id_vars="Feature", var_name="Type", value_name="Importance"
-        )
+        importances = importances.melt(id_vars="Feature", var_name="Type", value_name="Importance")
         importances["Type"] = "Repetition"
         aggs = (
-            importances.groupby("Feature")["Importance"]
-            .agg(Mean="mean", Std="std")
-            .reset_index()
+            importances.groupby("Feature")["Importance"].agg(Mean="mean", Std="std").reset_index()
         )
         aggs = aggs.melt(id_vars="Feature", var_name="Type", value_name="Importance")
         importances = pd.concat([importances, aggs])
@@ -314,9 +302,7 @@ class PoniardPlotFactory:
                 **self._px_kwargs(),
             )
         else:
-            importances = importances.loc[
-                -importances["Type"].isin(["Repetition", "Std"])
-            ]
+            importances = importances.loc[-importances["Type"].isin(["Repetition", "Std"])]
             fig = px.bar(
                 importances,
                 x="Importance",
@@ -476,9 +462,7 @@ class PoniardPlotFactory:
         self._apply_layout(fig)
         return fig
 
-    def partial_dependence(
-        self, estimator_name: str, feature: str | int, **kwargs
-    ) -> Figure:
+    def partial_dependence(self, estimator_name: str, feature: str | int, **kwargs) -> Figure:
         """Plot partial dependence for a single feature of a single estimator.
 
         In essence, visualize how the target changes within the feature's range.
@@ -503,9 +487,7 @@ class PoniardPlotFactory:
         X = self._X
         estimator = clone(self._estimator.pipelines[estimator_name])
         estimator.fit(X, y)
-        partial_dep = partial_dependence(
-            estimator, X, features=[feature], kind="average", **kwargs
-        )
+        partial_dep = partial_dependence(estimator, X, features=[feature], kind="average", **kwargs)
         response = partial_dep["average"].reshape(-1)
         grid_values = partial_dep.get("grid_values", partial_dep.get("values"))
         n_values = len(grid_values[0])
@@ -540,9 +522,7 @@ class PoniardPlotFactory:
         estimator_names = element_to_list_maybe(estimator_names)
         data = []
         for name in estimator_names:
-            y_pred = self._estimator._get_or_compute_prediction(
-                self._X, self._y, name, "predict"
-            )
+            y_pred = self._estimator._get_or_compute_prediction(self._X, self._y, name, "predict")
             if y.ndim == 1:
                 y_2d = np.expand_dims(y, 1)
             else:
@@ -599,9 +579,7 @@ class PoniardPlotFactory:
             Residuals histogram plot.
         """
         if self._estimator.poniard_task == "classification":
-            raise ValueError(
-                "Residuals histogram plot is not available for classifiers."
-            )
+            raise ValueError("Residuals histogram plot is not available for classifiers.")
         data = self._build_residuals_data(estimator_names)
         fig = px.histogram(
             data,
@@ -644,33 +622,23 @@ class PoniardPlotFactory:
         sorted_means = self._estimator._long_results.query(
             f"Metric == 'test_{main_scorer}' & Type=='Mean'"
         ).sort_values(ascending=False, by="Score")
-        estimator_position = sorted_means.set_index("Model").index.get_loc(
-            estimator_name
-        )
+        estimator_position = sorted_means.set_index("Model").index.get_loc(estimator_name)
         if estimator_position == 0:
             better_estimator_name = None
             worse_estimator_name = sorted_means.iloc[1, 0]
         elif estimator_position == len(self._estimator.pipelines) - 1:
-            better_estimator_name = sorted_means.iloc[
-                len(self._estimator.pipelines) - 2, 0
-            ]
+            better_estimator_name = sorted_means.iloc[len(self._estimator.pipelines) - 2, 0]
             worse_estimator_name = None
         else:
             better_estimator_name = sorted_means.iloc[estimator_position - 1, 0]
             worse_estimator_name = sorted_means.iloc[estimator_position + 1, 0]
         estimator_names = [
-            x
-            for x in [estimator_name, better_estimator_name, worse_estimator_name]
-            if x
+            x for x in [estimator_name, better_estimator_name, worse_estimator_name] if x
         ]
 
         metrics = self._estimator.get_results()
-        metric_rankings = metrics.loc[:, ~metrics.columns.str.contains("time")].rank(
-            ascending=True
-        )
-        time_rankings = metrics.loc[:, metrics.columns.str.contains("time")].rank(
-            ascending=False
-        )
+        metric_rankings = metrics.loc[:, ~metrics.columns.str.contains("time")].rank(ascending=True)
+        time_rankings = metrics.loc[:, metrics.columns.str.contains("time")].rank(ascending=False)
         rankings = pd.concat([metric_rankings, time_rankings], axis=1)
         rank = px.bar(
             rankings.loc[estimator_name, :],

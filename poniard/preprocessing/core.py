@@ -35,7 +35,8 @@ from .datetime import DatetimeEncoder
 if TYPE_CHECKING:
     pass
 
-__all__ = ['PoniardPreprocessor']
+__all__ = ["PoniardPreprocessor"]
+
 
 class PoniardPreprocessor:
     """Base preprocessor that builds an easily modifiable pipeline based
@@ -102,9 +103,7 @@ class PoniardPreprocessor:
         self._cache_tempdir = None
         if cache_transformations:
             if cache_dir is None:
-                self._cache_tempdir = tempfile.TemporaryDirectory(
-                    prefix="poniard_cache_"
-                )
+                self._cache_tempdir = tempfile.TemporaryDirectory(prefix="poniard_cache_")
                 cache_dir = self._cache_tempdir.name
             self._memory = joblib.Memory(str(cache_dir), verbose=self.verbose)
         else:
@@ -214,9 +213,7 @@ class PoniardPreprocessor:
                     ],
                     n_jobs=self.n_jobs,
                 )
-        non_empty_transformers = [
-            x for x in type_preprocessor.transformers if x[2] != []
-        ]
+        non_empty_transformers = [x for x in type_preprocessor.transformers if x[2] != []]
         type_preprocessor.transformers = non_empty_transformers
         if len(type_preprocessor.transformers) == 1:
             type_preprocessor = type_preprocessor.transformers[0][1]
@@ -295,17 +292,13 @@ class PoniardPreprocessor:
         else:
             num_imputer = SimpleImputer(strategy="mean")
 
-        numeric_preprocessor = Pipeline(
-            [("numeric_imputer", num_imputer), ("scaler", scaler)]
-        )
+        numeric_preprocessor = Pipeline([("numeric_imputer", num_imputer), ("scaler", scaler)])
         cat_low_preprocessor = Pipeline(
             [
                 ("categorical_imputer", cat_date_imputer),
                 (
                     "one-hot_encoder",
-                    OneHotEncoder(
-                        drop="if_binary", handle_unknown="ignore", sparse_output=False
-                    ),
+                    OneHotEncoder(drop="if_binary", handle_unknown="ignore", sparse_output=False),
                 ),
             ]
         )

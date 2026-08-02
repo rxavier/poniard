@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-__all__ = ['PoniardClassifier']
+__all__ = ["PoniardClassifier"]
 
 from collections.abc import Callable
 from typing import Sequence
@@ -85,18 +85,14 @@ class PoniardClassifier(PoniardBaseEstimator):
     @property
     def _default_estimators(self) -> list[ClassifierMixin]:
         return [
-            LogisticRegression(
-                random_state=self.random_state, verbose=self.verbose, max_iter=5000
-            ),
+            LogisticRegression(random_state=self.random_state, verbose=self.verbose, max_iter=5000),
             GaussianNB(),
             KNeighborsClassifier(),
             DecisionTreeClassifier(random_state=self.random_state),
             RandomForestClassifier(
                 random_state=self.random_state, verbose=self.verbose, n_jobs=self.n_jobs
             ),
-            HistGradientBoostingClassifier(
-                random_state=self.random_state, verbose=self.verbose
-            ),
+            HistGradientBoostingClassifier(random_state=self.random_state, verbose=self.verbose),
         ]
 
     def _build_metrics(self) -> dict[str, Callable] | list[str]:
@@ -130,9 +126,7 @@ class PoniardClassifier(PoniardBaseEstimator):
         cv = self.cv or 5
         if isinstance(cv, int):
             if self.target_info["type_"] in ("binary", "multiclass"):
-                return StratifiedKFold(
-                    n_splits=cv, shuffle=True, random_state=self.random_state
-                )
+                return StratifiedKFold(n_splits=cv, shuffle=True, random_state=self.random_state)
             else:
                 return KFold(n_splits=cv, shuffle=True, random_state=self.random_state)
         else:

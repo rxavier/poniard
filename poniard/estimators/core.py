@@ -41,7 +41,8 @@ from .ensemble import EnsembleMixin
 from .results import ResultsMixin
 from .tuning import TuningMixin
 
-__all__ = ['PoniardBaseEstimator']
+__all__ = ["PoniardBaseEstimator"]
+
 
 class PoniardBaseEstimator(ResultsMixin, EnsembleMixin, TuningMixin, ABC):
     """Base estimator that sets up all the functionality for the classifier and regressor.
@@ -92,10 +93,7 @@ class PoniardBaseEstimator(ResultsMixin, EnsembleMixin, TuningMixin, ABC):
 
         self._init_params = {k: v for k, v in locals().items() if k != "self"}
         if metrics and (
-            (
-                isinstance(metrics, Sequence)
-                and not all(isinstance(m, str) for m in metrics)
-            )
+            (isinstance(metrics, Sequence) and not all(isinstance(m, str) for m in metrics))
             or (
                 isinstance(metrics, dict)
                 and not all(isinstance(m, str) for m in metrics.keys())
@@ -346,9 +344,7 @@ class PoniardBaseEstimator(ResultsMixin, EnsembleMixin, TuningMixin, ABC):
                 pass
 
     @staticmethod
-    def _generate_estimator_name(
-        estimator, existing_names: set[str], all_estimators: list
-    ) -> str:
+    def _generate_estimator_name(estimator, existing_names: set[str], all_estimators: list) -> str:
         """Generate a name for an estimator.
 
         Default is the class name. If it clashes, append _2, _3, etc.
@@ -402,8 +398,7 @@ class PoniardBaseEstimator(ResultsMixin, EnsembleMixin, TuningMixin, ABC):
             self._pass_instance_attrs(estimator)
 
         pipelines = {
-            name: self._make_pipeline(name, estimator)
-            for name, estimator in estimators.items()
+            name: self._make_pipeline(name, estimator) for name, estimator in estimators.items()
         }
         self._fitted_pipeline_names = set()
         return pipelines
@@ -414,15 +409,11 @@ class PoniardBaseEstimator(ResultsMixin, EnsembleMixin, TuningMixin, ABC):
             return estimators
         if self.poniard_task == "classification":
             dummy = DummyClassifier(strategy="prior")
-            name = self._generate_estimator_name(
-                dummy, existing_names, list(estimators.values())
-            )
+            name = self._generate_estimator_name(dummy, existing_names, list(estimators.values()))
             estimators[name] = dummy
         elif self.poniard_task == "regression":
             dummy = DummyRegressor(strategy="mean")
-            name = self._generate_estimator_name(
-                dummy, existing_names, list(estimators.values())
-            )
+            name = self._generate_estimator_name(dummy, existing_names, list(estimators.values()))
             estimators[name] = dummy
         return estimators
 
@@ -464,9 +455,7 @@ class PoniardBaseEstimator(ResultsMixin, EnsembleMixin, TuningMixin, ABC):
             pbar.set_description(f"{name}")
             with warnings.catch_warnings():
                 warnings.filterwarnings("ignore", category=UndefinedMetricWarning)
-                warnings.filterwarnings(
-                    "ignore", message=".*will be encoded as all zeros"
-                )
+                warnings.filterwarnings("ignore", message=".*will be encoded as all zeros")
                 result = cross_validate(
                     pipeline,
                     X,
@@ -533,9 +522,7 @@ class PoniardBaseEstimator(ResultsMixin, EnsembleMixin, TuningMixin, ABC):
                 pbar.set_description("Completed")
         return results
 
-    def predict(
-        self, X, y, estimator_names: Sequence[str] | None = None
-    ) -> dict[str, np.ndarray]:
+    def predict(self, X, y, estimator_names: Sequence[str] | None = None) -> dict[str, np.ndarray]:
         """Get cross validated target predictions where each sample belongs to a single test set.
 
         Parameters
@@ -628,9 +615,7 @@ class PoniardBaseEstimator(ResultsMixin, EnsembleMixin, TuningMixin, ABC):
                 "datetime": datetime or [],
             }
         if self.show_info:
-            assigned_types_df = pd.DataFrame.from_dict(
-                assigned_types, orient="index"
-            ).T.fillna("")
+            assigned_types_df = pd.DataFrame.from_dict(assigned_types, orient="index").T.fillna("")
 
             if _has_ipython:
                 display(
@@ -653,7 +638,9 @@ class PoniardBaseEstimator(ResultsMixin, EnsembleMixin, TuningMixin, ABC):
     def add_preprocessing_step(
         self,
         step: (
-            Pipeline | TransformerMixin | ColumnTransformer
+            Pipeline
+            | TransformerMixin
+            | ColumnTransformer
             | tuple[str, Pipeline | TransformerMixin | ColumnTransformer]
         ),
         position: str | int = "end",
@@ -734,9 +721,7 @@ class PoniardBaseEstimator(ResultsMixin, EnsembleMixin, TuningMixin, ABC):
                 if isinstance(item, tuple):
                     name, estimator = item
                 else:
-                    name = self._generate_estimator_name(
-                        item, existing_names, all_estimators
-                    )
+                    name = self._generate_estimator_name(item, existing_names, all_estimators)
                     estimator = item
                     existing_names.add(name)
                 new_estimators[name] = estimator
@@ -744,14 +729,14 @@ class PoniardBaseEstimator(ResultsMixin, EnsembleMixin, TuningMixin, ABC):
             self._pass_instance_attrs(new_estimator)
         self._added_estimators.update(new_estimators)
         self._removed_estimators = [
-            name
-            for name in self._removed_estimators
-            if name not in new_estimators
+            name for name in self._removed_estimators if name not in new_estimators
         ]
-        self.pipelines.update({
-            name: self._make_pipeline(name, estimator)
-            for name, estimator in new_estimators.items()
-        })
+        self.pipelines.update(
+            {
+                name: self._make_pipeline(name, estimator)
+                for name, estimator in new_estimators.items()
+            }
+        )
         return self
 
     def remove_estimators(
@@ -775,26 +760,20 @@ class PoniardBaseEstimator(ResultsMixin, EnsembleMixin, TuningMixin, ABC):
         """
         estimator_names = element_to_list_maybe(estimator_names)
         self._removed_estimators.extend(estimator_names)
-        pruned_estimators = {
-            k: v for k, v in self.pipelines.items() if k not in estimator_names
-        }
+        pruned_estimators = {k: v for k, v in self.pipelines.items() if k not in estimator_names}
         if len(pruned_estimators) == 0:
             raise ValueError("Cannot remove all estimators.")
         self.pipelines = pruned_estimators
         if drop_results:
             self._fitted_pipeline_names.difference_update(estimator_names)
             self._prediction_cache = {
-                k: v
-                for k, v in self._prediction_cache.items()
-                if k[0] not in estimator_names
+                k: v for k, v in self._prediction_cache.items() if k[0] not in estimator_names
             }
             if self._means is not None:
                 self._means = self._means.loc[~self._means.index.isin(estimator_names)]
                 self._stds = self._stds.loc[~self._stds.index.isin(estimator_names)]
                 self._cv_results = {
-                    k: v
-                    for k, v in self._cv_results.items()
-                    if k not in estimator_names
+                    k: v for k, v in self._cv_results.items() if k not in estimator_names
                 }
                 self._process_long_results()
         return self
@@ -883,9 +862,7 @@ class PoniardBaseEstimator(ResultsMixin, EnsembleMixin, TuningMixin, ABC):
             cv_params_for_split = {}
         else:
             cv_params_for_split = {
-                k: v
-                for k, v in vars(self.cv).items()
-                if k in ["shuffle", "random_state"]
+                k: v for k, v in vars(self.cv).items() if k in ["shuffle", "random_state"]
             }
             stratify = y if "Stratified" in self.cv.__class__.__name__ else None
             cv_params_for_split.update({"stratify": stratify})

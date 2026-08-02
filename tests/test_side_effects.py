@@ -172,9 +172,7 @@ def test_custom_sklearn_preprocessor_outputs_pandas_without_global_set_config():
         X.iloc[0, 0] = np.nan
         y = np.zeros(n, dtype=int)
         y[::2] = 1
-        custom = Pipeline(
-            [("imputer", SimpleImputer()), ("scaler", StandardScaler())]
-        )
+        custom = Pipeline([("imputer", SimpleImputer()), ("scaler", StandardScaler())])
         clf = PoniardClassifier(
             estimators=[LogisticRegression()],
             custom_preprocessor=custom,

@@ -148,14 +148,10 @@ class ErrorAnalyzer:
 
     def _compute_predictions(self, X, y):
         """Compute cross-validated predictions for the selected estimators."""
-        predictions = self._poniard.predict(
-            X=X, y=y, estimator_names=self.estimator_names
-        )
+        predictions = self._poniard.predict(X=X, y=y, estimator_names=self.estimator_names)
         probas = None
         if self.type_of_target in ["binary", "multilabel-indicator", "multiclass"]:
-            probas = self._poniard.predict_proba(
-                X=X, y=y, estimator_names=self.estimator_names
-            )
+            probas = self._poniard.predict_proba(X=X, y=y, estimator_names=self.estimator_names)
         return predictions, probas
 
     def rank_errors(
@@ -204,9 +200,7 @@ class ErrorAnalyzer:
         """
         if self._has_poniard:
             if X is None or y is None:
-                raise ValueError(
-                    "X and y must be provided when using `from_poniard`."
-                )
+                raise ValueError("X and y must be provided when using `from_poniard`.")
             predictions, probas = self._compute_predictions(X, y)
             ranked_errors = {}
             for estimator in self.estimator_names:
@@ -220,13 +214,9 @@ class ErrorAnalyzer:
                 )
             return ranked_errors
         self.type_of_target = get_target_info(y, task=self.task)["type_"]
-        return self._rank_single(
-            y, predictions, probas, exclude_correct, error_quantile
-        )
+        return self._rank_single(y, predictions, probas, exclude_correct, error_quantile)
 
-    def _rank_single(
-        self, y, predictions, probas, exclude_correct, error_quantile
-    ) -> pd.DataFrame:
+    def _rank_single(self, y, predictions, probas, exclude_correct, error_quantile) -> pd.DataFrame:
         """Rank errors for a single set of predictions."""
         return self._target_redirect(self.type_of_target)(
             y, predictions, probas, exclude_correct, error_quantile
@@ -314,12 +304,8 @@ class ErrorAnalyzer:
             truth = truth.loc[keep]
             pro = pro.loc[keep]
         per_label = np.abs(truth.values - pro.values)
-        errors = errors.assign(
-            **{f"error_{i}": per_label[:, i] for i in range(n_labels)}
-        )
-        errors = errors.assign(
-            error=errors[[f"error_{i}" for i in range(n_labels)]].mean(axis=1)
-        )
+        errors = errors.assign(**{f"error_{i}": per_label[:, i] for i in range(n_labels)})
+        errors = errors.assign(error=errors[[f"error_{i}" for i in range(n_labels)]].mean(axis=1))
         return errors.sort_values("error", ascending=False)
 
     def _rank_errors_continuous(
@@ -360,17 +346,12 @@ class ErrorAnalyzer:
                 for i in range(n_targets)
             }
             flagged = pd.DataFrame(
-                {
-                    i: per_target[f"error_{i}"] > thresholds[i]
-                    for i in range(n_targets)
-                }
+                {i: per_target[f"error_{i}"] > thresholds[i] for i in range(n_targets)}
             )
             keep = flagged.any(axis=1)
             errors = errors.loc[keep]
             per_target = per_target.loc[keep]
-        errors = pd.concat(
-            [errors, per_target.assign(error=per_target.mean(axis=1))], axis=1
-        )
+        errors = pd.concat([errors, per_target.assign(error=per_target.mean(axis=1))], axis=1)
         return errors.sort_values("error", ascending=False)
 
     @staticmethod
@@ -395,10 +376,7 @@ class ErrorAnalyzer:
         if isinstance(errors, pd.DataFrame):
             errors = {"model": errors}
         concatenated = pd.concat(
-            [
-                frame.assign(estimator=estimator)
-                for estimator, frame in errors.items()
-            ]
+            [frame.assign(estimator=estimator) for estimator, frame in errors.items()]
         ).reset_index()
         merged = (
             concatenated.groupby("index")
@@ -454,10 +432,7 @@ class ErrorAnalyzer:
             y_errors = y_errors.assign(bins=bins)
             target_names = "bins"
         elif type_of_target == "continuous-multioutput":
-            bins = {
-                f"bin_{target}": pd.qcut(y[target], q=reg_bins)
-                for target in range(y.shape[1])
-            }
+            bins = {f"bin_{target}": pd.qcut(y[target], q=reg_bins) for target in range(y.shape[1])}
             y = y.assign(**bins)
             y_errors = y_errors.assign(**bins)
             target_names = list(bins.keys())
@@ -465,12 +440,8 @@ class ErrorAnalyzer:
             raise NotImplementedError("Type of target could not be determined.")
         errors_dist = y_errors.groupby(target_names, observed=True).size()
         target_dist = y.groupby(target_names, observed=True).size()
-        output = pd.DataFrame(
-            {"error_count": errors_dist, "target_count": target_dist}
-        ).fillna(0)
-        output["error_rate"] = output["error_count"] / output[
-            "target_count"
-        ].replace(0, np.nan)
+        output = pd.DataFrame({"error_count": errors_dist, "target_count": target_dist}).fillna(0)
+        output["error_rate"] = output["error_count"] / output["target_count"].replace(0, np.nan)
         output = output.sort_values("error_count", ascending=False)
         return output
 
@@ -524,8 +495,7 @@ class ErrorAnalyzer:
             feature_types = (
                 PoniardPreprocessor(task="placeholder")
                 .build(X, np.zeros((X.shape[0],)))
-                .feature_types
-                .items()
+                .feature_types.items()
             )
         inverted_feature_types = {}
         for k, v in feature_types:
@@ -537,16 +507,10 @@ class ErrorAnalyzer:
         columns = [col for col in X.columns if col != "error"]
 
         if features:
-            features_idx = {
-                i
-                for i, col in enumerate(columns)
-                if col in features or i in features
-            }
+            features_idx = {i for i, col in enumerate(columns) if col in features or i in features}
         elif estimator_name:
             if not self._has_poniard:
-                raise ValueError(
-                    "`estimator_name` is only valid when using `from_poniard`."
-                )
+                raise ValueError("`estimator_name` is only valid when using `from_poniard`.")
             if y is None:
                 raise ValueError("`y` must be provided when `estimator_name` is used.")
             importances = self._compute_permutation_importances(X[columns], y, estimator_name)
@@ -573,9 +537,7 @@ class ErrorAnalyzer:
                 crosstab.columns = ["correct", "errors"]
                 total = crosstab["correct"] + crosstab["errors"]
                 crosstab = crosstab.assign(
-                    error_rate=(
-                        crosstab["errors"] / total.replace(0, np.nan)
-                    ).fillna(0)
+                    error_rate=(crosstab["errors"] / total.replace(0, np.nan)).fillna(0)
                 )
                 summary[col] = crosstab
         return summary
@@ -666,9 +628,7 @@ class ErrorAnalyzer:
         if isinstance(ranked, pd.DataFrame):
             ranked = {"model": ranked}
         merged = self.merge_errors(ranked)
-        by_target = self.analyze_target(
-            errors_idx=merged.index, y=y, reg_bins=reg_bins
-        )
+        by_target = self.analyze_target(errors_idx=merged.index, y=y, reg_bins=reg_bins)
         by_feature = self.analyze_features(
             errors_idx=merged.index,
             X=X,
@@ -708,9 +668,7 @@ class ErrorAnalyzer:
         )
 
     @staticmethod
-    def _compute_lift_by_target(
-        by_target: pd.DataFrame, global_error_rate: float
-    ) -> pd.DataFrame:
+    def _compute_lift_by_target(by_target: pd.DataFrame, global_error_rate: float) -> pd.DataFrame:
         """Compute lift = error_rate / global_error_rate per class/bin."""
         if global_error_rate == 0:
             lift = by_target[["error_rate"]].copy()

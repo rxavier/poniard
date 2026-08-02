@@ -10,9 +10,7 @@ Y = np.array([0, 0, 0, 1, 1, 1, 0, 0, 1, 1, 0, 1, 0, 1])
 
 def _clf():
     x = pd.DataFrame(np.random.normal(size=(len(Y), 5)))
-    return PoniardClassifier(
-        estimators=[LogisticRegression()], cv=2, random_state=0
-    ), x
+    return PoniardClassifier(estimators=[LogisticRegression()], cv=2, random_state=0), x
 
 
 def test_fit_tracks_pipeline_names():
