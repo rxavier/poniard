@@ -10,9 +10,8 @@ import numpy as np
 import pandas as pd
 from sklearn.base import TransformerMixin
 from sklearn.compose import ColumnTransformer
-from sklearn.experimental import enable_iterative_imputer  # noqa: F401
 from sklearn.feature_selection import VarianceThreshold
-from sklearn.impute import IterativeImputer, SimpleImputer
+from sklearn.impute import SimpleImputer
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import (
     MinMaxScaler,
@@ -370,6 +369,9 @@ class PoniardPreprocessor:
         if isinstance(self.numeric_imputer, TransformerMixin):
             num_imputer = self.numeric_imputer
         elif self.numeric_imputer == "iterative":
+            from sklearn.experimental import enable_iterative_imputer  # noqa: F401
+            from sklearn.impute import IterativeImputer
+
             num_imputer = IterativeImputer(random_state=self.random_state)
         else:
             num_imputer = SimpleImputer(strategy="mean")

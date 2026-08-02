@@ -257,7 +257,7 @@ def test_datetime_encoder_cyclical_wrap_around():
     assert out.shape == (2, 2)
     assert np.allclose(out[0, 0], out[1, 0], atol=0.5)
     assert np.allclose(out[0, 1], out[1, 1], atol=0.5)
-    assert enc.get_feature_names_out() == ["D_hour_sin", "D_hour_cos"]
+    assert enc.get_feature_names_out().tolist() == ["D_hour_sin", "D_hour_cos"]
 
 
 def test_ordinal_encoder_unknown_yields_nan():
@@ -269,3 +269,21 @@ def test_ordinal_encoder_unknown_yields_nan():
     pp.preprocessor.fit(X, y)
     out = pp.preprocessor.transform(pd.DataFrame({"high": ["unseen"]}))
     assert np.isnan(out.iloc[0, 0])
+
+
+def test_datetime_encoder_get_feature_names_out_returns_ndarray():
+    enc = DatetimeEncoder(levels=[DateLevel.HOUR, DateLevel.MINUTE], cyclical=True)
+    enc.fit(pd.DataFrame({"D": pd.date_range("2020-01-01", freq="h", periods=5)}))
+    names = enc.get_feature_names_out()
+    assert isinstance(names, np.ndarray)
+    assert np.issubdtype(names.dtype, np.str_)
+    assert all(isinstance(n, str) for n in names)
+    assert names.tolist() == ["D_hour_sin", "D_hour_cos"]
+
+
+def test_datetime_encoder_string_dtype_column():
+    dates = pd.Series(pd.date_range("2020-01-01", periods=5).astype(str).tolist(), dtype="string")
+    enc = DatetimeEncoder()
+    out = enc.fit_transform(pd.DataFrame({"D": dates}))
+    assert out.shape == (5, 3)
+    assert list(enc.get_feature_names_out()) == ["D_day", "D_weekday", "D_dayofyear"]
