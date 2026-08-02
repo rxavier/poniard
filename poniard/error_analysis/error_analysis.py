@@ -15,7 +15,7 @@ from sklearn.model_selection import train_test_split
 if TYPE_CHECKING:
     from poniard.estimators.core import EstimatorView
 from ..preprocessing import infer_feature_types
-from ..utils.estimate import coerce_input, element_to_list_maybe, get_target_info
+from ..utils.estimate import Task, coerce_input, element_to_list_maybe, get_target_info
 from ..utils.utils import non_default_repr
 
 
@@ -95,7 +95,7 @@ class ErrorAnalyzer:
         The machine learning task. Either 'regression' or 'classification'.
     """
 
-    def __init__(self, task: str):
+    def __init__(self, task: Task):
         self._init_params = {"task": task}
         self.task = task
         self._poniard: EstimatorView | None = None

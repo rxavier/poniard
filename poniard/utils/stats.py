@@ -4,6 +4,7 @@ from __future__ import annotations
 # Because I only needed Cramér's V, adding a whole dependency
 # did not make sense.
 import warnings
+from typing import Literal
 
 import numpy as np
 import pandas as pd
@@ -14,7 +15,7 @@ def cramers_v(
     x: pd.Series | np.ndarray | list,
     y: pd.Series | np.ndarray | list,
     bias_correction: bool = True,
-    nan_strategy: str = "replace",
+    nan_strategy: Literal["replace", "drop"] = "replace",
     nan_replace_value: int | float = 0,
 ):
     """

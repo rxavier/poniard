@@ -3,6 +3,7 @@ from __future__ import annotations
 __all__ = ["PoniardRegressor"]
 
 from collections.abc import Callable, Sequence
+from typing import Literal
 
 from sklearn.base import RegressorMixin, TransformerMixin, clone
 from sklearn.ensemble import (
@@ -77,7 +78,7 @@ class PoniardRegressor(PoniardBaseEstimator):
         )
 
     @property
-    def poniard_task(self) -> str:
+    def poniard_task(self) -> Literal["regression"]:
         """Return the task name."""
         return "regression"
 

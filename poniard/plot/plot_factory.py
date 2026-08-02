@@ -4,7 +4,7 @@ __all__ = ["PoniardPlotFactory"]
 
 import re
 from collections.abc import Sequence
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
 
 import numpy as np
 import pandas as pd
@@ -14,6 +14,7 @@ from sklearn.metrics import auc, confusion_matrix, roc_curve
 
 if TYPE_CHECKING:
     from poniard.estimators.core import EstimatorView
+    from poniard.estimators.results import TimeColumn
 from ..utils.estimate import element_to_list_maybe
 
 try:
@@ -91,8 +92,8 @@ class PoniardPlotFactory:
 
     def metrics(
         self,
-        kind: str = "strip",
-        facet: str = "col",
+        kind: Literal["strip", "bar"] = "strip",
+        facet: Literal["col", "row"] = "col",
         metrics: str | Sequence[str] | None = None,
         only_test: bool = True,
         exclude_dummy: bool = True,
@@ -231,7 +232,7 @@ class PoniardPlotFactory:
         self,
         estimator_name: str,
         n_repeats: int = 10,
-        kind: str = "bar",
+        kind: Literal["bar", "strip"] = "bar",
         **kwargs,
     ) -> Figure:
         """Plot permutation importances for an estimator.
@@ -317,7 +318,7 @@ class PoniardPlotFactory:
     def roc_curve(
         self,
         estimator_names: Sequence[str] | None = None,
-        response_method: str = "auto",
+        response_method: Literal["auto", "predict_proba", "decision_function"] = "auto",
         **kwargs,
     ) -> Figure:
         """Plot ROC curve with cross validated predictions for multiple estimators.
@@ -813,7 +814,7 @@ class PoniardPlotFactory:
     def time_quality_scatter(
         self,
         metric: str | None = None,
-        time_col: str = "fit_time",
+        time_col: TimeColumn = "fit_time",
     ) -> Figure:
         """Scatter plot of metric vs training/inference time.
 

@@ -39,9 +39,16 @@ from poniard import PoniardClassifier
 X, y = make_classification(n_samples=200, n_features=10, random_state=42)
 
 clf = PoniardClassifier()
-clf.fit(X, y)      # type-inference, preprocessing, and CV for every estimator
+clf.setup(X, y)    # configure: infer types, build preprocessing, CV, pipelines
+clf.fit(X, y)      # cross-validate every estimator
 clf.get_results()  # leaderboard with a dummy baseline
 ```
+
+`setup` comes first on purpose: it lets you **see** what `fit` will do to your
+data and modify it before anything is cross-validated. `fit(X, y)` will also
+configure on its own if you skip it, but the preprocessor is never a black box —
+inspect `clf.feature_types`, reassign types, or add preprocessing steps between
+the two calls (see the [in-depth guide](docs/guide.md)).
 
 ## The core loop
 
@@ -51,6 +58,7 @@ Poniard is built around one loop: **compare → explain → decide → export**.
 
 ```python
 clf = PoniardClassifier()                 # or PoniardRegressor()
+clf.setup(X, y)                           # configure, then adjust preprocessing if needed
 clf.fit(X, y)
 clf.get_results()                         # mean scores, fit/score times
 ```

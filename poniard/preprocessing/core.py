@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 import tempfile
 import warnings
+from typing import Literal
 
 import joblib
 import numpy as np
@@ -22,7 +23,7 @@ from sklearn.preprocessing import (
     TargetEncoder,
 )
 
-from ..utils.estimate import coerce_input, get_target_info
+from ..utils.estimate import Task, coerce_input, get_target_info
 from ..utils.utils import non_default_repr
 from .datetime import DatetimeEncoder
 
@@ -161,10 +162,10 @@ class PoniardPreprocessor:
 
     def __init__(
         self,
-        task: str | None = None,
-        scaler: str | TransformerMixin | None = None,
-        high_cardinality_encoder: str | TransformerMixin | None = None,
-        numeric_imputer: str | TransformerMixin | None = None,
+        task: Task | None = None,
+        scaler: Literal["standard", "minmax", "robust"] | TransformerMixin | None = None,
+        high_cardinality_encoder: (Literal["target", "ordinal"] | TransformerMixin | None) = None,
+        numeric_imputer: Literal["simple", "iterative"] | TransformerMixin | None = None,
         custom_preprocessor: Pipeline | TransformerMixin | None = None,
         numeric_threshold: int | float = 0.1,
         cardinality_threshold: int | float = 20,
@@ -210,7 +211,7 @@ class PoniardPreprocessor:
         self,
         X: pd.DataFrame | np.ndarray | list | None = None,
         y: pd.DataFrame | np.ndarray | list | None = None,
-        task: str | None = None,
+        task: Task | None = None,
         target_info: dict | None = None,
     ) -> PoniardPreprocessor:
         """Builds the preprocessor according to the input data.
