@@ -75,6 +75,7 @@ exclude_also = [
 dev = [
     "pytest",
     "pytest-cov",
+    "pytest-xdist",
     "ruff>=0.16.0",
     "pre-commit",
     "poniard[plot]",

@@ -3,6 +3,7 @@ import pandas as pd
 import pytest
 from sklearn.base import ClassifierMixin
 from sklearn.ensemble import ExtraTreesClassifier, RandomForestClassifier
+from sklearn.linear_model import LogisticRegression
 from sklearn.pipeline import Pipeline
 
 from poniard import PoniardClassifier
@@ -31,15 +32,16 @@ def test_remove():
 
 
 def test_remove_fitted():
-    clf = PoniardClassifier()
+    estimators = [RandomForestClassifier(), LogisticRegression()]
+    clf = PoniardClassifier(estimators=estimators)
     y = np.array([0, 0, 0, 1, 1, 1, 0, 0, 1, 1, 0, 1])
     x = pd.DataFrame(np.random.normal(size=(len(y), 5)))
     clf.setup(x, y)
     clf.fit(x, y)
     clf.remove_estimators(["RandomForestClassifier"], drop_results=True)
-    # Same amount of estimators because the dummy is added
-    assert len(clf.pipelines) == len(clf._default_estimators)
-    assert clf.get_results().shape[0] == len(clf._default_estimators)
+    # Dummy baseline is added on top of the explicit estimator list.
+    assert len(clf.pipelines) == len(estimators)
+    assert clf.get_results().shape[0] == len(estimators)
     assert "RandomForestClassifier" not in clf.get_results().index
 
 
@@ -61,9 +63,9 @@ def test_get(include_preprocessor, output_type):
 def test_remove_then_readd_refits_estimator():
     y = np.array([0, 0, 0, 1, 1, 1, 0, 0, 1, 1, 0, 1])
     x = pd.DataFrame(np.random.normal(size=(len(y), 5)))
-    clf = PoniardClassifier(estimators=[RandomForestClassifier()]).setup(x, y)
+    clf = PoniardClassifier(estimators=[LogisticRegression()]).setup(x, y)
     clf.fit(x, y)
-    clf.remove_estimators(["RandomForestClassifier"])
-    clf.add_estimators({"RandomForestClassifier": RandomForestClassifier()})
+    clf.remove_estimators(["LogisticRegression"])
+    clf.add_estimators({"LogisticRegression": LogisticRegression()})
     clf.fit(x, y)
-    assert "RandomForestClassifier" in clf.get_results().index
+    assert "LogisticRegression" in clf.get_results().index
