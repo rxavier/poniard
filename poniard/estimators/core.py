@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+import hashlib
 import os
+import pickle
 import warnings
 from abc import ABC, abstractmethod
 from collections.abc import Callable, Iterable, Sequence
+from dataclasses import dataclass
 from typing import Protocol
 
 import joblib
@@ -37,6 +40,42 @@ from .results import ResultsMixin
 from .tuning import TuningMixin
 
 __all__ = ["PoniardBaseEstimator", "EstimatorView"]
+
+
+def _array_fingerprint(arr) -> str:
+    """Hash of the VALUES of an array/DataFrame/Series (retains no reference).
+
+    Numeric/bool/datetime data is hashed from its byte representation; object
+    (string/mixed) data is hashed via pickle. Equal values hash equal, so the
+    cache can be validated without holding the data itself.
+    """
+    if isinstance(arr, (pd.DataFrame, pd.Series)):
+        arr = arr.to_numpy()
+    arr = np.ascontiguousarray(arr)
+    if arr.dtype == object:
+        payload = pickle.dumps(arr.tolist(), protocol=4)
+    else:
+        payload = arr.view(np.uint8)
+    return hashlib.sha256(payload).hexdigest()
+
+
+def _data_fingerprint(X, y) -> tuple[str, str]:
+    """Fingerprint of the feature and target inputs for cache validation."""
+    return _array_fingerprint(X), _array_fingerprint(y)
+
+
+@dataclass
+class _CachedPrediction:
+    """A cross-validated prediction array tagged with a fingerprint of its data.
+
+    Only the fingerprint (a hash of the input values) is stored, never the data
+    itself, so the cache cannot pin datasets in memory. Entries are reused only
+    when the caller's data hashes to the same fingerprint; in-place mutation of
+    the input changes the fingerprint and invalidates the entry.
+    """
+
+    fingerprint: tuple[str, str]
+    values: np.ndarray
 
 
 class EstimatorView(Protocol):
@@ -519,18 +558,20 @@ class PoniardBaseEstimator(ResultsMixin, EnsembleMixin, TuningMixin, ABC):
         """Helper method for predicting targets or target probabilities with cross validation.
         Accepts predict, predict_proba, predict_log_proba or decision_function.
 
-        Results are cached by ``(estimator_name, method)`` and reused across
-        calls within a configured session, so plots, error analysis and repeat
-        calls do not rerun cross-validation.
+        Always computes fresh predictions via ``cross_val_predict`` and stores
+        them in the prediction cache (tagged with a fingerprint of the input
+        data), so public ``predict``/``predict_proba`` never return stale
+        values. Internal callers that want to reuse cached results use
+        ``_get_or_compute_prediction``.
         """
         if not self.pipelines:
             raise ValueError("`setup` must be called before `predict`.")
         estimator_names = element_to_list_maybe(estimator_names)
         if not estimator_names:
             estimator_names = [estimator for estimator in self.pipelines.keys()]
-        missing = [name for name in estimator_names if (name, method) not in self._prediction_cache]
+        fingerprint = _data_fingerprint(X, y)
         results = {}
-        pbar = tqdm(missing, leave=self._tqdm_leave)
+        pbar = tqdm(estimator_names, leave=self._tqdm_leave)
         for i, name in enumerate(pbar):
             pbar.set_description(f"{name}")
             pipeline = self.pipelines[name]
@@ -552,13 +593,10 @@ class PoniardBaseEstimator(ResultsMixin, EnsembleMixin, TuningMixin, ABC):
                     n_jobs=self.n_jobs,
                 )
             results.update({name: result})
-            self._prediction_cache[(name, method)] = result
+            self._prediction_cache[(name, method)] = _CachedPrediction(fingerprint, result)
 
             if i == len(pbar) - 1:
                 pbar.set_description("Completed")
-        for name in estimator_names:
-            if name not in results:
-                results[name] = self._prediction_cache[(name, method)]
         return results
 
     def predict(self, X, y, estimator_names: Sequence[str] | None = None) -> dict[str, np.ndarray]:
@@ -918,11 +956,13 @@ class PoniardBaseEstimator(ResultsMixin, EnsembleMixin, TuningMixin, ABC):
 
     def _get_or_compute_prediction(self, X, y, estimator_name: str, method: str):
         """Get predictions (either predict, predict_proba or decision_function) for a given
-        estimator or compute if not available."""
+        estimator, reusing the cache only when the input data hashes to the same fingerprint."""
         key = (estimator_name, method)
-        if key not in self._prediction_cache:
-            self._predict(method=method, X=X, y=y, estimator_names=[estimator_name])
-        return self._prediction_cache[key]
+        cached = self._prediction_cache.get(key)
+        if cached is not None and cached.fingerprint == _data_fingerprint(X, y):
+            return cached.values
+        self._predict(method=method, X=X, y=y, estimator_names=[estimator_name])
+        return self._prediction_cache[key].values
 
     def __repr__(self):
         return non_default_repr(self)
