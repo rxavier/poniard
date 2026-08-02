@@ -4,6 +4,7 @@ import os
 import warnings
 from abc import ABC, abstractmethod
 from collections.abc import Callable, Iterable, Sequence
+from dataclasses import dataclass
 from typing import Protocol
 
 import joblib
@@ -37,6 +38,19 @@ from .results import ResultsMixin
 from .tuning import TuningMixin
 
 __all__ = ["PoniardBaseEstimator", "EstimatorView"]
+
+
+@dataclass
+class _CachedPrediction:
+    """A cross-validated prediction array tagged with the data it was computed on.
+
+    The cache is only reused when the caller passes the exact same ``X`` and
+    ``y`` objects, so cached values can never leak onto other data.
+    """
+
+    X: object
+    y: object
+    values: np.ndarray
 
 
 class EstimatorView(Protocol):
@@ -519,18 +533,18 @@ class PoniardBaseEstimator(ResultsMixin, EnsembleMixin, TuningMixin, ABC):
         """Helper method for predicting targets or target probabilities with cross validation.
         Accepts predict, predict_proba, predict_log_proba or decision_function.
 
-        Results are cached by ``(estimator_name, method)`` and reused across
-        calls within a configured session, so plots, error analysis and repeat
-        calls do not rerun cross-validation.
+        Always computes fresh predictions via ``cross_val_predict`` and stores
+        them in the prediction cache (tagged with ``X``/``y``), so public
+        ``predict``/``predict_proba`` never return stale values. Internal callers
+        that want to reuse cached results use ``_get_or_compute_prediction``.
         """
         if not self.pipelines:
             raise ValueError("`setup` must be called before `predict`.")
         estimator_names = element_to_list_maybe(estimator_names)
         if not estimator_names:
             estimator_names = [estimator for estimator in self.pipelines.keys()]
-        missing = [name for name in estimator_names if (name, method) not in self._prediction_cache]
         results = {}
-        pbar = tqdm(missing, leave=self._tqdm_leave)
+        pbar = tqdm(estimator_names, leave=self._tqdm_leave)
         for i, name in enumerate(pbar):
             pbar.set_description(f"{name}")
             pipeline = self.pipelines[name]
@@ -552,13 +566,10 @@ class PoniardBaseEstimator(ResultsMixin, EnsembleMixin, TuningMixin, ABC):
                     n_jobs=self.n_jobs,
                 )
             results.update({name: result})
-            self._prediction_cache[(name, method)] = result
+            self._prediction_cache[(name, method)] = _CachedPrediction(X, y, result)
 
             if i == len(pbar) - 1:
                 pbar.set_description("Completed")
-        for name in estimator_names:
-            if name not in results:
-                results[name] = self._prediction_cache[(name, method)]
         return results
 
     def predict(self, X, y, estimator_names: Sequence[str] | None = None) -> dict[str, np.ndarray]:
@@ -918,11 +929,13 @@ class PoniardBaseEstimator(ResultsMixin, EnsembleMixin, TuningMixin, ABC):
 
     def _get_or_compute_prediction(self, X, y, estimator_name: str, method: str):
         """Get predictions (either predict, predict_proba or decision_function) for a given
-        estimator or compute if not available."""
+        estimator, reusing the cache only when the same ``X``/``y`` objects are passed."""
         key = (estimator_name, method)
-        if key not in self._prediction_cache:
-            self._predict(method=method, X=X, y=y, estimator_names=[estimator_name])
-        return self._prediction_cache[key]
+        cached = self._prediction_cache.get(key)
+        if cached is not None and cached.X is X and cached.y is y:
+            return cached.values
+        self._predict(method=method, X=X, y=y, estimator_names=[estimator_name])
+        return self._prediction_cache[key].values
 
     def __repr__(self):
         return non_default_repr(self)

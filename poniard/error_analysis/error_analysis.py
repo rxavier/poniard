@@ -155,22 +155,33 @@ class ErrorAnalyzer:
                 if hasattr(self._poniard.pipelines[name], "predict_proba")
             ]
             non_support = [name for name in self.estimator_names if name not in proba_support]
-            if proba_support:
-                probas = self._poniard.predict_proba(X=X, y=y, estimator_names=proba_support)
-            else:
-                probas = {}
+            probas = {
+                name: self._poniard._get_or_compute_prediction(X, y, name, "predict_proba")
+                for name in proba_support
+            }
             predictions = {
                 name: classes[np.argmax(proba, axis=1)] for name, proba in probas.items()
             }
             if non_support:
-                predictions.update(self._poniard.predict(X=X, y=y, estimator_names=non_support))
+                predictions.update(
+                    {
+                        name: self._poniard._get_or_compute_prediction(X, y, name, "predict")
+                        for name in non_support
+                    }
+                )
                 probas.update(
                     {name: np.full((len(y), len(classes)), np.nan) for name in non_support}
                 )
         else:
-            predictions = self._poniard.predict(X=X, y=y, estimator_names=self.estimator_names)
+            predictions = {
+                name: self._poniard._get_or_compute_prediction(X, y, name, "predict")
+                for name in self.estimator_names
+            }
             if self.type_of_target == "multilabel-indicator":
-                probas = self._poniard.predict_proba(X=X, y=y, estimator_names=self.estimator_names)
+                probas = {
+                    name: self._poniard._get_or_compute_prediction(X, y, name, "predict_proba")
+                    for name in self.estimator_names
+                }
             else:
                 probas = None
         return predictions, probas

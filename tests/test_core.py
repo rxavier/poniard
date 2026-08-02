@@ -193,3 +193,37 @@ def test_type_inference():
         for x in ["low_cardinality_str", "low_cardinality_int"]
     )
     assert all(x in clf.feature_types["datetime"] for x in ["datetime_H", "datetime_D"])
+
+
+def test_predict_recomputes_when_data_changes():
+    """predict() on new data must recompute, never return cached predictions."""
+    from unittest import mock
+
+    from sklearn.model_selection import cross_val_predict as real_cross_val_predict
+
+    X1 = pd.DataFrame(np.random.normal(size=(30, 2)))
+    y1 = pd.Series(np.random.choice([0, 1], size=30))
+    clf = PoniardClassifier(
+        estimators={"lr": LogisticRegression(max_iter=5000)}, cv=2, random_state=0
+    )
+    clf.setup(X1, y1)
+    clf.fit(X1, y1)
+
+    X2 = pd.DataFrame(np.random.normal(size=(30, 2)))
+    y2 = pd.Series(np.random.choice([0, 1], size=30))
+
+    with mock.patch(
+        "poniard.estimators.core.cross_val_predict", wraps=real_cross_val_predict
+    ) as spy:
+        clf.predict(X=X1, y=y1, estimator_names=["lr"])
+        first = spy.call_count
+        clf.predict(X=X2, y=y2, estimator_names=["lr"])
+        second = spy.call_count
+        clf.predict(X=X1, y=y1, estimator_names=["lr"])
+        third = spy.call_count
+
+    # Fresh pass per call: public predict never reads the cache, so each call
+    # (even on already-seen data) runs one CV pass.
+    assert first == 1
+    assert second == first + 1
+    assert third == second + 1
