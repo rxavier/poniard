@@ -19,6 +19,7 @@ from sklearn.multiclass import OneVsRestClassifier
 from sklearn.multioutput import MultiOutputRegressor
 
 from poniard import PoniardClassifier, PoniardRegressor
+from poniard.error_analysis import ErrorAnalyzer
 from poniard.preprocessing import PoniardPreprocessor
 
 
@@ -227,3 +228,49 @@ def test_predict_recomputes_when_data_changes():
     assert first == 1
     assert second == first + 1
     assert third == second + 1
+
+
+def test_prediction_cache_stores_fingerprint_not_data():
+    """The prediction cache must hold a hash of the data, never the data itself."""
+    from poniard.estimators.core import _data_fingerprint
+
+    X1 = pd.DataFrame(np.random.normal(size=(30, 2)))
+    y1 = pd.Series(np.random.choice([0, 1], size=30))
+    clf = PoniardClassifier(
+        estimators={"lr": LogisticRegression(max_iter=5000)}, cv=2, random_state=0
+    )
+    clf.setup(X1, y1)
+    clf.fit(X1, y1)
+    clf.predict(X=X1, y=y1, estimator_names=["lr"])
+
+    cached = clf._prediction_cache[("lr", "predict")]
+    assert cached.fingerprint == _data_fingerprint(X1, y1)
+    assert not hasattr(cached, "X")
+    assert not hasattr(cached, "y")
+
+
+def test_analyze_recomputes_after_in_place_mutation():
+    """Mutating the input data in place must invalidate cached predictions."""
+    from unittest import mock
+
+    from sklearn.model_selection import cross_val_predict as real_cross_val_predict
+
+    X1 = pd.DataFrame(np.random.normal(size=(N := 60, 2)))
+    y1 = pd.Series(np.random.choice([0, 1], size=N))
+    clf = PoniardClassifier(
+        estimators={"lr": LogisticRegression(max_iter=5000)}, cv=2, random_state=0
+    )
+    clf.setup(X1, y1)
+    clf.fit(X1, y1)
+    ea = ErrorAnalyzer.from_poniard(clf)
+
+    with mock.patch(
+        "poniard.estimators.core.cross_val_predict", wraps=real_cross_val_predict
+    ) as spy:
+        ea.analyze(X=X1, y=y1)
+        first = spy.call_count
+        X1.iloc[0, 0] = 999.0
+        ea.analyze(X=X1, y=y1)
+        second = spy.call_count
+
+    assert second > first
