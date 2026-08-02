@@ -120,6 +120,13 @@ class PoniardPreprocessor:
         or scikit-learn Transformer.
     numeric_imputer :
         Imputation method. Either "simple", "iterative" or scikit-learn Transformer.
+    categorical_imputer :
+        Imputer for categorical features. Either "most_frequent" or "constant" (which fills
+        with the string ``"missing"`` so one-hot encoding surfaces missingness), or a
+        scikit-learn Transformer.
+    cyclical_datetime :
+        Whether to encode periodic datetime levels (hour, month, weekday, ...) as sin/cos
+        pairs instead of plain integers.
     numeric_threshold :
         Number features with unique values above a certain threshold will be treated as numeric. If
         float, the threshold is `numeric_threshold * samples`.
@@ -150,6 +157,8 @@ class PoniardPreprocessor:
         scaler: Literal["standard", "minmax", "robust"] | TransformerMixin | None = None,
         high_cardinality_encoder: (Literal["target", "ordinal"] | TransformerMixin | None) = None,
         numeric_imputer: Literal["simple", "iterative"] | TransformerMixin | None = None,
+        categorical_imputer: Literal["most_frequent", "constant"] | TransformerMixin | None = None,
+        cyclical_datetime: bool = False,
         numeric_threshold: int | float = 0.1,
         cardinality_threshold: int | float = 20,
         verbose: bool = False,
@@ -163,6 +172,8 @@ class PoniardPreprocessor:
             "scaler": scaler,
             "high_cardinality_encoder": high_cardinality_encoder,
             "numeric_imputer": numeric_imputer,
+            "categorical_imputer": categorical_imputer,
+            "cyclical_datetime": cyclical_datetime,
             "numeric_threshold": numeric_threshold,
             "cardinality_threshold": cardinality_threshold,
             "verbose": verbose,
@@ -175,6 +186,8 @@ class PoniardPreprocessor:
         self.scaler = scaler or "standard"
         self.high_cardinality_encoder = high_cardinality_encoder or "target"
         self.numeric_imputer = numeric_imputer or "simple"
+        self.categorical_imputer = categorical_imputer or "most_frequent"
+        self.cyclical_datetime = cyclical_datetime
         self.numeric_threshold = numeric_threshold
         self.cardinality_threshold = cardinality_threshold
         self.verbose = verbose
@@ -338,16 +351,21 @@ class PoniardPreprocessor:
                     stacklevel=2,
                 )
                 high_cardinality_encoder = OrdinalEncoder(
-                    handle_unknown="use_encoded_value", unknown_value=99999
+                    handle_unknown="use_encoded_value", unknown_value=np.nan
                 )
             else:
                 high_cardinality_encoder = TargetEncoder(cv=3)
         else:
             high_cardinality_encoder = OrdinalEncoder(
-                handle_unknown="use_encoded_value", unknown_value=99999
+                handle_unknown="use_encoded_value", unknown_value=np.nan
             )
 
-        cat_date_imputer = SimpleImputer(strategy="most_frequent")
+        if isinstance(self.categorical_imputer, TransformerMixin):
+            cat_imputer = self.categorical_imputer
+        elif self.categorical_imputer == "constant":
+            cat_imputer = SimpleImputer(strategy="constant", fill_value="missing")
+        else:
+            cat_imputer = SimpleImputer(strategy="most_frequent")
 
         if isinstance(self.numeric_imputer, TransformerMixin):
             num_imputer = self.numeric_imputer
@@ -359,7 +377,7 @@ class PoniardPreprocessor:
         numeric_preprocessor = Pipeline([("numeric_imputer", num_imputer), ("scaler", scaler)])
         cat_low_preprocessor = Pipeline(
             [
-                ("categorical_imputer", cat_date_imputer),
+                ("categorical_imputer", cat_imputer),
                 (
                     "one-hot_encoder",
                     OneHotEncoder(drop="if_binary", handle_unknown="ignore", sparse_output=False),
@@ -368,7 +386,7 @@ class PoniardPreprocessor:
         )
         cat_high_preprocessor = Pipeline(
             [
-                ("categorical_imputer", cat_date_imputer),
+                ("categorical_imputer", cat_imputer),
                 (
                     "high_cardinality_encoder",
                     high_cardinality_encoder,
@@ -377,7 +395,7 @@ class PoniardPreprocessor:
         )
         datetime_preprocessor = Pipeline(
             [
-                ("datetime_encoder", DatetimeEncoder()),
+                ("datetime_encoder", DatetimeEncoder(cyclical=self.cyclical_datetime)),
                 ("datetime_imputer", SimpleImputer(strategy="median")),
                 ("scaler", scaler),
             ],

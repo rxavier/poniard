@@ -43,11 +43,33 @@ class DatetimeEncoder(BaseEstimator, TransformerMixin):
     fmt :
         Date format for string conversion if inputs are not datetime-like objects.
         Follows standard Pandas/stdlib formatting, e.g. '%Y-%m-%d %H:%M:%S'.
+    cyclical :
+        Whether to emit sin/cos pairs for periodic levels (hour, minute, second, month,
+        quarter, weekday, dayofyear) instead of plain integer values, so wrap-around
+        (hour 23 to 0) is visible to models.
     """
 
-    def __init__(self, levels: Sequence[DateLevel] | None = None, fmt: str | None = None):
+    _PERIODS: dict[DateLevel, int] = {
+        DateLevel.HOUR: 24,
+        DateLevel.MINUTE: 60,
+        DateLevel.SECOND: 60,
+        DateLevel.QUARTER: 4,
+        DateLevel.MONTH: 12,
+        DateLevel.WEEKDAY: 7,
+        DateLevel.DAYOFYEAR: 366,
+        DateLevel.MICROSECOND: 1_000_000,
+        DateLevel.NANOSECOND: 1_000_000_000,
+    }
+
+    def __init__(
+        self,
+        levels: Sequence[DateLevel] | None = None,
+        fmt: str | None = None,
+        cyclical: bool = False,
+    ):
         self.levels = levels
         self.fmt = fmt
+        self.cyclical = cyclical
 
     def fit(self, X: pd.DataFrame | np.ndarray | list, y=None) -> DatetimeEncoder:
         """Fit the DatetimeEncoder.
@@ -93,7 +115,10 @@ class DatetimeEncoder(BaseEstimator, TransformerMixin):
 
         self.n_features_in_ = X.shape[1]
         self.feature_names_in_ = input_names
-        self.n_features_out_ = sum(len(features) for features in self.valid_features_.values())
+        self.n_features_out_ = sum(
+            sum(2 if self.cyclical and level in self._PERIODS else 1 for level in features)
+            for features in self.valid_features_.values()
+        )
         return self
 
     def transform(self, X: pd.DataFrame | np.ndarray | list) -> np.ndarray:
@@ -127,7 +152,12 @@ class DatetimeEncoder(BaseEstimator, TransformerMixin):
                 if dates.tz:
                     dates = dates.tz_convert(None)
                 encoded = getattr(dates, level.value)
-                all_encoded.append(encoded)
+                if self.cyclical and level in self._PERIODS:
+                    angle = 2 * np.pi * encoded / self._PERIODS[level]
+                    all_encoded.append(np.sin(angle))
+                    all_encoded.append(np.cos(angle))
+                else:
+                    all_encoded.append(encoded)
         return np.column_stack(all_encoded)
 
     def get_feature_names_out(self, input_features=None) -> list[str]:
@@ -137,5 +167,9 @@ class DatetimeEncoder(BaseEstimator, TransformerMixin):
         for col, levels in self.valid_features_.items():
             prefix = str(col) if input_names is None else input_names[col]
             for level in levels:
-                feature_names.append(f"{prefix}_{level.value}")
+                if self.cyclical and level in self._PERIODS:
+                    feature_names.append(f"{prefix}_{level.value}_sin")
+                    feature_names.append(f"{prefix}_{level.value}_cos")
+                else:
+                    feature_names.append(f"{prefix}_{level.value}")
         return feature_names
