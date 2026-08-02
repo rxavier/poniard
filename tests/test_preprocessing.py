@@ -9,7 +9,7 @@ from sklearn.pipeline import Pipeline, make_pipeline
 from sklearn.preprocessing import StandardScaler
 
 from poniard import PoniardClassifier, PoniardRegressor
-from poniard.preprocessing import PoniardPreprocessor
+from poniard.preprocessing import PoniardPreprocessor, infer_feature_types
 
 
 @pytest.mark.parametrize(
@@ -185,3 +185,46 @@ def test_build_without_data_raises_clear_error():
     pp = PoniardPreprocessor(task="classification")
     with pytest.raises(ValueError, match="X and y must be passed to build"):
         pp.build()
+
+
+@pytest.mark.parametrize(
+    "array,frame",
+    [
+        (
+            np.array(
+                [
+                    [1.0, np.nan, 3.0],
+                    [4.0, 5.0, np.nan],
+                    [1.0, 2.0, 3.0],
+                    [7.0, 8.0, 9.0],
+                    [1.0, 2.0, 3.0],
+                ],
+                dtype=float,
+            ),
+            pd.DataFrame(
+                [
+                    [1.0, np.nan, 3.0],
+                    [4.0, 5.0, np.nan],
+                    [1.0, 2.0, 3.0],
+                    [7.0, 8.0, 9.0],
+                    [1.0, 2.0, 3.0],
+                ],
+                dtype=float,
+            ),
+        ),
+        (
+            np.array([[True, False], [False, True], [True, True], [False, False], [True, False]]),
+            pd.DataFrame(
+                [[True, False], [False, True], [True, True], [False, False], [True, False]]
+            ),
+        ),
+        (
+            pd.date_range("2020-01-01", periods=5).to_numpy().reshape(-1, 1),
+            pd.DataFrame(pd.date_range("2020-01-01", periods=5).to_numpy().reshape(-1, 1)),
+        ),
+    ],
+)
+def test_inference_parity_dataframe_vs_ndarray(array, frame):
+    from_array = infer_feature_types(array, numeric_threshold=2, cardinality_threshold=3)
+    from_frame = infer_feature_types(frame, numeric_threshold=2, cardinality_threshold=3)
+    assert from_array == from_frame
