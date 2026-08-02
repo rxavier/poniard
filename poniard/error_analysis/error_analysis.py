@@ -147,11 +147,39 @@ class ErrorAnalyzer:
         return error_analysis
 
     def _compute_predictions(self, X, y):
-        """Compute cross-validated predictions for the selected estimators."""
-        predictions = self._poniard.predict(X=X, y=y, estimator_names=self.estimator_names)
-        probas = None
-        if self.type_of_target in ["binary", "multilabel-indicator", "multiclass"]:
-            probas = self._poniard.predict_proba(X=X, y=y, estimator_names=self.estimator_names)
+        """Compute cross-validated predictions and probabilities for the selected estimators.
+
+        For binary and multiclass targets, hard predictions are derived from the
+        predicted probabilities (argmax over ``np.unique(y)`` order, which matches
+        sklearn's ``classes_``), so only a single cross-validation pass is needed.
+        Estimators without ``predict_proba`` fall back to ``predict``.
+        """
+        if self.type_of_target in ["binary", "multiclass"]:
+            classes = np.unique(y)
+            proba_support = [
+                name
+                for name in self.estimator_names
+                if hasattr(self._poniard.pipelines[name], "predict_proba")
+            ]
+            non_support = [name for name in self.estimator_names if name not in proba_support]
+            if proba_support:
+                probas = self._poniard.predict_proba(X=X, y=y, estimator_names=proba_support)
+            else:
+                probas = {}
+            predictions = {
+                name: classes[np.argmax(proba, axis=1)] for name, proba in probas.items()
+            }
+            if non_support:
+                predictions.update(self._poniard.predict(X=X, y=y, estimator_names=non_support))
+                probas.update(
+                    {name: np.full((len(y), len(classes)), np.nan) for name in non_support}
+                )
+        else:
+            predictions = self._poniard.predict(X=X, y=y, estimator_names=self.estimator_names)
+            if self.type_of_target == "multilabel-indicator":
+                probas = self._poniard.predict_proba(X=X, y=y, estimator_names=self.estimator_names)
+            else:
+                probas = None
         return predictions, probas
 
     def rank_errors(

@@ -222,6 +222,10 @@ class PoniardBaseEstimator(ResultsMixin, EnsembleMixin, TuningMixin, ABC):
         self.pipelines = self._build_pipelines()
         self.cv = self._build_cv()
 
+        # Predictions are only valid for the data this estimator was configured
+        # with; reconfiguring with (possibly new) data invalidates them.
+        self._prediction_cache.clear()
+
         return X, y
 
     def _print_setup_info(self):
@@ -487,14 +491,20 @@ class PoniardBaseEstimator(ResultsMixin, EnsembleMixin, TuningMixin, ABC):
         self, method: str, X, y, estimator_names: Sequence[str] | None = None
     ) -> dict[str, np.ndarray]:
         """Helper method for predicting targets or target probabilities with cross validation.
-        Accepts predict, predict_proba, predict_log_proba or decision_function."""
+        Accepts predict, predict_proba, predict_log_proba or decision_function.
+
+        Results are cached by ``(estimator_name, method)`` and reused across
+        calls within a configured session, so plots, error analysis and repeat
+        calls do not rerun cross-validation.
+        """
         if not self.pipelines:
             raise ValueError("`setup` must be called before `predict`.")
         estimator_names = element_to_list_maybe(estimator_names)
         if not estimator_names:
             estimator_names = [estimator for estimator in self.pipelines.keys()]
+        missing = [name for name in estimator_names if (name, method) not in self._prediction_cache]
         results = {}
-        pbar = tqdm(estimator_names, leave=self._tqdm_leave)
+        pbar = tqdm(missing, leave=self._tqdm_leave)
         for i, name in enumerate(pbar):
             pbar.set_description(f"{name}")
             pipeline = self.pipelines[name]
@@ -520,6 +530,9 @@ class PoniardBaseEstimator(ResultsMixin, EnsembleMixin, TuningMixin, ABC):
 
             if i == len(pbar) - 1:
                 pbar.set_description("Completed")
+        for name in estimator_names:
+            if name not in results:
+                results[name] = self._prediction_cache[(name, method)]
         return results
 
     def predict(self, X, y, estimator_names: Sequence[str] | None = None) -> dict[str, np.ndarray]:
