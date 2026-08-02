@@ -7,9 +7,16 @@
 > A poniard /ˈpɒnjərd/ or poignard (Fr.) is a long, lightweight
 > thrusting knife ([Wikipedia](https://en.wikipedia.org/wiki/Poignard)).
 
-Poniard is a scikit-learn companion for **multi-model diagnostics**. Compare models to get oriented, then answer *where they fail, whether differences are real, and what to try next* — then export a plain sklearn object and leave.
+Poniard is a scikit-learn companion for **multi-model diagnostics**. Fit a handful
+of models, cross-validate them side by side, then answer the questions that
+actually matter:
 
-Not AutoML. Not end-to-end. Every feature earns its place.
+- *Where do the models fail, and why?*
+- *Is model A really better than B, or is that fold noise?*
+- *Which model is good enough and cheap enough?*
+
+Then export a plain `sklearn` pipeline you own and leave. Not AutoML. Not
+end-to-end. Every feature earns its place.
 
 ## Installation
 
@@ -17,7 +24,7 @@ Not AutoML. Not end-to-end. Every feature earns its place.
 pip install poniard
 ```
 
-With plotting support:
+Plotting is an optional extra:
 
 ```bash
 pip install poniard[plot]
@@ -32,151 +39,99 @@ from poniard import PoniardClassifier
 X, y = make_classification(n_samples=200, n_features=10, random_state=42)
 
 clf = PoniardClassifier()
-clf.fit(X, y)      # cross-validate all estimators
-clf.get_results()  # comparison table
+clf.fit(X, y)      # type-inference, preprocessing, and CV for every estimator
+clf.get_results()  # leaderboard with a dummy baseline
 ```
 
-## Error analysis — the reason to install
+## The core loop
 
-`ErrorAnalyzer` answers *where and why* your models fail. Build it from a
-fitted `PoniardClassifier` / `PoniardRegressor` and run the full workflow with
-a single call:
+Poniard is built around one loop: **compare → explain → decide → export**.
+
+### 1. Compare
+
+```python
+clf = PoniardClassifier()                 # or PoniardRegressor()
+clf.fit(X, y)
+clf.get_results()                         # mean scores, fit/score times
+```
+
+Every estimator is cross-validated on the same folds, with a `DummyClassifier`
+/ `DummyRegressor` baseline included automatically.
+
+### 2. Explain — error analysis
+
+`ErrorAnalyzer` answers *where and why* your models fail. One call returns a
+structured `ErrorReport`:
 
 ```python
 from poniard.error_analysis import ErrorAnalyzer
 
-ea = ErrorAnalyzer.from_poniard(clf)  # all non-dummy estimators by default
-report = ea.analyze(X, y)
+report = ErrorAnalyzer.from_poniard(clf).analyze(X, y)
+
+report.universal_failures   # samples every model got wrong
+report.disagreement_set     # samples where models split (ensembling candidates)
+report.lift_by_target       # classes/bins over-represented in errors (lift > 1)
+report.lift_by_feature      # feature values over-represented in errors
 ```
 
-The `report` is a structured `ErrorReport` containing:
-
-- **`universal_failures`** — samples every model got wrong
-- **`disagreement_set`** — samples where models split (useful for ensembling)
-- **`lift_by_target`** — per class/bin, error rate relative to the global rate
-- **`lift_by_feature`** — per feature value, error rate relative to the global rate
-- **`ranked_errors`** — per estimator, samples sorted by error magnitude
-- **`merged_errors`** — cross-estimator view: frequency and mean error per sample
-- **`summary`** — per estimator: error count, error rate, mean error
-- **`by_target`** / **`by_feature`** — error distributions
+### 3. Decide
 
 ```python
-report.universal_failures   # what's toxic to every model
-report.lift_by_target       # which classes are over-represented in errors
-report.disagreement_set     # where models disagree (ensembling candidates)
+clf.compare()                    # paired fold tests: is A really better than B?
+clf.pareto()                     # best metric vs training time (Pareto front)
+clf.best_under(seconds=0.5)      # best model within a time budget
 ```
 
-How errors are defined:
-
-- **Classification**: misclassified samples, ranked by `1 - probability of the truth` (how confidently wrong the model is).
-- **Regression**: samples whose absolute residual exceeds a threshold (default: 90th percentile), ranked by residual magnitude.
-
-## Statistical comparison
-
-Stop pretending fold-mean leaderboards are truth. `compare()` runs paired
-tests on cross-validation folds:
-
-```python
-clf.compare()
-# pairwise: mean_diff, wins_a, wins_b, ties, p_value
-```
-
-## Time vs quality
-
-Pick "good enough and cheap" in one call:
-
-```python
-clf.pareto()                                              # best metric vs fit_time
-clf.pareto(time_col="score_time_per_sample")              # vs inference time per sample
-clf.best_under(seconds=0.5)                               # best metric where fit_time <= 0.5s
-clf.best_under(seconds=0.001, time_col="score_time_per_sample")  # fast inference
-```
-
-Available time columns: `fit_time`, `score_time`, `fit_time_per_sample`, `score_time_per_sample`.
-
-## Exporting a model (leaving Poniard)
-
-`get_estimator` is the supported way to leave Poniard. It returns a plain
-scikit-learn `Pipeline` (or a bare estimator with
-`include_preprocessor=False`) with **no poniard references** — you can save it,
-deploy it, or keep working on it without Poniard installed:
+### 4. Export
 
 ```python
 model = clf.get_estimator("LogisticRegression", retrain=True, X=X, y=y)
-# model is a fitted sklearn.pipeline.Pipeline you fully own
+# a fitted sklearn.pipeline.Pipeline with no poniard references — deploy it
 ```
 
-## Hyperparameter tuning (stays in the experiment)
+## Feature overview
 
-`tune_estimator` runs a search on the **same** preprocessor/pipeline, then adds
-the winner as a new named estimator (default `{name}_tuned`) so it can be
-cross-validated and compared with everything else — no prep drift, no overwrite.
+| Area | What you get |
+|---|---|
+| **Error analysis** | Universal failures, disagreement sets, lift vs baseline — ranked per sample, sliced by target and features |
+| **Statistical comparison** | Paired fold tests so you stop trusting fold-mean leaderboards |
+| **Time / quality** | Pareto front and best-under-budget helpers |
+| **Preprocessing** | Automatic numeric / categorical / datetime type inference, imputation, encoding, scaling |
+| **Tuning** | Grid, random, and halving search that re-enters the experiment as a new named estimator |
+| **Ensembles** | Diversity-aware voting / stacking built from your fitted estimators |
+| **Plotting** | Metrics, ROC, confusion matrices, residuals, feature importance (optional, requires `[plot]`) |
 
-No default grids: you always pass `grid`. Bare param names are fine; they are
-prefixed with the estimator step automatically:
+## Docs and examples
 
-```python
-clf.tune_estimator("LogisticRegression", X, y, grid={"C": [0.1, 1.0, 10.0]})
-clf.fit(X, y)  # CV the tuned pipeline into the results table
-clf.get_results()
-clf.get_tuning_results("LogisticRegression_tuned")  # best_params_, search, ...
-```
+- **[In-depth guide](docs/guide.md)** — the full workflow, preprocessing internals,
+  error-analysis semantics, tuning, ensembles, plotting, and export.
+- **[Examples](examples/)** — runnable scripts, executed in CI so they never go stale:
+  - `examples/00_getting_started.py` — fit, results, predictions
+  - `examples/01_error_analysis.py` — full failure-forensics workflow
+  - `examples/02_plotting.py` — the plotting API
 
-## Plotting
-
-Plotting is a separate module (requires `pip install poniard[plot]`):
-
-```python
-from poniard.plot import PoniardPlotFactory
-
-plotter = PoniardPlotFactory(X, y, clf)
-plotter.metrics()
-plotter.roc_curve()
-plotter.confusion_matrix("LogisticRegression")
-plotter.permutation_importance("LogisticRegression")
-
-# Single-figure dashboard: metric rankings, model comparison, ROC/confusion
-# matrix (or residuals for regression) and permutation importance in one view
-plotter.full_estimator_analysis("LogisticRegression")
+```bash
+python examples/00_getting_started.py
 ```
 
 ## Estimator naming
 
-Each estimator gets a name automatically (its class name). You can override with tuple syntax:
+Estimators are named by class name, with collision suffixes (`_2`, `_3`, ...).
+Override names with tuple syntax:
 
 ```python
-# Tuple override
-clf = PoniardClassifier(estimators=[('my_lr', LogisticRegression())])
+clf = PoniardClassifier(estimators=[("my_lr", LogisticRegression())])
 # pipelines: {'my_lr': ..., 'DummyClassifier': ...}
-
-# Duplicates → collision handling
-clf = PoniardClassifier(estimators=[
-    LogisticRegression(max_iter=1000),
-    LogisticRegression(C=0.1),
-])
-# pipelines: {'LogisticRegression': ..., 'LogisticRegression_2': ..., 'DummyClassifier': ...}
 ```
-
-## Features
-
-- **Error analysis**: Universal failures, disagreement sets, lift vs baseline — find *where and why* models fail
-- **Statistical comparison**: Paired fold tests to see if A really beats B
-- **Time-quality tradeoff**: Pareto front and best-under-budget helpers
-- **Automatic type inference**: Detects numeric, categorical, and datetime features
-- **Built-in preprocessing**: Imputation, encoding, scaling via a configurable pipeline
-- **Cross-validated comparison**: Fits multiple estimators with cross-validation and collects results
-- **Hyperparameter tuning**: Grid, random, and halving search for any estimator
-- **Ensemble building**: Create ensembles from fitted estimators
-- **Plotting**: Metrics comparison, ROC curves, confusion matrices, feature importance (optional, requires plotly)
 
 ## Environment variables
 
-- `PONIARD_TQDM_LEAVE` — set to `"True"` to keep the progress bars on screen
-  after fitting/searching completes (instead of clearing them). Default `"False"`.
+- `PONIARD_TQDM_LEAVE` — set to `"True"` to keep progress bars on screen after
+  fitting completes. Default `"False"`.
 
 ## Python support
 
-3.10, 3.11, 3.12, 3.13 — tested on Linux, macOS, and Windows.
+3.10–3.13, tested on Linux, macOS, and Windows.
 
 ## Development
 
