@@ -17,6 +17,7 @@ from sklearn.metrics import (
 from sklearn.model_selection import KFold, StratifiedKFold
 from sklearn.multiclass import OneVsRestClassifier
 from sklearn.multioutput import MultiOutputRegressor
+from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
 
 from poniard import PoniardClassifier, PoniardRegressor
 from poniard.error_analysis import ErrorAnalyzer
@@ -125,10 +126,10 @@ def test_regressor_fit(target, metrics, estimators, cv):
 def test_multilabel_fit():
     import warnings
 
-    X, y = make_multilabel_classification(n_samples=1000, n_classes=3, n_labels=3)
+    X, y = make_multilabel_classification(n_samples=300, n_classes=3, n_labels=3)
     clf = PoniardClassifier(
         estimators={
-            "RF": OneVsRestClassifier(RandomForestClassifier()),
+            "DT": OneVsRestClassifier(DecisionTreeClassifier()),
             "LR": OneVsRestClassifier(LogisticRegression()),
         },
         random_state=0,
@@ -148,7 +149,7 @@ def test_multioutput_fit():
     X, y = make_regression(n_targets=3)
     clf = PoniardRegressor(
         estimators={
-            "RF": MultiOutputRegressor(RandomForestRegressor()),
+            "DT": MultiOutputRegressor(DecisionTreeRegressor()),
             "LR": MultiOutputRegressor(LinearRegression()),
         },
         random_state=0,

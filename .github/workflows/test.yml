@@ -14,6 +14,10 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
         python-version: ['3.10', '3.11', '3.12', '3.13']
+        include:
+          - os: ubuntu-latest
+            python-version: '3.13'
+            coverage: true
 
     steps:
       - uses: actions/checkout@v4
@@ -28,13 +32,18 @@ jobs:
         run: uv sync --dev
 
       - name: Lint
-        run: uv run ruff check poniard/ tests/
+        run: uv run ruff check poniard/ tests/ examples/
 
       - name: Format check
-        run: uv run ruff format --check poniard/ tests/
+        run: uv run ruff format --check poniard/ tests/ examples/
 
       - name: Test (with coverage gate)
-        run: uv run pytest --cov=poniard --cov-report=term-missing --cov-fail-under=85
+        if: ${{ matrix.coverage }}
+        run: uv run pytest -n auto --cov=poniard --cov-report=term-missing --cov-fail-under=85
+
+      - name: Test
+        if: ${{ !matrix.coverage }}
+        run: uv run pytest -n auto
 
   publish:
     if: startsWith(github.ref, 'refs/tags')
