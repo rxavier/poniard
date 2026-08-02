@@ -242,16 +242,11 @@ class TestPreprocessing:
         pp = PoniardPreprocessor()
         pp.build(X=X, y=y, task="classification")
         ct = pp.preprocessor.named_steps["type_preprocessor"]
-        if isinstance(ct, ColumnTransformer):
-            numeric_pipeline = dict(ct.named_transformers_)["numeric_preprocessor"]
-        else:
-            # Single transformer — the whole preprocessor IS the numeric one
-            numeric_pipeline = ct
-        step_names = (
-            [s for s, _ in numeric_pipeline.steps] if hasattr(numeric_pipeline, "steps") else []
-        )
-        has_scaler = any("scaler" in s.lower() for s in step_names)
-        assert has_scaler or isinstance(numeric_pipeline, Pipeline)
+        assert isinstance(ct, ColumnTransformer)
+        numeric_pipeline = self._get_transformer_by_name(ct, "numeric_preprocessor")
+        assert isinstance(numeric_pipeline, Pipeline)
+        assert isinstance(numeric_pipeline.named_steps["numeric_imputer"], SimpleImputer)
+        assert isinstance(numeric_pipeline.named_steps["scaler"], StandardScaler)
 
     @staticmethod
     def _get_transformer_by_name(ct, name):

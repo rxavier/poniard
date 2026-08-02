@@ -715,8 +715,7 @@ class PoniardBaseEstimator(ResultsMixin, EnsembleMixin, TuningMixin, ABC):
                 print(assigned_types_df)
 
         self.feature_types = assigned_types
-        self._poniard_preprocessor.feature_types = assigned_types
-        self._poniard_preprocessor.build()
+        self._poniard_preprocessor.build(feature_types=assigned_types)
         self.preprocessor = self._poniard_preprocessor.preprocessor
         self.pipelines = self._build_pipelines()
         return self

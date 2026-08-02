@@ -166,7 +166,6 @@ class PoniardPreprocessor:
         scaler: Literal["standard", "minmax", "robust"] | TransformerMixin | None = None,
         high_cardinality_encoder: (Literal["target", "ordinal"] | TransformerMixin | None) = None,
         numeric_imputer: Literal["simple", "iterative"] | TransformerMixin | None = None,
-        custom_preprocessor: Pipeline | TransformerMixin | None = None,
         numeric_threshold: int | float = 0.1,
         cardinality_threshold: int | float = 20,
         verbose: bool = False,
@@ -180,7 +179,6 @@ class PoniardPreprocessor:
             "scaler": scaler,
             "high_cardinality_encoder": high_cardinality_encoder,
             "numeric_imputer": numeric_imputer,
-            "custom_preprocessor": custom_preprocessor,
             "numeric_threshold": numeric_threshold,
             "cardinality_threshold": cardinality_threshold,
             "verbose": verbose,
@@ -213,6 +211,7 @@ class PoniardPreprocessor:
         y: pd.DataFrame | np.ndarray | list | None = None,
         task: Task | None = None,
         target_info: dict | None = None,
+        feature_types: dict | None = None,
     ) -> PoniardPreprocessor:
         """Builds the preprocessor according to the input data.
 
@@ -229,6 +228,9 @@ class PoniardPreprocessor:
             Task type ("classification" or "regression"). Overrides the task set at init.
         target_info :
             Target info dict. If None, computed from y and task.
+        feature_types :
+            Explicit feature type assignment. If given, type inference is skipped and
+            ``inferred_types_df`` is refreshed from this mapping.
         """
         if task:
             self.task = task
@@ -238,13 +240,21 @@ class PoniardPreprocessor:
         self._setup_data(X=X, y=y)
         X = self.X
 
-        try:
-            numeric = self.feature_types["numeric"]
-            categorical_high = self.feature_types["categorical_high"]
-            categorical_low = self.feature_types["categorical_low"]
-            datetime = self.feature_types["datetime"]
-        except AttributeError:
-            numeric, categorical_high, categorical_low, datetime = self._infer_dtypes()
+        if feature_types is not None:
+            self.feature_types = feature_types
+            self.inferred_types_df = self._feature_types_df(feature_types)
+            numeric = feature_types["numeric"]
+            categorical_high = feature_types["categorical_high"]
+            categorical_low = feature_types["categorical_low"]
+            datetime = feature_types["datetime"]
+        else:
+            try:
+                numeric = self.feature_types["numeric"]
+                categorical_high = self.feature_types["categorical_high"]
+                categorical_low = self.feature_types["categorical_low"]
+                datetime = self.feature_types["datetime"]
+            except AttributeError:
+                numeric, categorical_high, categorical_low, datetime = self._infer_dtypes()
 
         if target_info:
             self.target_info = target_info
@@ -258,63 +268,41 @@ class PoniardPreprocessor:
         ) = self._setup_transformers()
 
         if isinstance(X, pd.DataFrame):
-            type_preprocessor = ColumnTransformer(
-                [
-                    ("numeric_preprocessor", numeric_preprocessor, numeric),
-                    (
-                        "categorical_low_preprocessor",
-                        cat_low_preprocessor,
-                        categorical_low,
-                    ),
-                    (
-                        "categorical_high_preprocessor",
-                        cat_high_preprocessor,
-                        categorical_high,
-                    ),
-                    ("datetime_preprocessor", datetime_preprocessor, datetime),
-                ],
-                n_jobs=self.n_jobs,
-            )
+            transformers = [
+                ("numeric_preprocessor", numeric_preprocessor, numeric),
+                (
+                    "categorical_low_preprocessor",
+                    cat_low_preprocessor,
+                    categorical_low,
+                ),
+                (
+                    "categorical_high_preprocessor",
+                    cat_high_preprocessor,
+                    categorical_high,
+                ),
+                ("datetime_preprocessor", datetime_preprocessor, datetime),
+            ]
         else:
+            transformers = [
+                ("numeric_preprocessor", numeric_preprocessor, numeric),
+                (
+                    "categorical_low_preprocessor",
+                    cat_low_preprocessor,
+                    categorical_low,
+                ),
+                (
+                    "categorical_high_preprocessor",
+                    cat_high_preprocessor,
+                    categorical_high,
+                ),
+            ]
             if np.issubdtype(X.dtype, np.datetime64):
-                type_preprocessor = datetime_preprocessor
-            elif np.issubdtype(X.dtype, np.number):
-                type_preprocessor = ColumnTransformer(
-                    [
-                        ("numeric_preprocessor", numeric_preprocessor, numeric),
-                        (
-                            "categorical_low_preprocessor",
-                            cat_low_preprocessor,
-                            categorical_low,
-                        ),
-                        (
-                            "categorical_high_preprocessor",
-                            cat_high_preprocessor,
-                            categorical_high,
-                        ),
-                    ],
-                    n_jobs=self.n_jobs,
-                )
-            else:
-                type_preprocessor = ColumnTransformer(
-                    [
-                        (
-                            "categorical_low_preprocessor",
-                            cat_low_preprocessor,
-                            categorical_low,
-                        ),
-                        (
-                            "categorical_high_preprocessor",
-                            cat_high_preprocessor,
-                            categorical_high,
-                        ),
-                    ],
-                    n_jobs=self.n_jobs,
-                )
-        non_empty_transformers = [x for x in type_preprocessor.transformers if x[2] != []]
-        type_preprocessor.transformers = non_empty_transformers
-        if len(type_preprocessor.transformers) == 1:
-            type_preprocessor = type_preprocessor.transformers[0][1]
+                transformers = [("datetime_preprocessor", datetime_preprocessor, datetime)]
+        type_preprocessor = ColumnTransformer(
+            [t for t in transformers if t[2] != []],
+            n_jobs=self.n_jobs,
+            verbose_feature_names_out=False,
+        )
         type_preprocessor.set_output(transform="pandas")
         preprocessor = Pipeline(
             [
@@ -336,7 +324,9 @@ class PoniardPreprocessor:
             self.X = coerce_input(X)
             self.y = coerce_input(y)
         elif not hasattr(self, "X") or not hasattr(self, "y"):
-            raise NotImplementedError("Both X and y need to be passed to _setup_data.")
+            raise ValueError(
+                "X and y must be passed to build() (or set by a previous build() call)."
+            )
         return self
 
     def _setup_transformers(self):
@@ -403,11 +393,9 @@ class PoniardPreprocessor:
         )
         datetime_preprocessor = Pipeline(
             [
-                (
-                    "datetime_encoder",
-                    DatetimeEncoder(),
-                ),
-                ("datetime_imputer", cat_date_imputer),
+                ("datetime_encoder", DatetimeEncoder()),
+                ("datetime_imputer", SimpleImputer(strategy="median")),
+                ("scaler", scaler),
             ],
         )
         return (
@@ -428,15 +416,17 @@ class PoniardPreprocessor:
         self.feature_types = infer_feature_types(
             self.X, self.numeric_threshold, self.cardinality_threshold
         )
-        self.inferred_types_df = pd.DataFrame.from_dict(
-            self.feature_types, orient="index"
-        ).T.fillna("")
+        self.inferred_types_df = self._feature_types_df(self.feature_types)
         return (
             self.feature_types["numeric"],
             self.feature_types["categorical_high"],
             self.feature_types["categorical_low"],
             self.feature_types["datetime"],
         )
+
+    @staticmethod
+    def _feature_types_df(feature_types: dict) -> pd.DataFrame:
+        return pd.DataFrame.from_dict(feature_types, orient="index").T.fillna("")
 
     def __repr__(self):
         return non_default_repr(self)
