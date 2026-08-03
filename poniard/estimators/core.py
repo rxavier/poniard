@@ -422,6 +422,17 @@ class PoniardBaseEstimator(ResultsMixin, EnsembleMixin, TuningMixin, ABC):
         """Whether `name` is a built-in PoniardPreprocessor profile."""
         return name == "native"
 
+    def _infer_feature_types(self, X, y) -> dict:
+        """Run type inference with default thresholds and store the result.
+
+        Used when the ``"default"`` template is not a ``PoniardPreprocessor``
+        (e.g. a user-supplied pipeline), so ``feature_types`` still exists for
+        building ``"native"`` profiles.
+        """
+        pp = PoniardPreprocessor()
+        pp.build(X=X, y=y, task=self.poniard_task, target_info=self.target_info)
+        return pp.feature_types
+
     def _build_profile_preprocessor(self, profile: str, X, y) -> Pipeline:
         """Build a PoniardPreprocessor profile with the shared feature types."""
         pp = PoniardPreprocessor(profile=profile)
@@ -435,6 +446,29 @@ class PoniardBaseEstimator(ResultsMixin, EnsembleMixin, TuningMixin, ABC):
         )
         self._poniard_preprocessors[profile] = pp
         return pp.preprocessor
+
+    def _effective_preprocessor_map(self, estimators: dict) -> dict:
+        """The estimator→preprocessor mapping to build from.
+
+        User-supplied entries win. HistGradientBoosting estimators default to
+        the ``"native"`` profile (the only ones that can consume it); every
+        other estimator defaults to ``"default"``. The automatic default is
+        skipped when the user supplied a custom (non-``PoniardPreprocessor``)
+        preprocessor — they have taken over preprocessing and every estimator
+        should use their template unless explicitly mapped.
+        """
+        resolved = dict(self.preprocessor_map)
+        if self.custom_preprocessor and not isinstance(
+            self.custom_preprocessor, PoniardPreprocessor
+        ):
+            return resolved
+        for name, estimator in estimators.items():
+            if name not in resolved and isinstance(
+                estimator,
+                (HistGradientBoostingClassifier, HistGradientBoostingRegressor),
+            ):
+                resolved[name] = "native"
+        return resolved
 
     def _build_preprocessors(self, X, y) -> dict[str, Pipeline]:
         """Build the registry of named preprocessors.
@@ -455,10 +489,13 @@ class PoniardBaseEstimator(ResultsMixin, EnsembleMixin, TuningMixin, ABC):
             default = self._build_preprocessor(X, y)
         preprocessors = {"default": default}
         self._poniard_preprocessors = {}
+        if not self.feature_types:
+            self.feature_types = self._infer_feature_types(X, y)
 
+        effective_map = self._effective_preprocessor_map(self._build_estimators_dict())
         referenced_profiles = {
             value
-            for value in self.preprocessor_map.values()
+            for value in effective_map.values()
             if isinstance(value, str) and self._is_poniard_profile(value)
         }
         for profile in referenced_profiles:
@@ -469,7 +506,7 @@ class PoniardBaseEstimator(ResultsMixin, EnsembleMixin, TuningMixin, ABC):
                 preprocessors[name] = template
 
         resolved_map = {}
-        for estimator_name, value in self.preprocessor_map.items():
+        for estimator_name, value in effective_map.items():
             if isinstance(value, str):
                 if value not in preprocessors:
                     raise KeyError(

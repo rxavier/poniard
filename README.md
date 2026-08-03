@@ -104,7 +104,7 @@ model = clf.get_estimator("LogisticRegression", retrain=True, X=X, y=y)
 | **Error analysis** | Universal failures, disagreement sets, lift vs baseline — ranked per sample, sliced by target and features |
 | **Statistical comparison** | Paired fold tests so you stop trusting fold-mean leaderboards |
 | **Time / quality** | Pareto front and best-under-budget helpers |
-| **Preprocessing** | Automatic numeric / categorical / datetime type inference, imputation, encoding, scaling; per-estimator preprocessors (`preprocessor_map`) with a native profile for HistGradientBoosting |
+| **Preprocessing** | Automatic numeric / categorical / datetime type inference, imputation, encoding, scaling; per-estimator preprocessors (`preprocessor_map`) — HistGradientBoosting automatically uses a native NaN/categorical profile |
 | **Tuning** | Grid, random, and halving search that re-enters the experiment as a new named estimator |
 | **Ensembles** | Diversity-aware voting / stacking built from your fitted estimators |
 | **Plotting** | Metrics, ROC, confusion matrices, residuals, feature importance (optional, requires `[plot]`) |

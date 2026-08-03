@@ -3,11 +3,11 @@
 This example uses data with missing values, low- and high-cardinality
 categoricals, and a datetime column, then shows:
 
-1. The default preprocessor: median imputation with missingness indicators,
-   one-hot encoding (with min_frequency), and scaling.
-2. Routing HistGradientBoosting to the "native" profile via preprocessor_map,
-   which leaves numeric/datetime untouched and ordinal-encodes categoricals to
-   pandas category dtype so HGB handles them natively.
+1. The default preprocessor (used by non-tree estimators): median imputation
+   with missingness indicators, one-hot encoding (with min_frequency), scaling.
+2. HistGradientBoosting estimators auto-default to the "native" profile, which
+   leaves numeric/datetime untouched and ordinal-encodes categoricals to pandas
+   category dtype so HGB handles them natively.
 3. Registering a custom template and assigning it at runtime.
 """
 
@@ -33,9 +33,9 @@ X = pd.DataFrame(
 )
 y = make_classification(n_samples=n, n_features=5, random_state=42)[1]
 
-# 1. Default preprocessor on all estimators.
+# 1. The default preprocessor (what non-tree estimators use).
 clf = PoniardClassifier(
-    estimators=[LogisticRegression(max_iter=1000), HistGradientBoostingClassifier()],
+    estimators=[LogisticRegression(max_iter=1000)],
     cv=3,
     random_state=0,
 )
@@ -44,8 +44,9 @@ print("Registered preprocessors:", list(clf.preprocessors))
 print("Default profile steps:", [s for s, _ in clf.preprocessors["default"].steps])
 print()
 
-# 2. Route HGB to the "native" profile. It keeps NaNs and categoricals raw
-#    (as category dtype) instead of imputing/one-hot encoding them away.
+# 2. HistGradientBoosting defaults to the "native" profile automatically: it
+#    keeps NaNs and categoricals raw (as category dtype) instead of imputing /
+#    one-hot encoding them away. Only non-default entries are stored in the map.
 clf = PoniardClassifier(
     estimators=[
         HistGradientBoostingClassifier(),
@@ -53,7 +54,6 @@ clf = PoniardClassifier(
     ],
     cv=3,
     random_state=0,
-    preprocessor_map={"HistGradientBoostingClassifier": "native"},
 )
 clf.fit(X, y, show_info=False)
 print("Preprocessor map:", clf.preprocessor_map)
@@ -74,7 +74,6 @@ clf = PoniardClassifier(
     estimators=[HistGradientBoostingClassifier(), LogisticRegression(max_iter=1000)],
     cv=3,
     random_state=0,
-    preprocessor_map={"HistGradientBoostingClassifier": "native"},
 )
 clf.setup(X, y, show_info=False)
 minmax_pp = PoniardPreprocessor(scaler="minmax")
