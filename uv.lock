@@ -466,7 +466,7 @@ wheels = [
 
 [[package]]
 name = "poniard"
-version = "0.6.0"
+version = "0.7.0"
 source = { editable = "." }
 dependencies = [
     { name = "joblib" },
@@ -501,7 +501,7 @@ requires-dist = [
     { name = "numpy", specifier = ">=1.26.0" },
     { name = "pandas", specifier = ">=2.0.0" },
     { name = "plotly", marker = "extra == 'plot'" },
-    { name = "scikit-learn", specifier = ">=1.3.0" },
+    { name = "scikit-learn", specifier = ">=1.4.0" },
     { name = "scipy", specifier = ">=1.11.0" },
     { name = "tqdm" },
 ]
