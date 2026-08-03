@@ -89,6 +89,36 @@ clf = PoniardClassifier(custom_preprocessor=pp)
 `preprocess=False` skips preprocessing entirely (raw data goes straight to the
 estimators).
 
+### Per-estimator preprocessors
+
+By default every estimator shares one preprocessor. Use `preprocessor_map` to
+route specific estimators to different registered templates:
+
+```python
+clf = PoniardClassifier(
+    estimators=[HistGradientBoostingClassifier(), LogisticRegression()],
+    preprocessor_map={"HistGradientBoostingClassifier": "native"},
+)
+```
+
+`"native"` is a built-in profile that leaves numeric and datetime features
+untouched (tree models learn NaN split directions themselves) and
+ordinal-encodes categoricals as pandas `category` dtype so the estimator splits
+on them directly. It is only valid for `HistGradientBoosting*` estimators, which
+get `categorical_features="from_dtype"` set automatically as a side effect.
+Everything else falls back to `"default"`.
+
+Templates can be registered and assigned at runtime:
+
+```python
+clf.add_preprocessor("sparse_friendly", my_pipeline)   # register a custom template
+clf.set_preprocessor("LogisticRegression", "sparse_friendly")  # (re)assign
+clf.preprocessor_map                                    # inspect
+```
+
+`add_preprocessing_step` can target specific templates with
+`preprocessor="name"` (default `"all"`).
+
 ---
 
 ## Cross-validation and results

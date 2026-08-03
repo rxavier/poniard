@@ -15,6 +15,7 @@ import pandas as pd
 from sklearn.base import ClassifierMixin, RegressorMixin, TransformerMixin, clone
 from sklearn.compose import ColumnTransformer
 from sklearn.dummy import DummyClassifier, DummyRegressor
+from sklearn.ensemble import HistGradientBoostingClassifier, HistGradientBoostingRegressor
 from sklearn.exceptions import UndefinedMetricWarning
 from sklearn.model_selection import (
     cross_val_predict,
@@ -218,6 +219,9 @@ class PoniardBaseEstimator(ResultsMixin, EnsembleMixin, TuningMixin, ABC):
         self.preprocessor = None
         self.feature_types = {}
         self._poniard_preprocessor = None
+        self._poniard_preprocessors = {}
+        self._configured_X = None
+        self._configured_y = None
         self.target_info = None
         self.show_info = None
 
@@ -286,6 +290,8 @@ class PoniardBaseEstimator(ResultsMixin, EnsembleMixin, TuningMixin, ABC):
         X = coerce_input(X)
         y = coerce_input(y)
         self.show_info = show_info
+        self._configured_X = X
+        self._configured_y = y
         self.target_info = get_target_info(y, self.poniard_task)
         if self.target_info["type_"] == "multiclass-multioutput":
             raise NotImplementedError(
@@ -404,14 +410,35 @@ class PoniardBaseEstimator(ResultsMixin, EnsembleMixin, TuningMixin, ABC):
         self.feature_types = self._poniard_preprocessor.feature_types
         return self._poniard_preprocessor.preprocessor
 
+    @staticmethod
+    def _is_poniard_profile(name: str) -> bool:
+        """Whether `name` is a built-in PoniardPreprocessor profile."""
+        return name == "native"
+
+    def _build_profile_preprocessor(self, profile: str, X, y) -> Pipeline:
+        """Build a PoniardPreprocessor profile with the shared feature types."""
+        pp = PoniardPreprocessor(profile=profile)
+        self._pass_instance_attrs(pp)
+        pp.build(
+            X=X,
+            y=y,
+            task=self.poniard_task,
+            target_info=self.target_info,
+            feature_types=self.feature_types,
+        )
+        self._poniard_preprocessors[profile] = pp
+        return pp.preprocessor
+
     def _build_preprocessors(self, X, y) -> dict[str, Pipeline]:
         """Build the registry of named preprocessors.
 
-        The ``"default"`` preprocessor is rebuilt exactly as before. Templates
-        registered via `add_preprocessor` are preserved across re-configuration.
-        Pipeline or Transformer instances given as ``preprocessor_map`` values
-        are auto-registered under a generated name; string values must reference
-        an existing registration.
+        The ``"default"`` preprocessor is rebuilt exactly as before, computing
+        the shared ``feature_types`` once. Referenced PoniardPreprocessor
+        profiles (e.g. ``"native"``) are rebuilt from those same types, so
+        ``reassign_types`` propagates to every profile. Pipeline or Transformer
+        instances given as ``preprocessor_map`` values are auto-registered under
+        a generated name; user-registered templates are preserved across
+        re-configuration; string values must reference an existing registration.
         """
         if self.custom_preprocessor and not isinstance(
             self.custom_preprocessor, PoniardPreprocessor
@@ -420,8 +447,18 @@ class PoniardBaseEstimator(ResultsMixin, EnsembleMixin, TuningMixin, ABC):
         else:
             default = self._build_preprocessor(X, y)
         preprocessors = {"default": default}
+        self._poniard_preprocessors = {}
+
+        referenced_profiles = {
+            value
+            for value in self.preprocessor_map.values()
+            if isinstance(value, str) and self._is_poniard_profile(value)
+        }
+        for profile in referenced_profiles:
+            preprocessors[profile] = self._build_profile_preprocessor(profile, X, y)
+
         for name, template in self.preprocessors.items():
-            if name != "default":
+            if name != "default" and name not in referenced_profiles:
                 preprocessors[name] = template
 
         resolved_map = {}
@@ -474,6 +511,8 @@ class PoniardBaseEstimator(ResultsMixin, EnsembleMixin, TuningMixin, ABC):
         if self.preprocess:
             prep_name = self.preprocessor_map.get(name, "default")
             preprocessor = self.preprocessors[prep_name]
+            if prep_name == "native":
+                self._configure_native_estimator(estimator, name)
             pipe = Pipeline(
                 [("preprocessor", preprocessor), (name, estimator)],
                 memory=getattr(preprocessor, "memory", self._memory),
@@ -483,6 +522,26 @@ class PoniardBaseEstimator(ResultsMixin, EnsembleMixin, TuningMixin, ABC):
         if self.preprocess:
             pipe.set_output(transform="pandas")
         return pipe
+
+    @staticmethod
+    def _configure_native_estimator(estimator, name: str) -> None:
+        """Couple the ``"native"`` preprocessor to a HistGradientBoosting estimator.
+
+        Only HistGradientBoosting estimators can consume the native categorical
+        and NaN handling; anything else is a misuse and is rejected here (the
+        single place every pipeline is built). Side effect: the cloned estimator
+        gets ``categorical_features="from_dtype"`` so pandas ``category`` columns
+        produced by the native preprocessor are split on directly.
+        """
+        if not isinstance(
+            estimator,
+            (HistGradientBoostingClassifier, HistGradientBoostingRegressor),
+        ):
+            raise ValueError(
+                f"The 'native' preprocessor can only be mapped to HistGradientBoosting "
+                f"estimators, got '{name}' ({type(estimator).__name__})."
+            )
+        estimator.set_params(categorical_features="from_dtype")
 
     @staticmethod
     def _ensure_pandas_output(estimator) -> None:
@@ -802,6 +861,9 @@ class PoniardBaseEstimator(ResultsMixin, EnsembleMixin, TuningMixin, ABC):
         self.feature_types = assigned_types
         self._poniard_preprocessor.build(feature_types=assigned_types)
         self.preprocessor = self._poniard_preprocessor.preprocessor
+        for profile, pp in self._poniard_preprocessors.items():
+            pp.build(feature_types=assigned_types)
+            self.preprocessors[profile] = pp.preprocessor
         self.pipelines = self._build_pipelines()
         return self
 
@@ -834,6 +896,8 @@ class PoniardBaseEstimator(ResultsMixin, EnsembleMixin, TuningMixin, ABC):
 
         Rebuilds that estimator's pipeline immediately via `_make_pipeline`.
         Must be called after `setup` (so pipelines exist) and before `fit`.
+        Mapping an estimator to ``"native"`` builds the native profile on demand
+        and requires the estimator to be a HistGradientBoosting model.
 
         Parameters
         ----------
@@ -850,6 +914,15 @@ class PoniardBaseEstimator(ResultsMixin, EnsembleMixin, TuningMixin, ABC):
         if estimator_name not in self.pipelines:
             raise KeyError(
                 f"Estimator '{estimator_name}' not found. Available: {list(self.pipelines)}"
+            )
+        if (
+            self._is_poniard_profile(preprocessor_name)
+            and preprocessor_name not in self.preprocessors
+        ):
+            if self._configured_X is None:
+                raise ValueError("setup() must be called before set_preprocessor(..., 'native').")
+            self.preprocessors[preprocessor_name] = self._build_profile_preprocessor(
+                preprocessor_name, self._configured_X, self._configured_y
             )
         if preprocessor_name not in self.preprocessors:
             raise KeyError(

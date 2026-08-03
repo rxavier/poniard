@@ -1,6 +1,8 @@
+import numpy as np
 import pandas as pd
 import pytest
 from sklearn.datasets import make_classification
+from sklearn.ensemble import HistGradientBoostingClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
@@ -83,7 +85,7 @@ def test_preprocessor_map_unknown_name_raises(X_y):
         estimators=[LogisticRegression()],
         cv=3,
         random_state=0,
-        preprocessor_map={"LogisticRegression": "native"},
+        preprocessor_map={"LogisticRegression": "nonexistent"},
     )
     with pytest.raises(KeyError, match="not registered"):
         clf.setup(X, y, show_info=False)
@@ -158,3 +160,150 @@ def test_tuning_with_mapped_pipeline(X_y):
         grid={"preprocessor__minmaxscaler__feature_range": [(0, 1), (0, 2)]},
     )
     assert "LogisticRegression_tuned" in clf.pipelines
+
+
+def test_native_mapped_hgb_uses_native(X_y):
+    X, y = X_y
+    clf = PoniardClassifier(
+        estimators=[
+            HistGradientBoostingClassifier(max_iter=50, random_state=0),
+            LogisticRegression(),
+        ],
+        cv=2,
+        random_state=0,
+        preprocessor_map={"HistGradientBoostingClassifier": "native"},
+    )
+    clf.setup(X, y, show_info=False)
+    assert "native" in clf.preprocessors
+    assert clf.preprocessor_map == {"HistGradientBoostingClassifier": "native"}
+    hgb = clf.pipelines["HistGradientBoostingClassifier"]
+    assert hgb.named_steps["preprocessor"] is clf.preprocessors["native"]
+    estimator = hgb.named_steps["HistGradientBoostingClassifier"]
+    assert estimator.categorical_features == "from_dtype"
+    lr = clf.pipelines["LogisticRegression"]
+    assert lr.named_steps["preprocessor"] is clf.preprocessors["default"]
+
+
+def test_native_set_preprocessor_on_demand(X_y):
+    X, y = X_y
+    clf = PoniardClassifier(
+        estimators=[HistGradientBoostingClassifier(max_iter=50, random_state=0)],
+        cv=2,
+        random_state=0,
+    )
+    clf.setup(X, y, show_info=False)
+    assert "native" not in clf.preprocessors
+    clf.set_preprocessor("HistGradientBoostingClassifier", "native")
+    assert "native" in clf.preprocessors
+    assert clf.preprocessor_map == {"HistGradientBoostingClassifier": "native"}
+    clf.fit(X, y, show_info=False)
+    assert not clf.get_results().isna().any().any()
+
+
+def test_native_non_hgb_raises(X_y):
+    X, y = X_y
+    clf = PoniardClassifier(estimators=[LogisticRegression()], cv=2, random_state=0)
+    clf.setup(X, y, show_info=False)
+    with pytest.raises(ValueError, match="only be mapped to HistGradientBoosting"):
+        clf.set_preprocessor("LogisticRegression", "native")
+    clf2 = PoniardClassifier(
+        estimators=[LogisticRegression()],
+        cv=2,
+        random_state=0,
+        preprocessor_map={"LogisticRegression": "native"},
+    )
+    with pytest.raises(ValueError, match="only be mapped to HistGradientBoosting"):
+        clf2.setup(X, y, show_info=False)
+
+
+def test_native_e2e_with_nan_categorical():
+    X = pd.DataFrame(
+        {
+            "num": [1.0, 2.0, np.nan, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0],
+            "cat": ["a", "b", np.nan, "a", "b", "c", "a", "b", "a", "c"],
+        }
+    )
+    y = np.array([0, 1, 0, 1, 0, 1, 0, 1, 0, 1])
+    clf = PoniardClassifier(
+        estimators=[HistGradientBoostingClassifier(max_iter=50, random_state=0)],
+        cv=2,
+        random_state=0,
+        preprocessor_map={"HistGradientBoostingClassifier": "native"},
+    )
+    clf.fit(X, y, show_info=False)
+    assert not clf.get_results().isna().any().any()
+
+
+def test_native_reassign_types_shared_inference(X_y):
+    X, y = X_y
+    clf = PoniardClassifier(
+        estimators=[HistGradientBoostingClassifier(max_iter=50, random_state=0)],
+        cv=2,
+        random_state=0,
+        preprocessor_map={"HistGradientBoostingClassifier": "native"},
+    )
+    clf.setup(X, y, show_info=False)
+    native = clf.preprocessors["native"].named_steps["type_preprocessor"]
+    before = {name for name, _, cols in native.transformers if cols}
+    clf.reassign_types(
+        numeric=[],
+        categorical_high=[],
+        categorical_low=list(X.columns),
+        datetime=[],
+        keep_remainder=False,
+    )
+    native = clf.preprocessors["native"].named_steps["type_preprocessor"]
+    after = {name for name, _, cols in native.transformers if cols}
+    assert before == {"numeric_preprocessor"}
+    assert after == {"categorical_low_preprocessor"}
+    assert clf.preprocessor_map == {"HistGradientBoostingClassifier": "native"}
+
+
+def test_add_preprocessing_step_targets_native(X_y):
+    X, y = X_y
+    clf = PoniardClassifier(
+        estimators=[HistGradientBoostingClassifier(max_iter=50, random_state=0)],
+        cv=2,
+        random_state=0,
+        preprocessor_map={"HistGradientBoostingClassifier": "native"},
+    )
+    clf.setup(X, y, show_info=False)
+    clf.add_preprocessing_step(StandardScaler(), preprocessor="native")
+    assert any(isinstance(t, StandardScaler) for _, t in clf.preprocessors["native"].steps)
+    assert not any(isinstance(t, StandardScaler) for _, t in clf.preprocessors["default"].steps)
+
+
+def test_persistence_round_trip_preserves_native(X_y, tmp_path):
+    X, y = X_y
+    clf = PoniardClassifier(
+        estimators=[HistGradientBoostingClassifier(max_iter=50, random_state=0)],
+        cv=2,
+        random_state=0,
+        preprocessor_map={"HistGradientBoostingClassifier": "native"},
+    )
+    clf.setup(X, y, show_info=False)
+    path = tmp_path / "est.joblib"
+    clf.save(path)
+    loaded = PoniardClassifier.load(path)
+    assert loaded.preprocessor_map == {"HistGradientBoostingClassifier": "native"}
+    assert "native" in loaded.preprocessors
+    hgb = loaded.pipelines["HistGradientBoostingClassifier"]
+    assert hgb.named_steps["preprocessor"] is loaded.preprocessors["native"]
+
+
+def test_tuning_with_native_pipeline(X_y):
+    X, y = X_y
+    clf = PoniardClassifier(
+        estimators=[HistGradientBoostingClassifier(max_iter=50, random_state=0)],
+        cv=2,
+        random_state=0,
+        preprocessor_map={"HistGradientBoostingClassifier": "native"},
+    )
+    clf.setup(X, y, show_info=False)
+    clf.tune_estimator(
+        estimator_name="HistGradientBoostingClassifier",
+        X=X,
+        y=y,
+        grid={"HistGradientBoostingClassifier__learning_rate": [0.01, 0.1]},
+    )
+    assert "HistGradientBoostingClassifier_tuned" in clf.pipelines
