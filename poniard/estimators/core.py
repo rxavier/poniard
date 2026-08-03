@@ -438,17 +438,11 @@ class PoniardBaseEstimator(ResultsMixin, EnsembleMixin, TuningMixin, ABC):
             i += 1
         return f"{class_name}_{i}"
 
-    def _build_pipelines(
-        self,
-    ) -> dict[str, ClassifierMixin | RegressorMixin]:
-        """Build `pipelines` dict where keys are estimator names.
+    def _build_estimators_dict(self) -> dict[str, ClassifierMixin | RegressorMixin]:
+        """Resolve the estimator dict: defaults or user input, plus added, minus removed.
 
-        Names can be:
-        - A dict: keys are names, values are estimators
-        - A list of tuples: (name, estimator)
-        - A list of estimators: class name if unique, short prefix if duplicates
-
-        Adds dummy estimators if not included during construction.
+        Dummy estimators are not included; they are appended separately in
+        ``_build_pipelines``.
         """
         if isinstance(self.estimators, dict):
             estimators = self.estimators.copy()
@@ -469,6 +463,21 @@ class PoniardBaseEstimator(ResultsMixin, EnsembleMixin, TuningMixin, ABC):
         estimators.update(self._added_estimators)
         for name in self._removed_estimators:
             estimators.pop(name, None)
+        return estimators
+
+    def _build_pipelines(
+        self,
+    ) -> dict[str, ClassifierMixin | RegressorMixin]:
+        """Build `pipelines` dict where keys are estimator names.
+
+        Names can be:
+        - A dict: keys are names, values are estimators
+        - A list of tuples: (name, estimator)
+        - A list of estimators: class name if unique, short prefix if duplicates
+
+        Adds dummy estimators if not included during construction.
+        """
+        estimators = self._build_estimators_dict()
         estimators = self._add_dummy_estimators(estimators)
 
         pipelines = {

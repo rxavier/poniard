@@ -96,8 +96,11 @@ class PoniardClassifier(PoniardBaseEstimator):
         ]
 
     def _build_metrics(self) -> dict[str, Callable] | list[str]:
+        all_have_proba = all(
+            hasattr(est, "predict_proba") for est in self._build_estimators_dict().values()
+        )
         if self.target_info["type_"] == "multilabel-indicator":
-            return [
+            metrics = [
                 "roc_auc",
                 "accuracy",
                 "precision_macro",
@@ -105,22 +108,26 @@ class PoniardClassifier(PoniardBaseEstimator):
                 "f1_macro",
             ]
         elif self.target_info["type_"] == "multiclass":
-            return [
+            metrics = [
                 "roc_auc_ovr",
                 "accuracy",
                 "precision_macro",
                 "recall_macro",
                 "f1_macro",
             ]
-
         else:
-            return [
+            metrics = [
                 "roc_auc",
                 "accuracy",
                 "precision",
                 "recall",
                 "f1",
             ]
+        if all_have_proba:
+            metrics.insert(1, "neg_log_loss")
+            if self.target_info["type_"] == "binary":
+                metrics.insert(2, "average_precision")
+        return metrics
 
     def _build_cv(self) -> BaseCrossValidator:
         cv = self.cv or 5

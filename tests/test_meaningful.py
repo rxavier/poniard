@@ -397,10 +397,12 @@ class TestResults:
         assert results.shape[1] > 0
 
     def test_classification_scores_between_0_and_1(self, fitted_classifier):
-        """All classification metric scores should be in [0, 1]."""
+        """All bounded classification metric scores should be in [0, 1]."""
         results = fitted_classifier.get_results()
         score_cols = [c for c in results.columns if c.startswith("test_")]
-        for col in score_cols:
+        # neg_log_loss is an unbounded loss, not a bounded score
+        bounded_cols = [c for c in score_cols if "log_loss" not in c]
+        for col in bounded_cols:
             assert results[col].between(0, 1).all(), f"Column {col} has values outside [0,1]"
 
     def test_dummy_classifier_gets_prior_score(self, classification_data):
