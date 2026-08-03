@@ -118,7 +118,9 @@ class PoniardPreprocessor:
         Encoder for categorical features with high cardinality. Either "target" or "ordinal",
         or scikit-learn Transformer.
     numeric_imputer :
-        Imputation method. Either "simple", "iterative" or scikit-learn Transformer.
+        Imputation method for numeric features. Either "simple" (legacy alias for mean
+        imputation), "mean", "median" (default), "iterative" or scikit-learn Transformer.
+        Numeric imputation also emits a missingness indicator column per input feature.
     categorical_imputer :
         Imputer for categorical features. Either "most_frequent" or "constant" (which fills
         with the string ``"missing"`` so one-hot encoding surfaces missingness), or a
@@ -155,7 +157,9 @@ class PoniardPreprocessor:
         task: Task | None = None,
         scaler: Literal["standard", "minmax", "robust"] | TransformerMixin | None = None,
         high_cardinality_encoder: (Literal["target", "ordinal"] | TransformerMixin | None) = None,
-        numeric_imputer: Literal["simple", "iterative"] | TransformerMixin | None = None,
+        numeric_imputer: Literal["simple", "iterative", "mean", "median"]
+        | TransformerMixin
+        | None = None,
         categorical_imputer: Literal["most_frequent", "constant"] | TransformerMixin | None = None,
         cyclical_datetime: bool = False,
         numeric_threshold: int | float = 0.1,
@@ -184,7 +188,7 @@ class PoniardPreprocessor:
         self.task = task
         self.scaler = scaler or "standard"
         self.high_cardinality_encoder = high_cardinality_encoder or "target"
-        self.numeric_imputer = numeric_imputer or "simple"
+        self.numeric_imputer = numeric_imputer or "median"
         self.categorical_imputer = categorical_imputer or "most_frequent"
         self.cyclical_datetime = cyclical_datetime
         self.numeric_threshold = numeric_threshold
@@ -374,7 +378,8 @@ class PoniardPreprocessor:
 
             num_imputer = IterativeImputer(random_state=self.random_state)
         else:
-            num_imputer = SimpleImputer(strategy="mean")
+            strategy = "mean" if self.numeric_imputer == "simple" else self.numeric_imputer
+            num_imputer = SimpleImputer(strategy=strategy, add_indicator=True)
 
         numeric_preprocessor = Pipeline([("numeric_imputer", num_imputer), ("scaler", scaler)])
         cat_low_preprocessor = Pipeline(

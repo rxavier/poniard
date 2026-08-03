@@ -188,6 +188,43 @@ def test_build_without_data_raises_clear_error():
         pp.build()
 
 
+def _numeric_imputer(pp: PoniardPreprocessor) -> SimpleImputer:
+    ct = pp.preprocessor.named_steps["type_preprocessor"]
+    for name, transformer, _ in ct.transformers:
+        if name == "numeric_preprocessor":
+            return transformer.named_steps["numeric_imputer"]
+    raise KeyError("numeric_preprocessor not found")
+
+
+def test_numeric_imputer_default_is_median():
+    X = pd.DataFrame({"num": [1.0, 2.0, np.nan, 4.0, 5.0]})
+    y = np.array([0, 1, 0, 1, 0])
+    pp = PoniardPreprocessor().build(X=X, y=y, task="classification")
+    assert _numeric_imputer(pp).strategy == "median"
+
+
+def test_numeric_imputer_literals():
+    X = pd.DataFrame({"num": [1.0, 2.0, np.nan, 4.0, 5.0]})
+    y = np.array([0, 1, 0, 1, 0])
+    for literal, expected in (("simple", "mean"), ("mean", "mean"), ("median", "median")):
+        pp = PoniardPreprocessor(numeric_imputer=literal).build(X=X, y=y, task="classification")
+        assert _numeric_imputer(pp).strategy == expected
+
+
+def test_numeric_missingness_indicator():
+    X = pd.DataFrame(
+        {
+            "num_missing": [1.0, 2.0, np.nan, 4.0, 5.0],
+            "num_full": [1.0, 2.0, 3.0, 4.0, 5.0],
+        }
+    )
+    y = np.array([0, 1, 0, 1, 0])
+    pp = PoniardPreprocessor().build(X=X, y=y, task="classification")
+    out = pp.preprocessor.fit_transform(X, y)
+    assert "missingindicator_num_missing" in out.columns
+    assert not any(c.startswith("missingindicator_num_full") for c in out.columns)
+
+
 @pytest.mark.parametrize(
     "array,frame",
     [
