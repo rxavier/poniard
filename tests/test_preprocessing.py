@@ -306,6 +306,23 @@ def test_ohe_min_frequency_float_is_fraction_of_samples():
     assert "cat_infrequent_sklearn" in out.columns
 
 
+def test_native_profile_passthrough_and_category():
+    X = pd.DataFrame(
+        {
+            "num": [1.0, 2.0, np.nan, 4.0, 5.0, 6.0],
+            "cat": ["a", "b", np.nan, "a", "b", "c"],
+        }
+    )
+    y = np.array([0, 1, 0, 1, 0, 1])
+    pp = PoniardPreprocessor(profile="native").build(X=X, y=y, task="classification")
+    assert [s for s, _ in pp.preprocessor.steps] == ["type_preprocessor"]
+    out = pp.preprocessor.fit_transform(X, y)
+    assert out["num"].dtype == np.float64
+    assert out["num"].isna().any()
+    assert out["cat"].dtype.name == "category"
+    assert out["cat"].isna().any()
+
+
 def test_categorical_imputer_constant_creates_missing_category():
     X = pd.DataFrame({"cat": ["a", "b", np.nan, "a", "b"]})
     y = np.array([0, 1, 0, 1, 0])

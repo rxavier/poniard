@@ -8,7 +8,7 @@ from typing import Literal
 import joblib
 import numpy as np
 import pandas as pd
-from sklearn.base import TransformerMixin
+from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.compose import ColumnTransformer
 from sklearn.feature_selection import VarianceThreshold
 from sklearn.impute import SimpleImputer
@@ -21,12 +21,38 @@ from sklearn.preprocessing import (
     StandardScaler,
     TargetEncoder,
 )
+from sklearn.utils.validation import _check_feature_names_in
 
 from ..utils.estimate import Task, coerce_input, get_target_info
 from ..utils.utils import non_default_repr
 from .datetime import DatetimeEncoder
 
 __all__ = ["PoniardPreprocessor", "infer_feature_types"]
+
+
+class _ToCategorical(BaseEstimator, TransformerMixin):
+    """Cast the output of a pandas-returning encoder to ``category`` dtype.
+
+    Used by the ``"native"`` profile so HistGradientBoosting's
+    ``categorical_features="from_dtype"`` recognizes the ordinal-encoded
+    columns as categorical. Missing values (NaN) are preserved as missing.
+    """
+
+    def fit(self, X, y=None) -> _ToCategorical:
+        if isinstance(X, pd.DataFrame):
+            self.feature_names_in_ = np.asarray(X.columns, dtype=object)
+        self.n_features_in_ = X.shape[1]
+        return self
+
+    def transform(self, X) -> pd.DataFrame:
+        if isinstance(X, pd.DataFrame):
+            return X.astype({col: "category" for col in X.columns})
+        return X
+
+    def get_feature_names_out(self, input_features=None) -> np.ndarray:
+        if input_features is None:
+            input_features = _check_feature_names_in(self, input_features)
+        return np.asarray(input_features, dtype=object)
 
 
 def infer_feature_types(
@@ -112,6 +138,12 @@ class PoniardPreprocessor:
 
     Parameters
     ----------
+    profile :
+        Which transformation profile to use. ``"default"`` imputes, scales and one-hot/
+        target-encodes for generic estimators. ``"native"`` leaves numeric and datetime
+        features untouched and ordinal-encodes categoricals as pandas ``category`` dtype,
+        for estimators that handle missing values and categoricals natively (e.g.
+        HistGradientBoosting). No scaling, no imputation, no variance threshold.
     scaler :
         Numeric scaler method. Either "standard", "minmax", "robust" or scikit-learn Transformer.
     high_cardinality_encoder :
@@ -159,6 +191,7 @@ class PoniardPreprocessor:
     def __init__(
         self,
         task: Task | None = None,
+        profile: Literal["default", "native"] = "default",
         scaler: Literal["standard", "minmax", "robust"] | TransformerMixin | None = None,
         high_cardinality_encoder: (Literal["target", "ordinal"] | TransformerMixin | None) = None,
         numeric_imputer: Literal["iterative", "mean", "median"] | TransformerMixin | None = None,
@@ -175,6 +208,7 @@ class PoniardPreprocessor:
     ):
         self._init_params = {
             "task": task,
+            "profile": profile,
             "scaler": scaler,
             "high_cardinality_encoder": high_cardinality_encoder,
             "numeric_imputer": numeric_imputer,
@@ -190,6 +224,7 @@ class PoniardPreprocessor:
             "cache_dir": cache_dir,
         }
         self.task = task
+        self.profile = profile
         self.scaler = scaler or "standard"
         self.high_cardinality_encoder = high_cardinality_encoder or "target"
         self.numeric_imputer = numeric_imputer or "median"
@@ -309,11 +344,11 @@ class PoniardPreprocessor:
             verbose_feature_names_out=False,
         )
         type_preprocessor.set_output(transform="pandas")
+        preprocessor_steps = [("type_preprocessor", type_preprocessor)]
+        if self.profile != "native":
+            preprocessor_steps.append(("remove_invariant", VarianceThreshold()))
         preprocessor = Pipeline(
-            [
-                ("type_preprocessor", type_preprocessor),
-                ("remove_invariant", VarianceThreshold()),
-            ],
+            preprocessor_steps,
             memory=self._memory,
         )
         preprocessor.set_output(transform="pandas")
@@ -335,6 +370,9 @@ class PoniardPreprocessor:
         return self
 
     def _setup_transformers(self):
+        if self.profile == "native":
+            return self._setup_native_transformers()
+
         if isinstance(self.scaler, TransformerMixin):
             scaler = self.scaler
         elif self.scaler == "standard":
@@ -421,6 +459,30 @@ class PoniardPreprocessor:
             cat_low_preprocessor,
             cat_high_preprocessor,
             datetime_preprocessor,
+        )
+
+    def _setup_native_transformers(self):
+        """Transformers for the ``"native"`` profile.
+
+        Numeric and datetime features pass through untouched (tree models learn
+        NaN split directions themselves), and categoricals are ordinal-encoded
+        to pandas ``category`` dtype so estimators with
+        ``categorical_features="from_dtype"`` split on them directly.
+        """
+        categorical_preprocessor = Pipeline(
+            [
+                (
+                    "ordinal_encoder",
+                    OrdinalEncoder(handle_unknown="use_encoded_value", unknown_value=np.nan),
+                ),
+                ("to_categorical", _ToCategorical()),
+            ]
+        )
+        return (
+            "passthrough",
+            categorical_preprocessor,
+            categorical_preprocessor,
+            DatetimeEncoder(cyclical=self.cyclical_datetime),
         )
 
     def _infer_dtypes(self) -> tuple[list, list, list, list]:
