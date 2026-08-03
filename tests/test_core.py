@@ -185,6 +185,20 @@ def test_classifier_default_metrics_without_predict_proba():
     assert "average_precision" not in clf.metrics
 
 
+def test_knn_default_pipeline_carries_n_jobs():
+    X, y = make_classification(n_samples=60, n_features=4, random_state=42)
+    clf = PoniardClassifier(n_jobs=2, random_state=0)
+    clf.setup(pd.DataFrame(X), y, show_info=False)
+    knn = clf.pipelines["KNeighborsClassifier"]
+    assert knn.named_steps["KNeighborsClassifier"].n_jobs == 2
+
+    Xr, yr = make_regression(n_samples=60, n_features=4, random_state=42)
+    reg = PoniardRegressor(n_jobs=3, random_state=0)
+    reg.setup(pd.DataFrame(Xr), yr, show_info=False)
+    knn_r = reg.pipelines["KNeighborsRegressor"]
+    assert knn_r.named_steps["KNeighborsRegressor"].n_jobs == 3
+
+
 def test_multioutput_fit():
     import warnings
 
