@@ -42,8 +42,10 @@ flow exists so the preprocessor is never a black box.
 - `reassign_types(numeric=..., categorical_high=..., categorical_low=..., datetime=..., keep_remainder=True)`
   — override type inference. Omitted features keep their inferred type unless
   `keep_remainder=False`.
-- `add_preprocessing_step(step, position="end")` — insert a transformer into the
-  preprocessor pipeline (`"start"`, `"end"`, or an integer index).
+- `add_preprocessing_step(step, position="end", preprocessor="all")` — insert a
+  transformer into the preprocessor pipeline (`"start"`, `"end"`, or an integer
+  index), optionally targeting specific registered templates (see
+  [Per-estimator preprocessors](#per-estimator-preprocessors)).
 - `add_estimators(...)` / `remove_estimators(names, drop_results=True)` — change
   the estimator set. These are the supported ways to mutate `pipelines`: they
   handle naming collisions, attribute propagation, and result bookkeeping.
@@ -62,11 +64,12 @@ Type inference classifies every feature as one of:
 | `numeric` | number-like with `nunique > numeric_threshold` | imputer (`median` default, or `mean`/`iterative`) with missingness indicator + scaler (`standard`/`minmax`/`robust`) |
 | `categorical_low` | not numeric, `nunique <= cardinality_threshold` | most-frequent imputer + `OneHotEncoder(drop="if_binary", min_frequency=5)` |
 | `categorical_high` | not numeric, `nunique > cardinality_threshold` | most-frequent imputer + `TargetEncoder` (ordinal for multioutput targets) |
-| `datetime` | datetime dtype | `DatetimeEncoder` + most-frequent imputer |
+| `datetime` | datetime dtype | `DatetimeEncoder` + median imputer + scaler |
 
 Thresholds can be integers (a count) or floats (a fraction of rows). Defaults:
-`numeric_threshold=0.1`, `cardinality_threshold=20`. A `VarianceThreshold` step
-removes invariant features at the end.
+`numeric_threshold=0.1`, `cardinality_threshold=20`. In the `"default"` profile a
+`VarianceThreshold` step removes invariant features at the end (the `"native"`
+profile skips it — see below).
 
 The preprocessor is a plain `sklearn.pipeline.Pipeline` configured to output
 pandas DataFrames (`set_output(transform="pandas")`), without touching sklearn's
@@ -106,7 +109,7 @@ untouched (tree models learn NaN split directions themselves) and
 ordinal-encodes categoricals as pandas `category` dtype so the estimator splits
 on them directly. It is only valid for `HistGradientBoosting*` estimators, which
 get `categorical_features="from_dtype"` set automatically as a side effect.
-Everything else falls back to `"default"`.
+Mapping it to anything else raises `ValueError`.
 
 Templates can be registered and assigned at runtime:
 
@@ -116,8 +119,22 @@ clf.set_preprocessor("LogisticRegression", "sparse_friendly")  # (re)assign
 clf.preprocessor_map                                    # inspect
 ```
 
-`add_preprocessing_step` can target specific templates with
-`preprocessor="name"` (default `"all"`).
+- `preprocessor_map` values may be a registered name (`"default"`, `"native"`, or
+  a template you registered) or an actual `Pipeline`/`Transformer`, which is
+  auto-registered under a generated name.
+- `set_preprocessor` validates both the estimator and the template name, then
+  rebuilds that estimator's pipeline immediately.
+- `add_preprocessing_step(step, preprocessor="name")` targets specific templates;
+  `"all"` (the default) applies the step to every template.
+- `reassign_types` rebuilds every `PoniardPreprocessor`-backed profile (default
+  and native) with the new types — type inference still runs exactly once, shared
+  by all profiles. User-supplied `Pipeline` templates are left untouched.
+
+**Ensembles.** `build_ensemble` wraps the ensemble in a preprocessor only when
+all selected members map to the **same** template (preprocessing runs once).
+When members are mixed (e.g. one on `"native"`, one on `"default"`), each member
+contributes its own full pipeline and the ensemble is added with no outer
+preprocessor — the only way to combine differently-preprocessed members.
 
 ---
 
@@ -286,6 +303,13 @@ best-N-by-metric behavior, or `estimator_names=[...]` to bypass selection.
 ```python
 clf.fit(X, y)      # the ensemble joins the results table
 ```
+
+The ensemble's own preprocessing follows the members' `preprocessor_map`: if
+every selected member maps to the same template, the ensemble is wrapped in it
+(preprocessing runs once on bare estimators); if members use different
+preprocessors (e.g. an HGB on `"native"` and a linear model on `"default"`),
+each member carries its full pipeline and the ensemble is added without an outer
+preprocessor.
 
 ---
 
