@@ -59,7 +59,7 @@ Type inference classifies every feature as one of:
 
 | Inferred type | Condition | Pipeline |
 |---|---|---|
-| `numeric` | number-like with `nunique > numeric_threshold` | imputer (`mean` or `iterative`) + scaler (`standard`/`minmax`/`robust`) |
+| `numeric` | number-like with `nunique > numeric_threshold` | imputer (`median` default, or `mean`/`iterative`) with missingness indicator + scaler (`standard`/`minmax`/`robust`) |
 | `categorical_low` | not numeric, `nunique <= cardinality_threshold` | most-frequent imputer + `OneHotEncoder(drop="if_binary")` |
 | `categorical_high` | not numeric, `nunique > cardinality_threshold` | most-frequent imputer + `TargetEncoder` (ordinal for multioutput targets) |
 | `datetime` | datetime dtype | `DatetimeEncoder` + most-frequent imputer |
