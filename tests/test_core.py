@@ -123,6 +123,36 @@ def test_regressor_fit(target, metrics, estimators, cv):
     assert results.shape == (n_estimators + 1, n_metrics * 2 + 4)
 
 
+def test_regressor_default_metrics():
+    X, y = make_regression(n_samples=60, n_features=4, random_state=42)
+    reg = PoniardRegressor(estimators=[LinearRegression()], cv=3, random_state=0)
+    reg.setup(pd.DataFrame(X), y)
+    assert reg.metrics[0] == "neg_root_mean_squared_error"
+    assert "neg_mean_absolute_percentage_error" not in reg.metrics
+
+
+def test_regressor_positive_target_includes_mape():
+    X, y = make_regression(n_samples=60, n_features=4, random_state=42)
+    reg = PoniardRegressor(estimators=[LinearRegression()], cv=3, random_state=0)
+    reg.setup(pd.DataFrame(X), np.exp(y))
+    assert reg.metrics == [
+        "neg_root_mean_squared_error",
+        "neg_mean_absolute_error",
+        "r2",
+        "neg_mean_absolute_percentage_error",
+    ]
+
+
+def test_regressor_zero_target_scores_cleanly():
+    X, y = make_regression(n_samples=60, n_features=4, random_state=42)
+    y_zero = np.where(y > 0, y, 0.0)
+    reg = PoniardRegressor(estimators=[LinearRegression()], cv=3, random_state=0)
+    reg.fit(pd.DataFrame(X), y_zero)
+    results = reg.get_results()
+    assert "test_neg_mean_absolute_percentage_error" not in results.columns
+    assert not results.isna().any().any()
+
+
 def test_multilabel_fit():
     import warnings
 
@@ -160,7 +190,7 @@ def test_multioutput_fit():
         clf.fit(X, y)
     results = clf.get_results(return_train_scores=True)
     assert results.isna().sum().sum() == 0
-    assert results.shape == (3, 12)
+    assert results.shape == (3, len(clf.metrics) * 2 + 4)
 
 
 def test_type_inference():

@@ -97,12 +97,14 @@ class PoniardRegressor(PoniardBaseEstimator):
         ]
 
     def _build_metrics(self) -> dict[str, Callable] | list[str]:
-        return [
-            "neg_mean_squared_error",
-            "neg_mean_absolute_percentage_error",
-            "neg_median_absolute_error",
+        metrics = [
+            "neg_root_mean_squared_error",
+            "neg_mean_absolute_error",
             "r2",
         ]
+        if self.target_info and self.target_info.get("positive"):
+            metrics.append("neg_mean_absolute_percentage_error")
+        return metrics
 
     def _build_cv(self) -> BaseCrossValidator:
         cv = self.cv or 5

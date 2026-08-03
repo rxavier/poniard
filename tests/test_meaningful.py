@@ -478,10 +478,10 @@ class TestResults:
         results = fitted_regressor.get_results()
         # 1 custom + DummyRegressor = 2 rows
         assert results.shape[0] == 2
-        # Regressor metrics: neg_mean_squared_error, neg_mean_absolute_percentage_error,
-        # neg_median_absolute_error, r2 = 4 test cols + fit_time + score_time
+        # Regressor metrics: neg_root_mean_squared_error, neg_mean_absolute_error, r2
+        # (no MAPE on a mixed-sign target) = 3 test cols + fit_time + score_time
         score_cols = [c for c in results.columns if c.startswith("test_")]
-        assert len(score_cols) == 4
+        assert len(score_cols) == 3
 
 
 # ===========================================================================
