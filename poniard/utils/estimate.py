@@ -38,7 +38,17 @@ def get_target_info(y: pd.DataFrame | pd.Series | np.ndarray, task: Task) -> dic
     # dataset is 'multiclass' according to this function when it should be 'continuous'.
     if type_of_target_ == "multiclass" and task == "regression":
         type_of_target_ = "continuous"
-    return dict(type_=type_of_target_, ndim=y.ndim, shape=y.shape, nunique=np.unique(y).size)
+    if task == "regression":
+        positive = bool(np.all(np.isfinite(y)) and np.all(y > 0))
+    else:
+        positive = False
+    return dict(
+        type_=type_of_target_,
+        ndim=y.ndim,
+        shape=y.shape,
+        nunique=np.unique(y).size,
+        positive=positive,
+    )
 
 
 def element_to_list_maybe(obj):
