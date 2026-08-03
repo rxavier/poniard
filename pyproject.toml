@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "poniard"
-version = "0.7.0"
+version = "0.7.1"
 description = "Streamline scikit-learn model comparison"
 readme = "README.md"
 license = "MIT"
