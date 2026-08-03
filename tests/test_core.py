@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 import pytest
 from sklearn.datasets import (
+    make_classification,
     make_multilabel_classification,
     make_regression,
 )
@@ -170,7 +171,18 @@ def test_multilabel_fit():
         clf.fit(X, y)
     results = clf.get_results(return_train_scores=True)
     assert results.isna().sum().sum() == 0
-    assert results.shape == (3, 14)
+    assert results.shape == (3, len(clf.metrics) * 2 + 4)
+
+
+def test_classifier_default_metrics_without_predict_proba():
+    from sklearn.svm import LinearSVC
+
+    X, y = make_classification(n_samples=120, n_features=5, random_state=42)
+    clf = PoniardClassifier(estimators=[LinearSVC(max_iter=5000)], cv=3, random_state=0)
+    clf.setup(pd.DataFrame(X), y)
+    assert clf.metrics[0] == "roc_auc"
+    assert "neg_log_loss" not in clf.metrics
+    assert "average_precision" not in clf.metrics
 
 
 def test_multioutput_fit():
@@ -191,6 +203,39 @@ def test_multioutput_fit():
     results = clf.get_results(return_train_scores=True)
     assert results.isna().sum().sum() == 0
     assert results.shape == (3, len(clf.metrics) * 2 + 4)
+
+
+def test_classifier_binary_default_metrics():
+    X, y = make_classification(n_samples=120, n_features=5, random_state=42)
+    clf = PoniardClassifier(estimators=[LogisticRegression()], cv=3, random_state=0)
+    clf.setup(pd.DataFrame(X), y)
+    assert clf.metrics[0] == "roc_auc"
+    assert "neg_log_loss" in clf.metrics
+    assert "average_precision" in clf.metrics
+
+
+def test_classifier_multiclass_default_metrics():
+    X, y = make_classification(
+        n_samples=180, n_features=6, n_classes=3, n_informative=4, n_redundant=1, random_state=42
+    )
+    clf = PoniardClassifier(estimators=[LogisticRegression()], cv=3, random_state=0)
+    clf.setup(pd.DataFrame(X), y)
+    assert clf.metrics[0] == "roc_auc_ovr"
+    assert "neg_log_loss" in clf.metrics
+    assert "average_precision" not in clf.metrics
+
+
+def test_classifier_multilabel_default_metrics():
+    import warnings
+
+    X, y = make_multilabel_classification(n_samples=300, n_classes=3, n_labels=3)
+    clf = PoniardClassifier(estimators=[OneVsRestClassifier(LogisticRegression())], random_state=0)
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", message="TargetEncoder is not supported")
+        clf.setup(X, y)
+    assert clf.metrics[0] == "roc_auc"
+    assert "neg_log_loss" in clf.metrics
+    assert "average_precision" not in clf.metrics
 
 
 def test_type_inference():
