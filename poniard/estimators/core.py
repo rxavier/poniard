@@ -156,6 +156,7 @@ class PoniardBaseEstimator(ResultsMixin, EnsembleMixin, TuningMixin, ABC):
         metrics: str | dict[str, Callable] | Sequence[str] | None = None,
         preprocess: bool = True,
         custom_preprocessor: Pipeline | TransformerMixin | PoniardPreprocessor | None = None,
+        preprocessor_map: dict | None = None,
         cv: int | BaseCrossValidator | BaseShuffleSplit | Sequence = None,
         verbose: bool = False,
         random_state: int | None = None,
@@ -167,6 +168,7 @@ class PoniardBaseEstimator(ResultsMixin, EnsembleMixin, TuningMixin, ABC):
             "metrics": metrics,
             "preprocess": preprocess,
             "custom_preprocessor": custom_preprocessor,
+            "preprocessor_map": preprocessor_map,
             "cv": cv,
             "verbose": verbose,
             "random_state": random_state,
@@ -187,6 +189,7 @@ class PoniardBaseEstimator(ResultsMixin, EnsembleMixin, TuningMixin, ABC):
         self.metrics = metrics
         self.preprocess = preprocess
         self.custom_preprocessor = custom_preprocessor
+        self.preprocessor_map = preprocessor_map or {}
         self.cv = cv
         self.verbose = verbose
         self.random_state = random_state or 0
@@ -211,11 +214,25 @@ class PoniardBaseEstimator(ResultsMixin, EnsembleMixin, TuningMixin, ABC):
         self._tuning_results = {}
         self._fitted_pipeline_names = set()
         self.pipelines = {}
+        self.preprocessors = {}
         self.preprocessor = None
         self.feature_types = {}
         self._poniard_preprocessor = None
         self.target_info = None
         self.show_info = None
+
+    @property
+    def preprocessor(self) -> Pipeline | None:
+        """The ``"default"`` preprocessor in the registry.
+
+        Alias for ``self.preprocessors["default"]`` kept for backwards
+        compatibility with external code and internal methods.
+        """
+        return self.preprocessors.get("default")
+
+    @preprocessor.setter
+    def preprocessor(self, value: Pipeline | None) -> None:
+        self.preprocessors["default"] = value
 
     @property
     @abstractmethod
@@ -281,14 +298,9 @@ class PoniardBaseEstimator(ResultsMixin, EnsembleMixin, TuningMixin, ABC):
             self.metrics = self._build_metrics()
 
         if self.preprocess:
-            if self.custom_preprocessor and not isinstance(
-                self.custom_preprocessor, PoniardPreprocessor
-            ):
-                self.preprocessor = clone(self.custom_preprocessor)
-            else:
-                self.preprocessor = self._build_preprocessor(X, y)
-            self._pass_instance_attrs(self.preprocessor)
-            self._ensure_pandas_output(self.preprocessor)
+            self.preprocessors = self._build_preprocessors(X, y)
+            self._pass_instance_attrs(self.preprocessors["default"])
+            self._ensure_pandas_output(self.preprocessors["default"])
 
         if self.show_info:
             self._print_setup_info()
@@ -334,6 +346,9 @@ class PoniardBaseEstimator(ResultsMixin, EnsembleMixin, TuningMixin, ABC):
                                 {self._poniard_preprocessor.inferred_types_df.to_html()}"""
                     )
                 )
+            non_default = self._non_default_preprocessor_map()
+            if non_default:
+                display(HTML(f"<p><b>Preprocessor map:</b> {non_default}</p>"))
         else:
             print("Target info", "-----------", sep="\n")
             print(
@@ -362,6 +377,14 @@ class PoniardBaseEstimator(ResultsMixin, EnsembleMixin, TuningMixin, ABC):
                 )
                 print("Inferred feature types", "----------------------", sep="\n")
                 print(self._poniard_preprocessor.inferred_types_df)
+            non_default = self._non_default_preprocessor_map()
+            if non_default:
+                print("Preprocessor map", "----------------", sep="\n")
+                print(non_default)
+
+    def _non_default_preprocessor_map(self) -> dict[str, str]:
+        """Mappings whose estimator does not use the ``"default"`` preprocessor."""
+        return {k: v for k, v in self.preprocessor_map.items() if v != "default"}
 
     def _build_preprocessor(self, X, y) -> Pipeline:
         """Build default preprocessor using `PoniardPreprocessor`.
@@ -381,6 +404,54 @@ class PoniardBaseEstimator(ResultsMixin, EnsembleMixin, TuningMixin, ABC):
         self.feature_types = self._poniard_preprocessor.feature_types
         return self._poniard_preprocessor.preprocessor
 
+    def _build_preprocessors(self, X, y) -> dict[str, Pipeline]:
+        """Build the registry of named preprocessors.
+
+        The ``"default"`` preprocessor is rebuilt exactly as before. Templates
+        registered via `add_preprocessor` are preserved across re-configuration.
+        Pipeline or Transformer instances given as ``preprocessor_map`` values
+        are auto-registered under a generated name; string values must reference
+        an existing registration.
+        """
+        if self.custom_preprocessor and not isinstance(
+            self.custom_preprocessor, PoniardPreprocessor
+        ):
+            default = clone(self.custom_preprocessor)
+        else:
+            default = self._build_preprocessor(X, y)
+        preprocessors = {"default": default}
+        for name, template in self.preprocessors.items():
+            if name != "default":
+                preprocessors[name] = template
+
+        resolved_map = {}
+        for estimator_name, value in self.preprocessor_map.items():
+            if isinstance(value, str):
+                if value not in preprocessors:
+                    raise KeyError(
+                        f"Preprocessor '{value}' is not registered for estimator "
+                        f"'{estimator_name}'. Registered: {list(preprocessors)}."
+                    )
+                resolved_map[estimator_name] = value
+            else:
+                prep_name = self._generate_preprocessor_name(value, set(preprocessors))
+                preprocessors[prep_name] = clone(value)
+                self._ensure_pandas_output(preprocessors[prep_name])
+                resolved_map[estimator_name] = prep_name
+        self.preprocessor_map = resolved_map
+        return preprocessors
+
+    @staticmethod
+    def _generate_preprocessor_name(preprocessor, existing: set[str]) -> str:
+        """Generate a unique name for an auto-registered preprocessor."""
+        base = preprocessor.__class__.__name__.lower()
+        name = base
+        i = 2
+        while name in existing:
+            name = f"{base}_{i}"
+            i += 1
+        return name
+
     @property
     @abstractmethod
     def _default_estimators(self) -> list[ClassifierMixin]:
@@ -390,7 +461,10 @@ class PoniardBaseEstimator(ResultsMixin, EnsembleMixin, TuningMixin, ABC):
         """Create a Pipeline for an estimator, optionally including the preprocessor.
 
         The estimator is cloned and configured (random_state, verbose) so the
-        user's original object is never mutated. The wrapping pipeline is
+        user's original object is never mutated. The estimator's mapped
+        preprocessor (``preprocessor_map``, defaulting to ``"default"``) is
+        wrapped in a pipeline whose step name stays ``"preprocessor"`` so
+        tuning grid keys and ``get_estimator`` are unaffected. The pipeline is
         configured to output pandas DataFrames on ``transform``, propagating to
         any preprocessor step so downstream code keeps the pandas contract
         without relying on a global sklearn config.
@@ -398,9 +472,11 @@ class PoniardBaseEstimator(ResultsMixin, EnsembleMixin, TuningMixin, ABC):
         estimator = clone(estimator)
         self._pass_instance_attrs(estimator)
         if self.preprocess:
+            prep_name = self.preprocessor_map.get(name, "default")
+            preprocessor = self.preprocessors[prep_name]
             pipe = Pipeline(
-                [("preprocessor", self.preprocessor), (name, estimator)],
-                memory=self._memory,
+                [("preprocessor", preprocessor), (name, estimator)],
+                memory=getattr(preprocessor, "memory", self._memory),
             )
         else:
             pipe = Pipeline([(name, estimator)])
@@ -729,6 +805,63 @@ class PoniardBaseEstimator(ResultsMixin, EnsembleMixin, TuningMixin, ABC):
         self.pipelines = self._build_pipelines()
         return self
 
+    def add_preprocessor(self, name: str, preprocessor) -> PoniardBaseEstimator:
+        """Register a named preprocessor template.
+
+        The template is cloned so the user's object is never mutated. Estimators
+        can be routed to it via `set_preprocessor` or `preprocessor_map`.
+
+        Parameters
+        ----------
+        name :
+            Name of the preprocessor template.
+        preprocessor :
+            A scikit-learn Pipeline or Transformer.
+
+        Returns
+        -------
+        PoniardBaseEstimator
+            Self.
+        """
+        if not isinstance(name, str):
+            raise TypeError(f"Preprocessor name must be a string, got {type(name).__name__}.")
+        self.preprocessors[name] = clone(preprocessor)
+        self._ensure_pandas_output(self.preprocessors[name])
+        return self
+
+    def set_preprocessor(self, estimator_name: str, preprocessor_name: str) -> PoniardBaseEstimator:
+        """Map an estimator to a registered preprocessor template.
+
+        Rebuilds that estimator's pipeline immediately via `_make_pipeline`.
+        Must be called after `setup` (so pipelines exist) and before `fit`.
+
+        Parameters
+        ----------
+        estimator_name :
+            Name of an existing estimator in `pipelines`.
+        preprocessor_name :
+            Name of a registered preprocessor in `preprocessors`.
+
+        Returns
+        -------
+        PoniardBaseEstimator
+            Self.
+        """
+        if estimator_name not in self.pipelines:
+            raise KeyError(
+                f"Estimator '{estimator_name}' not found. Available: {list(self.pipelines)}"
+            )
+        if preprocessor_name not in self.preprocessors:
+            raise KeyError(
+                f"Preprocessor '{preprocessor_name}' not registered. "
+                f"Registered: {list(self.preprocessors)}"
+            )
+        self.preprocessor_map[estimator_name] = preprocessor_name
+        self.pipelines[estimator_name] = self._make_pipeline(
+            estimator_name, self.pipelines[estimator_name]._final_estimator
+        )
+        return self
+
     def add_preprocessing_step(
         self,
         step: (
@@ -738,6 +871,7 @@ class PoniardBaseEstimator(ResultsMixin, EnsembleMixin, TuningMixin, ABC):
             | tuple[str, Pipeline | TransformerMixin | ColumnTransformer]
         ),
         position: Literal["start", "end"] | int = "end",
+        preprocessor: str | Sequence[str] = "all",
     ) -> Pipeline:
         """Add a preprocessing step.
 
@@ -749,6 +883,10 @@ class PoniardBaseEstimator(ResultsMixin, EnsembleMixin, TuningMixin, ABC):
         position :
             Either an integer denoting before which step in the existing preprocessing pipeline
             the new step should be added, or 'start' or 'end'.
+        preprocessor :
+            Which registered preprocessor template(s) receive the step. "all" applies it to
+            every template (preserving the legacy global behavior); a name or sequence of
+            names targets specific templates. Unknown names raise `KeyError`.
 
         Returns
         -------
@@ -757,37 +895,45 @@ class PoniardBaseEstimator(ResultsMixin, EnsembleMixin, TuningMixin, ABC):
         """
         if not isinstance(position, int) and position not in ["start", "end"]:
             raise ValueError("`position` can only be int, 'start' or 'end'.")
-        existing_preprocessor = self.preprocessor
+        if preprocessor == "all":
+            names = list(self.preprocessors.keys())
+        else:
+            names = element_to_list_maybe(preprocessor) or list(self.preprocessors.keys())
+        unknown = [n for n in names if n not in self.preprocessors]
+        if unknown:
+            raise KeyError(
+                f"Unknown preprocessor(s) {unknown}. Registered: {list(self.preprocessors)}"
+            )
+        for name in names:
+            self.preprocessors[name] = self._add_step_to_preprocessor(
+                self.preprocessors[name], step, position
+            )
+        self.pipelines = self._build_pipelines()
+        return self
+
+    def _add_step_to_preprocessor(self, preprocessor, step, position) -> Pipeline:
+        """Insert `step` at `position` into a preprocessor, working on a clone."""
         if not isinstance(step, tuple):
             step = (f"step_{step.__class__.__name__.lower()}", step)
-        if isinstance(position, str) and isinstance(existing_preprocessor, Pipeline):
+        if isinstance(position, str) and isinstance(preprocessor, Pipeline):
             if position == "start":
                 position = 0
             elif position == "end":
-                position = len(existing_preprocessor.steps)
-        if isinstance(existing_preprocessor, Pipeline):
+                position = len(preprocessor.steps)
+        if isinstance(preprocessor, Pipeline):
             # Work on a clone so a user-supplied custom preprocessor is never
-            # mutated in place; pipelines are rebuilt below with the result.
-            self.preprocessor = clone(existing_preprocessor)
-            self.preprocessor.steps.insert(position, step)
-        else:
-            if isinstance(position, int):
-                raise ValueError(
-                    "If the existing preprocessor is not a Pipeline, only 'start' and "
-                    "'end' are accepted as `position`."
-                )
-            if position == "start":
-                self.preprocessor = Pipeline(
-                    [step, ("initial_preprocessor", self.preprocessor)],
-                    memory=self._memory,
-                )
-            else:
-                self.preprocessor = Pipeline(
-                    [("initial_preprocessor", self.preprocessor), step],
-                    memory=self._memory,
-                )
-        self.pipelines = self._build_pipelines()
-        return self
+            # mutated in place.
+            preprocessor = clone(preprocessor)
+            preprocessor.steps.insert(position, step)
+            return preprocessor
+        if isinstance(position, int):
+            raise ValueError(
+                "If the existing preprocessor is not a Pipeline, only 'start' and "
+                "'end' are accepted as `position`."
+            )
+        if position == "start":
+            return Pipeline([step, ("initial_preprocessor", preprocessor)], memory=self._memory)
+        return Pipeline([("initial_preprocessor", preprocessor), step], memory=self._memory)
 
     def add_estimators(
         self, estimators: dict[str, ClassifierMixin] | Sequence[ClassifierMixin]
