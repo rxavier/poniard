@@ -158,8 +158,10 @@ def test_feature_names_stable_across_type_compositions():
         }
     )
     y = np.array([0, 1, 0, 1, 0])
-    pp_full = PoniardPreprocessor().build(X=base, y=y, task="classification")
-    pp_numeric = PoniardPreprocessor().build(X=base[["A"]], y=y, task="classification")
+    pp_full = PoniardPreprocessor(ohe_min_frequency=None).build(X=base, y=y, task="classification")
+    pp_numeric = PoniardPreprocessor(ohe_min_frequency=None).build(
+        X=base[["A"]], y=y, task="classification"
+    )
     pp_full.preprocessor.fit(base, y)
     pp_numeric.preprocessor.fit(base[["A"]], y)
     full_names = pp_full.preprocessor.get_feature_names_out()
@@ -268,10 +270,48 @@ def test_inference_parity_dataframe_vs_ndarray(array, frame):
     assert from_array == from_frame
 
 
+def test_ohe_min_frequency_collapses_rare_categories():
+    X = pd.DataFrame(
+        {"cat": ["common_a"] * 40 + ["common_b"] * 20 + [f"rare_{i}" for i in range(4)]}
+    )
+    y = np.array([0, 1] * 32)
+    pp = PoniardPreprocessor(ohe_min_frequency=5).build(X=X, y=y, task="classification")
+    out = pp.preprocessor.fit_transform(X, y)
+    assert "cat_common_a" in out.columns
+    assert "cat_common_b" in out.columns
+    assert "cat_infrequent_sklearn" in out.columns
+    assert not any(c.startswith("cat_rare") for c in out.columns)
+
+
+def test_ohe_min_frequency_none_preserves_all_categories():
+    X = pd.DataFrame(
+        {"cat": ["common_a"] * 40 + ["common_b"] * 20 + [f"rare_{i}" for i in range(4)]}
+    )
+    y = np.array([0, 1] * 32)
+    pp = PoniardPreprocessor(ohe_min_frequency=None).build(X=X, y=y, task="classification")
+    out = pp.preprocessor.fit_transform(X, y)
+    assert "cat_common_a" in out.columns
+    assert any(c.startswith("cat_rare") for c in out.columns)
+    assert "cat_infrequent_sklearn" not in out.columns
+
+
+def test_ohe_min_frequency_float_is_fraction_of_samples():
+    X = pd.DataFrame(
+        {"cat": ["common_a"] * 40 + ["common_b"] * 20 + [f"rare_{i}" for i in range(4)]}
+    )
+    y = np.array([0, 1] * 32)
+    pp = PoniardPreprocessor(ohe_min_frequency=0.1).build(X=X, y=y, task="classification")
+    out = pp.preprocessor.fit_transform(X, y)
+    assert "cat_common_a" in out.columns
+    assert "cat_infrequent_sklearn" in out.columns
+
+
 def test_categorical_imputer_constant_creates_missing_category():
     X = pd.DataFrame({"cat": ["a", "b", np.nan, "a", "b"]})
     y = np.array([0, 1, 0, 1, 0])
-    pp = PoniardPreprocessor(categorical_imputer="constant").build(X=X, y=y, task="classification")
+    pp = PoniardPreprocessor(categorical_imputer="constant", ohe_min_frequency=None).build(
+        X=X, y=y, task="classification"
+    )
     out = pp.preprocessor.fit_transform(X, y)
     assert "cat_missing" in out.columns
 

@@ -128,6 +128,10 @@ class PoniardPreprocessor:
     cyclical_datetime :
         Whether to encode periodic datetime levels (hour, month, weekday, ...) as sin/cos
         pairs instead of plain integers.
+    ohe_min_frequency :
+        Minimum frequency for categories kept as separate one-hot columns. Categories rarer
+        than this collapse into sklearn's infrequent bucket. An int is an absolute count; a
+        float is a fraction of samples. ``None`` keeps every observed category.
     numeric_threshold :
         Number features with unique values above a certain threshold will be treated as numeric. If
         float, the threshold is `numeric_threshold * samples`.
@@ -160,6 +164,7 @@ class PoniardPreprocessor:
         numeric_imputer: Literal["iterative", "mean", "median"] | TransformerMixin | None = None,
         categorical_imputer: Literal["most_frequent", "constant"] | TransformerMixin | None = None,
         cyclical_datetime: bool = False,
+        ohe_min_frequency: int | float | None = 5,
         numeric_threshold: int | float = 0.1,
         cardinality_threshold: int | float = 20,
         verbose: bool = False,
@@ -175,6 +180,7 @@ class PoniardPreprocessor:
             "numeric_imputer": numeric_imputer,
             "categorical_imputer": categorical_imputer,
             "cyclical_datetime": cyclical_datetime,
+            "ohe_min_frequency": ohe_min_frequency,
             "numeric_threshold": numeric_threshold,
             "cardinality_threshold": cardinality_threshold,
             "verbose": verbose,
@@ -189,6 +195,7 @@ class PoniardPreprocessor:
         self.numeric_imputer = numeric_imputer or "median"
         self.categorical_imputer = categorical_imputer or "most_frequent"
         self.cyclical_datetime = cyclical_datetime
+        self.ohe_min_frequency = ohe_min_frequency
         self.numeric_threshold = numeric_threshold
         self.cardinality_threshold = cardinality_threshold
         self.verbose = verbose
@@ -384,7 +391,12 @@ class PoniardPreprocessor:
                 ("categorical_imputer", cat_imputer),
                 (
                     "one-hot_encoder",
-                    OneHotEncoder(drop="if_binary", handle_unknown="ignore", sparse_output=False),
+                    OneHotEncoder(
+                        drop="if_binary",
+                        handle_unknown="ignore",
+                        sparse_output=False,
+                        min_frequency=self.ohe_min_frequency,
+                    ),
                 ),
             ]
         )
