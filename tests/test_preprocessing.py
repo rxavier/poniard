@@ -57,7 +57,7 @@ from poniard.preprocessing.datetime import DateLevel, DatetimeEncoder
             ),
             True,
             "robust",
-            "simple",
+            "mean",
             None,
             True,
         ),
@@ -206,7 +206,7 @@ def test_numeric_imputer_default_is_median():
 def test_numeric_imputer_literals():
     X = pd.DataFrame({"num": [1.0, 2.0, np.nan, 4.0, 5.0]})
     y = np.array([0, 1, 0, 1, 0])
-    for literal, expected in (("simple", "mean"), ("mean", "mean"), ("median", "median")):
+    for literal, expected in (("mean", "mean"), ("median", "median")):
         pp = PoniardPreprocessor(numeric_imputer=literal).build(X=X, y=y, task="classification")
         assert _numeric_imputer(pp).strategy == expected
 

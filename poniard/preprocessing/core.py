@@ -118,9 +118,9 @@ class PoniardPreprocessor:
         Encoder for categorical features with high cardinality. Either "target" or "ordinal",
         or scikit-learn Transformer.
     numeric_imputer :
-        Imputation method for numeric features. Either "simple" (legacy alias for mean
-        imputation), "mean", "median" (default), "iterative" or scikit-learn Transformer.
-        Numeric imputation also emits a missingness indicator column per input feature.
+        Imputation method for numeric features. Either "mean", "median" (default), "iterative"
+        or scikit-learn Transformer. Numeric imputation also emits a missingness indicator
+        column per input feature.
     categorical_imputer :
         Imputer for categorical features. Either "most_frequent" or "constant" (which fills
         with the string ``"missing"`` so one-hot encoding surfaces missingness), or a
@@ -157,9 +157,7 @@ class PoniardPreprocessor:
         task: Task | None = None,
         scaler: Literal["standard", "minmax", "robust"] | TransformerMixin | None = None,
         high_cardinality_encoder: (Literal["target", "ordinal"] | TransformerMixin | None) = None,
-        numeric_imputer: Literal["simple", "iterative", "mean", "median"]
-        | TransformerMixin
-        | None = None,
+        numeric_imputer: Literal["iterative", "mean", "median"] | TransformerMixin | None = None,
         categorical_imputer: Literal["most_frequent", "constant"] | TransformerMixin | None = None,
         cyclical_datetime: bool = False,
         numeric_threshold: int | float = 0.1,
@@ -378,8 +376,7 @@ class PoniardPreprocessor:
 
             num_imputer = IterativeImputer(random_state=self.random_state)
         else:
-            strategy = "mean" if self.numeric_imputer == "simple" else self.numeric_imputer
-            num_imputer = SimpleImputer(strategy=strategy, add_indicator=True)
+            num_imputer = SimpleImputer(strategy=self.numeric_imputer, add_indicator=True)
 
         numeric_preprocessor = Pipeline([("numeric_imputer", num_imputer), ("scaler", scaler)])
         cat_low_preprocessor = Pipeline(
