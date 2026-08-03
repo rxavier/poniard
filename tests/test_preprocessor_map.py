@@ -34,6 +34,48 @@ def test_registry_has_default_only(X_y):
     assert clf.pipelines["LogisticRegression"].named_steps["preprocessor"] is clf.preprocessor
 
 
+def test_hgb_defaults_to_native(X_y):
+    X, y = X_y
+    clf = PoniardClassifier(cv=3, random_state=0)
+    clf.setup(X, y, show_info=False)
+    assert clf.preprocessor_map["HistGradientBoostingClassifier"] == "native"
+    assert clf.preprocessor_map.get("LogisticRegression", "default") == "default"
+    assert "native" in clf.preprocessors
+    hgb = clf.pipelines["HistGradientBoostingClassifier"]
+    assert hgb.named_steps["preprocessor"] is clf.preprocessors["native"]
+    assert hgb.named_steps["HistGradientBoostingClassifier"].categorical_features == "from_dtype"
+
+
+def test_hgb_explicit_override_to_default(X_y):
+    X, y = X_y
+    clf = PoniardClassifier(
+        estimators=[HistGradientBoostingClassifier(max_iter=50, random_state=0)],
+        cv=2,
+        random_state=0,
+        preprocessor_map={"HistGradientBoostingClassifier": "default"},
+    )
+    clf.setup(X, y, show_info=False)
+    assert clf.preprocessor_map == {"HistGradientBoostingClassifier": "default"}
+    assert "native" not in clf.preprocessors
+    assert (
+        clf.pipelines["HistGradientBoostingClassifier"].named_steps["preprocessor"]
+        is clf.preprocessors["default"]
+    )
+
+
+def test_custom_preprocessor_skips_auto_mapping(X_y):
+    X, y = X_y
+    clf = PoniardClassifier(
+        estimators=[HistGradientBoostingClassifier(max_iter=50, random_state=0)],
+        cv=2,
+        random_state=0,
+        custom_preprocessor=make_pipeline(StandardScaler()),
+    )
+    clf.setup(X, y, show_info=False)
+    assert clf.preprocessor_map == {}
+    assert "native" not in clf.preprocessors
+
+
 def test_mapped_estimator_uses_mapped_preprocessor(X_y):
     X, y = X_y
     clf = PoniardClassifier(
@@ -184,7 +226,7 @@ def test_native_mapped_hgb_uses_native(X_y):
     assert lr.named_steps["preprocessor"] is clf.preprocessors["default"]
 
 
-def test_native_set_preprocessor_on_demand(X_y):
+def test_native_built_by_default_for_hgb(X_y):
     X, y = X_y
     clf = PoniardClassifier(
         estimators=[HistGradientBoostingClassifier(max_iter=50, random_state=0)],
@@ -192,10 +234,34 @@ def test_native_set_preprocessor_on_demand(X_y):
         random_state=0,
     )
     clf.setup(X, y, show_info=False)
-    assert "native" not in clf.preprocessors
+    assert "native" in clf.preprocessors
+    assert clf.preprocessor_map == {"HistGradientBoostingClassifier": "native"}
+    assert (
+        clf.pipelines["HistGradientBoostingClassifier"].named_steps["preprocessor"]
+        is clf.preprocessors["native"]
+    )
+    clf.fit(X, y, show_info=False)
+    assert not clf.get_results().isna().any().any()
+
+
+def test_native_set_preprocessor_on_demand_with_custom_preprocessor(X_y):
+    X, y = X_y
+    custom = make_pipeline(StandardScaler())
+    clf = PoniardClassifier(
+        estimators=[HistGradientBoostingClassifier(max_iter=50, random_state=0)],
+        cv=2,
+        random_state=0,
+        custom_preprocessor=custom,
+    )
+    clf.setup(X, y, show_info=False)
+    assert "native" not in clf.preprocessors  # custom preprocessor takes over
     clf.set_preprocessor("HistGradientBoostingClassifier", "native")
     assert "native" in clf.preprocessors
     assert clf.preprocessor_map == {"HistGradientBoostingClassifier": "native"}
+    assert (
+        clf.pipelines["HistGradientBoostingClassifier"].named_steps["preprocessor"]
+        is clf.preprocessors["native"]
+    )
     clf.fit(X, y, show_info=False)
     assert not clf.get_results().isna().any().any()
 

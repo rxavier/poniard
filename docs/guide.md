@@ -94,13 +94,16 @@ estimators).
 
 ### Per-estimator preprocessors
 
-By default every estimator shares one preprocessor. Use `preprocessor_map` to
-route specific estimators to different registered templates:
+By default every estimator uses the `"default"` preprocessor, **except
+HistGradientBoosting estimators, which default to the `"native"` profile**.
+Use `preprocessor_map` to override (or to map other estimators):
 
 ```python
 clf = PoniardClassifier(
     estimators=[HistGradientBoostingClassifier(), LogisticRegression()],
-    preprocessor_map={"HistGradientBoostingClassifier": "native"},
+    # HGB already maps to "native" by default; only non-default entries are
+    # stored in clf.preprocessor_map. Override explicitly to change that:
+    preprocessor_map={"HistGradientBoostingClassifier": "default"},
 )
 ```
 
@@ -109,7 +112,9 @@ untouched (tree models learn NaN split directions themselves) and
 ordinal-encodes categoricals as pandas `category` dtype so the estimator splits
 on them directly. It is only valid for `HistGradientBoosting*` estimators, which
 get `categorical_features="from_dtype"` set automatically as a side effect.
-Mapping it to anything else raises `ValueError`.
+Mapping it to anything else raises `ValueError`. The automatic HGB default is
+skipped when you supply a `custom_preprocessor` — your template then applies to
+every estimator unless explicitly mapped.
 
 Templates can be registered and assigned at runtime:
 
