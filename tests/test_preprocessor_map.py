@@ -307,3 +307,70 @@ def test_tuning_with_native_pipeline(X_y):
         grid={"HistGradientBoostingClassifier__learning_rate": [0.01, 0.1]},
     )
     assert "HistGradientBoostingClassifier_tuned" in clf.pipelines
+
+
+def test_ensemble_all_default_uses_default_preprocessor(X_y):
+    X, y = X_y
+    clf = PoniardClassifier(
+        estimators=[LogisticRegression(), LogisticRegression(max_iter=1000)],
+        cv=2,
+        random_state=0,
+    )
+    clf.fit(X, y, show_info=False)
+    clf.build_ensemble(
+        method="voting",
+        voting="soft",
+        estimator_names=["LogisticRegression", "LogisticRegression_2"],
+    )
+    pipe = clf.pipelines["VotingClassifier"]
+    assert "preprocessor" in [s for s, _ in pipe.steps]
+    assert pipe.named_steps["preprocessor"] is clf.preprocessors["default"]
+    assert clf.preprocessor_map["VotingClassifier"] == "default"
+    members = pipe.named_steps["VotingClassifier"].estimators
+    assert all(not hasattr(m, "steps") for _, m in members)
+
+
+def test_ensemble_all_native_uses_native_preprocessor(X_y):
+    X, y = X_y
+    clf = PoniardClassifier(
+        estimators={
+            "hgb1": HistGradientBoostingClassifier(max_iter=50, random_state=0),
+            "hgb2": HistGradientBoostingClassifier(max_iter=50, random_state=1),
+        },
+        cv=2,
+        random_state=0,
+        preprocessor_map={"hgb1": "native", "hgb2": "native"},
+    )
+    clf.fit(X, y, show_info=False)
+    clf.build_ensemble(method="voting", voting="soft", estimator_names=["hgb1", "hgb2"])
+    pipe = clf.pipelines["VotingClassifier"]
+    assert pipe.named_steps["preprocessor"] is clf.preprocessors["native"]
+    assert clf.preprocessor_map["VotingClassifier"] == "native"
+    clf.fit(X, y, show_info=False)
+    assert not clf.get_results().isna().any().any()
+
+
+@pytest.mark.parametrize("method", ["voting", "stacking"])
+def test_ensemble_mixed_preprocessors_fits_and_scores(X_y, method):
+    X, y = X_y
+    clf = PoniardClassifier(
+        estimators={
+            "hgb": HistGradientBoostingClassifier(max_iter=50, random_state=0),
+            "lr": LogisticRegression(max_iter=1000),
+        },
+        cv=2,
+        random_state=0,
+        preprocessor_map={"hgb": "native"},
+    )
+    clf.fit(X, y, show_info=False)
+    kwargs = {"voting": "soft"} if method == "voting" else {}
+    clf.build_ensemble(method=method, estimator_names=["hgb", "lr"], **kwargs)
+    name = "VotingClassifier" if method == "voting" else "StackingClassifier"
+    pipe = clf.pipelines[name]
+    assert len(pipe.steps) == 1  # bare, no outer preprocessor
+    members = pipe.named_steps[name].estimators
+    assert all(hasattr(m, "steps") for _, m in members)  # full pipelines
+    clf.fit(X, y, show_info=False)
+    results = clf.get_results()
+    assert name in results.index
+    assert not results.isna().any().any()

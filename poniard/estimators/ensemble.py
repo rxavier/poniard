@@ -78,7 +78,7 @@ class EnsembleMixin:
             raise ValueError("Strategy must be either 'diversity' or 'top_n'.")
         estimator_names = element_to_list_maybe(estimator_names)
         if estimator_names:
-            models = [(name, self.pipelines[name]._final_estimator) for name in estimator_names]
+            selected = list(estimator_names)
         elif strategy == "diversity" and X is not None and y is not None:
             selected = self._select_diverse(
                 top_n=top_n or 3,
@@ -87,7 +87,6 @@ class EnsembleMixin:
                 X=X,
                 y=y,
             )
-            models = [(name, self.pipelines[name]._final_estimator) for name in selected]
         else:
             if sort_by:
                 sorter = sort_by
@@ -99,7 +98,19 @@ class EnsembleMixin:
                 for name in self._means.sort_values(sorter, ascending=False).index
                 if name not in dummy
             ]
-            models = [(name, self.pipelines[name]._final_estimator) for name in eligible[:top_n]]
+            selected = eligible[:top_n]
+
+        # If every member maps to the same preprocessor, wrap the ensemble in it
+        # and pass bare estimators (preprocessing runs once). If members are
+        # mixed, each member carries its own full pipeline and the ensemble has
+        # no outer preprocessor.
+        member_preps = [self.preprocessor_map.get(name, "default") for name in selected]
+        same_preprocessor = len(set(member_preps)) == 1
+        if same_preprocessor:
+            models = [(name, self.pipelines[name]._final_estimator) for name in selected]
+        else:
+            models = [(name, self.pipelines[name]) for name in selected]
+
         if method == "voting":
             if self.poniard_task == "classification":
                 ensemble = VotingClassifier(estimators=models, verbose=self.verbose, **kwargs)
@@ -115,7 +126,11 @@ class EnsembleMixin:
                     estimators=models, verbose=self.verbose, cv=self.cv, **kwargs
                 )
         ensemble_name = ensemble_name or ensemble.__class__.__name__
-        self.add_estimators(estimators={ensemble_name: ensemble})
+        if same_preprocessor and self.preprocess:
+            self.preprocessor_map[ensemble_name] = member_preps[0]
+            self.add_estimators(estimators={ensemble_name: ensemble})
+        else:
+            self.add_estimators(estimators={ensemble_name: ensemble}, include_preprocessor=False)
         return self
 
     def _select_diverse(
