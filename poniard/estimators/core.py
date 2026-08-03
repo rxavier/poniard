@@ -15,7 +15,14 @@ import pandas as pd
 from sklearn.base import ClassifierMixin, RegressorMixin, TransformerMixin, clone
 from sklearn.compose import ColumnTransformer
 from sklearn.dummy import DummyClassifier, DummyRegressor
-from sklearn.ensemble import HistGradientBoostingClassifier, HistGradientBoostingRegressor
+from sklearn.ensemble import (
+    HistGradientBoostingClassifier,
+    HistGradientBoostingRegressor,
+    StackingClassifier,
+    StackingRegressor,
+    VotingClassifier,
+    VotingRegressor,
+)
 from sklearn.exceptions import UndefinedMetricWarning
 from sklearn.model_selection import (
     cross_val_predict,
@@ -494,7 +501,9 @@ class PoniardBaseEstimator(ResultsMixin, EnsembleMixin, TuningMixin, ABC):
     def _default_estimators(self) -> list[ClassifierMixin]:
         return []
 
-    def _make_pipeline(self, name: str, estimator) -> Pipeline:
+    def _make_pipeline(
+        self, name: str, estimator, include_preprocessor: bool | None = None
+    ) -> Pipeline:
         """Create a Pipeline for an estimator, optionally including the preprocessor.
 
         The estimator is cloned and configured (random_state, verbose) so the
@@ -505,10 +514,23 @@ class PoniardBaseEstimator(ResultsMixin, EnsembleMixin, TuningMixin, ABC):
         configured to output pandas DataFrames on ``transform``, propagating to
         any preprocessor step so downstream code keeps the pandas contract
         without relying on a global sklearn config.
+
+        Parameters
+        ----------
+        name :
+            Estimator name.
+        estimator :
+            The estimator to wrap.
+        include_preprocessor :
+            ``None`` (default) resolves from ``self.preprocess``. ``False``
+            builds a bare pipeline (used when the estimator already contains
+            its own preprocessing, e.g. mixed-preprocessor ensembles).
         """
         estimator = clone(estimator)
         self._pass_instance_attrs(estimator)
-        if self.preprocess:
+        if include_preprocessor is None:
+            include_preprocessor = self.preprocess
+        if include_preprocessor:
             prep_name = self.preprocessor_map.get(name, "default")
             preprocessor = self.preprocessors[prep_name]
             if prep_name == "native":
@@ -519,7 +541,7 @@ class PoniardBaseEstimator(ResultsMixin, EnsembleMixin, TuningMixin, ABC):
             )
         else:
             pipe = Pipeline([(name, estimator)])
-        if self.preprocess:
+        if include_preprocessor:
             pipe.set_output(transform="pandas")
         return pipe
 
@@ -527,12 +549,19 @@ class PoniardBaseEstimator(ResultsMixin, EnsembleMixin, TuningMixin, ABC):
     def _configure_native_estimator(estimator, name: str) -> None:
         """Couple the ``"native"`` preprocessor to a HistGradientBoosting estimator.
 
-        Only HistGradientBoosting estimators can consume the native categorical
-        and NaN handling; anything else is a misuse and is rejected here (the
-        single place every pipeline is built). Side effect: the cloned estimator
-        gets ``categorical_features="from_dtype"`` so pandas ``category`` columns
-        produced by the native preprocessor are split on directly.
+        Only HistGradientBoosting estimators (and ensembles thereof, whose
+        members are validated when their own pipelines are built) can consume
+        the native categorical and NaN handling; anything else is a misuse and
+        is rejected here (the single place every pipeline is built). Side
+        effect: the cloned estimator gets ``categorical_features="from_dtype"``
+        so pandas ``category`` columns produced by the native preprocessor are
+        split on directly.
         """
+        if isinstance(
+            estimator,
+            (VotingClassifier, StackingClassifier, VotingRegressor, StackingRegressor),
+        ):
+            return
         if not isinstance(
             estimator,
             (HistGradientBoostingClassifier, HistGradientBoostingRegressor),
@@ -1009,7 +1038,9 @@ class PoniardBaseEstimator(ResultsMixin, EnsembleMixin, TuningMixin, ABC):
         return Pipeline([("initial_preprocessor", preprocessor), step], memory=self._memory)
 
     def add_estimators(
-        self, estimators: dict[str, ClassifierMixin] | Sequence[ClassifierMixin]
+        self,
+        estimators: dict[str, ClassifierMixin] | Sequence[ClassifierMixin],
+        include_preprocessor: bool | None = None,
     ) -> PoniardBaseEstimator:
         """Include new estimator. This is the recommended way of adding an estimator (as opposed
         to modifying `pipelines` directly), since it also injects random state, n_jobs
@@ -1019,6 +1050,10 @@ class PoniardBaseEstimator(ResultsMixin, EnsembleMixin, TuningMixin, ABC):
         ----------
         estimators :
             Estimators to add.
+        include_preprocessor :
+            Forwarded to `_make_pipeline`. ``None`` (default) resolves from
+            ``self.preprocess``; ``False`` adds the estimator bare (used by
+            mixed-preprocessor ensembles whose members already preprocess).
 
         Returns
         -------
@@ -1046,7 +1081,9 @@ class PoniardBaseEstimator(ResultsMixin, EnsembleMixin, TuningMixin, ABC):
         ]
         self.pipelines.update(
             {
-                name: self._make_pipeline(name, estimator)
+                name: self._make_pipeline(
+                    name, estimator, include_preprocessor=include_preprocessor
+                )
                 for name, estimator in new_estimators.items()
             }
         )
