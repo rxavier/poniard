@@ -87,7 +87,7 @@ class PoniardClassifier(PoniardBaseEstimator):
         return [
             LogisticRegression(random_state=self.random_state, verbose=self.verbose, max_iter=5000),
             GaussianNB(),
-            KNeighborsClassifier(),
+            KNeighborsClassifier(n_jobs=self.n_jobs),
             DecisionTreeClassifier(random_state=self.random_state),
             RandomForestClassifier(
                 random_state=self.random_state, verbose=self.verbose, n_jobs=self.n_jobs

@@ -88,7 +88,7 @@ class PoniardRegressor(PoniardBaseEstimator):
             LinearRegression(),
             ElasticNet(random_state=self.random_state),
             LinearSVR(verbose=self.verbose, random_state=self.random_state, max_iter=5000),
-            KNeighborsRegressor(),
+            KNeighborsRegressor(n_jobs=self.n_jobs),
             DecisionTreeRegressor(random_state=self.random_state),
             RandomForestRegressor(
                 random_state=self.random_state, verbose=self.verbose, n_jobs=self.n_jobs
